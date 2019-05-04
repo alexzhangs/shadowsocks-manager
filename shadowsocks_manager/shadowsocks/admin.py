@@ -22,14 +22,14 @@ class ConfigAdmin(admin.ModelAdmin):
 class NodeAdmin(admin.ModelAdmin):
     fields = ('name', 'public_ip', ('manager_ip', 'manager_port'),
                   ('encrypt', 'timeout', 'fastopen'),
-                  'domain_name', 'location', 'is_active',
+                  'domain', 'location', 'is_active',
                   'transferred_totally', 'dt_created', 'dt_updated')
 
     readonly_fields = ('transferred_totally', 'dt_created', 'dt_updated')
 
     list_display = ('name', 'public_ip', 'manager_ip',
                         'manager_port', 'encrypt', 'timeout', 'fastopen',
-                        'domain_name', 'location', 'is_active',
+                        'domain', 'location', 'is_active',
                         'transferred_totally', 'dt_created', 'dt_updated')
 
 
@@ -47,7 +47,7 @@ class AccountAdmin(admin.ModelAdmin):
 @admin.register(NodeAccount)
 class NodeAccountAdmin(admin.ModelAdmin):
     exclude = ('transferred_totally',)
-    list_display = ('ssnode', 'account', 'transferred_totally',
+    list_display = ('node', 'account', 'transferred_totally',
                     'dt_created', 'dt_updated')
 
 
