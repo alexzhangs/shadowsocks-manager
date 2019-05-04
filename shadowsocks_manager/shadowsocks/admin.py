@@ -33,6 +33,15 @@ class NodeAdmin(admin.ModelAdmin):
                         'transferred_totally', 'dt_created', 'dt_updated')
 
 
+class NodeAccountInline(admin.TabularInline):
+    model = NodeAccount
+    extra = 1
+
+    readonly_fields = ('transferred_totally',)
+    list_display = ('node', 'account', 'transferred_totally',
+                    'dt_created', 'dt_updated')
+
+
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
     fields = ('username', 'password', 'first_name', 'last_name', 'email', 'is_active',
@@ -43,17 +52,15 @@ class AccountAdmin(admin.ModelAdmin):
     list_display = ('username', 'first_name', 'last_name', 'email', 'is_active',
                         'transferred_totally', 'date_joined', 'date_updated')
 
+    inlines = [
+        NodeAccountInline,
+    ]
 
-@admin.register(NodeAccount)
-class NodeAccountAdmin(admin.ModelAdmin):
-    exclude = ('transferred_totally',)
-    list_display = ('node', 'account', 'transferred_totally',
-                    'dt_created', 'dt_updated')
 
 
 @admin.register(MonthlyStatistics)
 class MonthlyStatisticsAdmin(admin.ModelAdmin):
-    exclude = ('transferred_monthly',)
+    readonly_fields = ('transferred_monthly',)
     list_display = ('year', 'month', 'transferred_monthly', 'content_object',
                     'dt_calculated')
 

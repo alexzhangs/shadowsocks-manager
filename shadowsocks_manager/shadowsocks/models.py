@@ -81,6 +81,17 @@ class Node(models.Model):
     class Meta:
         verbose_name = 'Shadowsocks Node'
 
+    def __init__(self, *args, **kwargs):
+        super(Node, self).__init__(*args, **kwargs)
+        if self.manager_ip and self.manager_port:
+            self.ssmanager = ManagerAPI(self.manager_ip, self.manager_port)
+        else:
+            self.ssmanager = None
+
+    def save(self, *args, **kwargs):
+        super(Node, self).save(*args, **kwargs)
+        self.ssmanager = ManagerAPI(self.manager_ip, self.manager_port)
+
     def __unicode__(self):
         return '%s (%s)' %(self.name, self.public_ip)
 
@@ -126,7 +137,7 @@ class Account(User):
         verbose_name = 'Shadowsocks Account'
 
     def __unicode__(self):
-        return '%s(%s)' % (self.get_username(), self.get_full_name())
+        return '%s (%s)' % (self.get_username(), self.get_full_name())
 
     def save(self, *args, **kwargs):
         ret = super(Account, self).save(*args, **kwargs)
@@ -174,14 +185,17 @@ class ManagerAPI(object):
                 ret = self.socket.recv(4096)
         except Exception as e:
             print(e)
-        finally:
-            self.socket.close()
 
         return ret
 
-    def add(self, port, password):
+    def _add(self, port, password):
         command = 'add: { "server_port": %s, "password": "%s" }' % (port, password)
         return self._call(command)
+
+    def add(self, port, password):
+        # try to remove the port first, adding a port twice will remove it.
+        self.remove(port)
+        self._add(port, password)
 
     def remove(self, port):
         command = 'remove: { "server_port": %s }' % port
@@ -191,6 +205,9 @@ class ManagerAPI(object):
         command = "ping"
         return self._call(command, read=True)
 
+    def update(self, port, password):
+        pass
+
 
 @receiver(post_save, sender=NodeAccount)
 def create_account_on_node(sender, instance, **kwargs):
@@ -198,32 +215,28 @@ def create_account_on_node(sender, instance, **kwargs):
     account = instance.account
 
     if account.is_active:
-        m = ManagerAPI(node.manager_ip, node.manager_port)
-        m.add(account.username, account.password)
+        node.ssmanager.add(account.username, account.password)
 
 @receiver(post_delete, sender=NodeAccount)
 def delete_account_on_node(sender, instance, **kwargs):
     node = instance.node
     account = instance.account
 
-    m = ManagerAPI(node.manager_ip, node.manager_port)
-    m.remove(account.username)
+    node.ssmanager.remove(account.username)
 
 @receiver(post_save, sender=Account)
-def update_account_on_nodes(sender, instance, update_fields, **kwargs):
-    if 'is_active' in update_fields:
-        for node_account in instance.nodes_ref.all():
-            if instance.is_active:
-                create_account_on_node(node_account)
-            else:
-                delete_account_on_node(node_account)
+def update_account_on_nodes(sender, instance, **kwargs):
+    for node in instance.nodes_ref.all():
+        if instance.is_active:
+            create_account_on_node(None, node)
+        else:
+            delete_account_on_node(None, node)
 
 @receiver(post_save, sender=Node)
 def update_accounts_on_node(sender, instance, update_fields, **kwargs):
-    if 'is_active' in update_fields:
-        for node_account in instance.accounts_ref.all():
-            if instance.is_active:
-                create_account_on_node(node_account)
-            else:
-                delete_account_on_node(node_account)
+    for account in instance.accounts_ref.all():
+        if instance.is_active:
+            create_account_on_node(None, account)
+        else:
+            delete_account_on_node(None, account)
 
