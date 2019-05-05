@@ -93,7 +93,7 @@ class Node(models.Model):
         self.ssmanager = ManagerAPI(self.manager_ip, self.manager_port)
 
     def __unicode__(self):
-        return '%s (%s)' %(self.name, self.public_ip)
+        return '%s (%s)' % (self.public_ip, self.name)
 
     @classmethod
     def _is_host_up(ip):
@@ -165,7 +165,7 @@ class NodeAccount(models.Model):
         unique_together = ('node', 'account')
 
     def __unicode__(self):
-        return '%s on %s' % ('account', 'node')
+        return '%s on %s' % (self.account, self.node)
 
     def is_alive(self):
         pass # TODO

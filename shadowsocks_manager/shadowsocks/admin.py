@@ -33,13 +33,23 @@ class NodeAdmin(admin.ModelAdmin):
                         'transferred_totally', 'dt_created', 'dt_updated')
 
 
+class ReadonlyNodeAccountInline(admin.TabularInline):
+    model = NodeAccount
+    extra = 0
+    readonly_fields = ('node', 'transferred_totally', 'dt_created', 'dt_updated',)
+
+    def has_add_permission(self, request):
+        return None
+
+
 class NodeAccountInline(admin.TabularInline):
     model = NodeAccount
     extra = 1
-
+    can_delete = False
     readonly_fields = ('transferred_totally',)
-    list_display = ('node', 'account', 'transferred_totally',
-                    'dt_created', 'dt_updated')
+
+    def has_change_permission(self, request):
+        return None
 
 
 @admin.register(Account)
@@ -53,14 +63,15 @@ class AccountAdmin(admin.ModelAdmin):
                         'transferred_totally', 'date_joined', 'date_updated')
 
     inlines = [
+        ReadonlyNodeAccountInline,
         NodeAccountInline,
     ]
-
 
 
 @admin.register(MonthlyStatistics)
 class MonthlyStatisticsAdmin(admin.ModelAdmin):
     readonly_fields = ('transferred_monthly',)
+
     list_display = ('year', 'month', 'transferred_monthly', 'content_object',
                     'dt_calculated')
 
