@@ -83,18 +83,14 @@ class Node(models.Model):
 
     def __init__(self, *args, **kwargs):
         super(Node, self).__init__(*args, **kwargs)
-        if self.manager_ip and self.manager_port:
-            self.ssmanager = ManagerAPI(self.manager_ip, self.manager_port)
-        else:
-            self.ssmanager = None
-
-    def save(self, *args, **kwargs):
-        super(Node, self).save(*args, **kwargs)
-        self.ssmanager = ManagerAPI(self.manager_ip, self.manager_port)
+        self.ssmanager = self.get_manager()
 
     def __unicode__(self):
         return '%s (%s)' % (self.public_ip, self.name)
 
+    def get_manager(self):
+        return ManagerAPI(self.manager_ip or self.public_ip, self.manager_port)
+        
     @classmethod
     def _is_host_up(ip):
         True if os.system("ping -c 1 " + ip) is 0 else False
@@ -214,7 +210,7 @@ def create_account_on_node(sender, instance, **kwargs):
     node = instance.node
     account = instance.account
 
-    if account.is_active:
+    if node.is_active and account.is_active:
         node.ssmanager.add(account.username, account.password)
 
 @receiver(post_delete, sender=NodeAccount)
@@ -227,7 +223,7 @@ def delete_account_on_node(sender, instance, **kwargs):
 @receiver(post_save, sender=Account)
 def update_account_on_nodes(sender, instance, **kwargs):
     for node in instance.nodes_ref.all():
-        if instance.is_active:
+        if instance.is_active and node.node.is_active:
             create_account_on_node(None, node)
         else:
             delete_account_on_node(None, node)
@@ -235,7 +231,7 @@ def update_account_on_nodes(sender, instance, **kwargs):
 @receiver(post_save, sender=Node)
 def update_accounts_on_node(sender, instance, update_fields, **kwargs):
     for account in instance.accounts_ref.all():
-        if instance.is_active:
+        if instance.is_active and account.account.is_active:
             create_account_on_node(None, account)
         else:
             delete_account_on_node(None, account)
