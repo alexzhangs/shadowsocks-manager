@@ -46,7 +46,7 @@ class NodeAccountInline(admin.TabularInline):
     model = NodeAccount
     extra = 1
     can_delete = False
-    readonly_fields = ('transferred_totally',)
+    fields = ('node',)
 
     def has_change_permission(self, request):
         return None
