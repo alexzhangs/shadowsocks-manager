@@ -28,8 +28,10 @@ class Config(models.Model):
     def __unicode__(self):
         return '%s-%s' % (self.port_begin, self.port_end)
 
+
 def set_year():
     return timezone.now().year
+
 
 def set_month():
     return timezone.now().month
@@ -90,7 +92,7 @@ class Node(models.Model):
 
     def get_manager(self):
         return ManagerAPI(self.manager_ip or self.public_ip, self.manager_port)
-        
+
     @classmethod
     def _is_host_up(ip):
         True if os.system("ping -c 1 " + ip) is 0 else False
@@ -131,6 +133,11 @@ class Account(User):
 
     class Meta:
         verbose_name = 'Shadowsocks Account'
+
+    def __init__(self, *args, **kwargs):
+        super(Account, self).__init__(*args, **kwargs)
+        self._original_username = self.username
+        self._original_is_active = self.is_active
 
     def __unicode__(self):
         return '%s (%s)' % (self.get_username(), self.get_full_name())
@@ -213,26 +220,47 @@ def create_account_on_node(sender, instance, **kwargs):
     if node.is_active and account.is_active:
         node.ssmanager.add(account.username, account.password)
 
+
 @receiver(post_delete, sender=NodeAccount)
-def delete_account_on_node(sender, instance, **kwargs):
+def delete_account_on_node(sender, instance, original=False, **kwargs):
     node = instance.node
     account = instance.account
 
-    node.ssmanager.remove(account.username)
+    if original:
+        node.ssmanager.remove(account._original_username)
+    else:
+        node.ssmanager.remove(account.username)
+
 
 @receiver(post_save, sender=Account)
-def update_account_on_nodes(sender, instance, **kwargs):
-    for node in instance.nodes_ref.all():
-        if instance.is_active and node.node.is_active:
-            create_account_on_node(None, node)
-        else:
-            delete_account_on_node(None, node)
+def update_by_account(sender, instance, **kwargs):
+    nas = instance.nodes_ref.all()
+
+    # delete old port if port is modified
+    if instance._original_username != instance.username and instance._original_is_active:
+        for na in nas:
+            if na.node.is_active:
+                delete_account_on_node(NodeAccount, na, original=True)
+
+    # create the port
+    if instance.is_active:
+        for na in nas:
+            if na.node.is_active:
+                create_account_on_node(NodeAccount, na)
+            else:
+                delete_account_on_node(NodeAccount, na)
+
 
 @receiver(post_save, sender=Node)
-def update_accounts_on_node(sender, instance, update_fields, **kwargs):
-    for account in instance.accounts_ref.all():
-        if instance.is_active and account.account.is_active:
-            create_account_on_node(None, account)
-        else:
-            delete_account_on_node(None, account)
+def update_by_node(sender, instance, update_fields, **kwargs):
+    nas = instance.accounts_ref.all()
+
+    if instance.is_active:
+        for na in nas:
+            if na.account.is_active:
+                create_account_on_node(NodeAccount, na)
+    else:
+        for na in nas:
+            if na.account.is_active:
+                delete_account_on_node(NodeAccount, na)
 
