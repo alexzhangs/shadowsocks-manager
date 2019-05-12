@@ -9,47 +9,70 @@ from .models import Config, Node, Account, NodeAccount, MonthlyStatistics
 # Register your models here.
 @admin.register(Config)
 class ConfigAdmin(admin.ModelAdmin):
-    fields = ('port_begin', 'port_end', 'admin_name', 'admin_email',
+    fields = ('port_begin', 'port_end', 'admin_name', 'admin_email', 'timeout',
                     'dt_created', 'dt_updated')
 
     readonly_fields = ('dt_created', 'dt_updated')
 
-    list_display = ('port_begin', 'port_end', 'admin_name', 'admin_email',
+    list_display = ('port_begin', 'port_end', 'admin_name', 'admin_email', 'timeout',
                     'dt_created', 'dt_updated')
-
-
-@admin.register(Node)
-class NodeAdmin(admin.ModelAdmin):
-    fields = ('name', 'public_ip', ('manager_ip', 'manager_port'),
-                  ('encrypt', 'timeout', 'fastopen'),
-                  'domain', 'location', 'is_active',
-                  'transferred_totally', 'dt_created', 'dt_updated')
-
-    readonly_fields = ('transferred_totally', 'dt_created', 'dt_updated')
-
-    list_display = ('name', 'public_ip', 'manager_ip',
-                        'manager_port', 'encrypt', 'timeout', 'fastopen',
-                        'domain', 'location', 'is_active',
-                        'transferred_totally', 'dt_created', 'dt_updated')
 
 
 class ReadonlyNodeAccountInline(admin.TabularInline):
     model = NodeAccount
     extra = 0
-    readonly_fields = ('node', 'transferred_totally', 'dt_created', 'dt_updated',)
+    readonly_fields = ('node', 'account', 'is_created', 'is_accessable', 'transferred_totally', 'dt_created', 'dt_updated')
 
     def has_add_permission(self, request):
         return None
+
+    def is_accessable(self, obj):
+        return obj.is_accessable
+
+    is_accessable.boolean = True
 
 
 class NodeAccountInline(admin.TabularInline):
     model = NodeAccount
     extra = 1
     can_delete = False
-    fields = ('node',)
+    fields = ('node', 'account')
 
     def has_change_permission(self, request):
         return None
+
+
+@admin.register(Node)
+class NodeAdmin(admin.ModelAdmin):
+    fields = ('name', 'public_ip', ('manager_ip', 'manager_port'),
+                  'is_active', 'domain', 'location',
+                  ('encrypt', 'timeout', 'fastopen'),
+                  'transferred_totally', 'dt_created', 'dt_updated')
+
+    readonly_fields = ('transferred_totally', 'dt_created', 'dt_updated')
+
+    list_display = ('name', 'public_ip', 'manager_ip', 'manager_port',
+                        'is_active', 'is_manager_accessable', 'is_dns_record_correct',
+                        'domain', 'location',
+                        'encrypt', 'timeout', 'fastopen',
+                        'transferred_totally', 'dt_created', 'dt_updated')
+
+    def is_manager_accessable(self, obj):
+        return obj.is_manager_accessable
+
+    is_manager_accessable.boolean = True
+
+    def is_dns_record_correct(self, obj):
+        return obj.is_dns_record_correct
+
+    is_dns_record_correct.boolean = True
+
+    inlines = [
+        ReadonlyNodeAccountInline,
+        NodeAccountInline,
+    ]
+
+    exclude = ('node',)
 
 
 @admin.register(Account)
@@ -66,6 +89,8 @@ class AccountAdmin(admin.ModelAdmin):
         ReadonlyNodeAccountInline,
         NodeAccountInline,
     ]
+
+    exclude = ('account',)
 
 
 @admin.register(MonthlyStatistics)

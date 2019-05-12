@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import socket
+import socket, time, json
+import logging
 from django.db import models
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
@@ -12,6 +13,9 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
 
+logger = logging.getLogger('django')
+
+
 # Create your models here.
 
 class Config(models.Model):
@@ -19,6 +23,7 @@ class Config(models.Model):
     port_end = models.PositiveIntegerField('End port', default=8480, help_text='Port range allowed for all Shadowsocks nodes, make sure they are opened on both network firewall and host firewall.')
     admin_name = models.CharField(max_length=32, null=True, blank=True, help_text='Appears in the account notification Email, if leave blank, the name of the logged in user will be used.')
     admin_email = models.CharField(max_length=64, null=True, blank=True, help_text='Appears in the account notification Email, if leave blank, the Email of the logged in user will be used, example: admin@shadowsocks.yourdomain.com.')
+    timeout = models.PositiveIntegerField('Network Timeout', default=5)
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -27,6 +32,10 @@ class Config(models.Model):
 
     def __unicode__(self):
         return '%s-%s' % (self.port_begin, self.port_end)
+
+    @classmethod
+    def get(cls, name):
+        return getattr(cls.objects.all()[0], name)
 
 
 def set_year():
@@ -54,6 +63,62 @@ class MonthlyStatistics(models.Model):
 
     def __unicode__(self):
         return '%s-%s %s %s' % (year, month, total_transferred, content_object)
+
+
+class Account(User):
+    transferred_totally = models.PositiveIntegerField('Transferred', default=0)
+    transferred_monthly = GenericRelation(MonthlyStatistics, related_query_name='account')
+    date_updated = models.DateTimeField('Date Updated', auto_now=True)
+
+    class Meta:
+        verbose_name = 'Shadowsocks Account'
+
+    def __init__(self, *args, **kwargs):
+        super(Account, self).__init__(*args, **kwargs)
+        self._original_username = self.username
+        self._original_password = self.password
+
+    def __unicode__(self):
+        return '%s (%s)' % (self.get_username(), self.get_full_name())
+
+    def save(self, *args, **kwargs):
+        ret = super(Account, self).save(*args, **kwargs)
+
+        # set a default group
+        obj = Group.objects.get(name='shadowsocks-clients')
+        if obj not in self.groups.all():
+            self.groups.add(obj)
+
+        return ret
+
+    def notify(self):
+        pass # TODO
+
+    def on_update(self):
+        for na in self.nodes_ref.all():
+
+            ## deletion stage
+
+            # if port is changed
+            if self._original_username != self.username:
+                # call on_delete() to handle deletion logic instead of a truely deletion
+                na.on_delete(original=True)
+
+            # if password is changed
+            elif self._original_password != self.password or not self.is_active:
+                # call on_delete() to handle deletion logic instead of a truely deletion
+                na.on_delete()
+
+            else:
+                pass
+
+            ## creation stage
+
+            if self.is_active:
+                # call on_create() to handle creation logic instead of a truely creation
+                na.on_create()
+            else:
+                pass
 
 
 class Node(models.Model):
@@ -86,6 +151,7 @@ class Node(models.Model):
     def __init__(self, *args, **kwargs):
         super(Node, self).__init__(*args, **kwargs)
         self.ssmanager = self.get_manager()
+        self.ssmanager.node = self
 
     def __unicode__(self):
         return '%s (%s)' % (self.public_ip, self.name)
@@ -94,66 +160,48 @@ class Node(models.Model):
         return ManagerAPI(self.manager_ip or self.public_ip, self.manager_port)
 
     @classmethod
-    def _is_host_up(ip):
-        True if os.system("ping -c 1 " + ip) is 0 else False
+    def is_port_open(cls, ip, port):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # TCP
 
-    @classmethod
-    def _is_port_open(ip, port):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
+            s.settimeout(Config.get('timeout')) # seconds
             s.connect((ip, int(port)))
-            s.shutdown(2)
+            s.shutdown(socket.SHUT_RDWR)
             return True
         except:
             return False
 
     @classmethod
-    def _get_dns_a_record(domain):
+    def get_dns_a_record(cls, domain):
+        ips = []
+
         try:
             truename, alias, ips = socket.gethostbyname_ex(domain)
         except Exception as e:
-            print(e)
+            logger.error(e)
 
         return ips
 
-    def is_public_accessable(self):
-        return Node._is_host_up(self.public_ip)
+    # test if Manager is up in UDP
+    @property
+    def is_manager_accessable(self):
+        return self.ssmanager.is_accessable
 
-    def is_manager_up(self):
-        return Node._is_port_open(self.manager_ip, self.manager_port)
-
+    # test if dns records match the public IP
+    @property
     def is_dns_record_correct(self):
         return self.public_ip in self.get_dns_a_record(self.domain)
 
+    # test if a port is open
+    def is_port_accessable(self, port, interface='public'):
+        return Node.is_port_open(getattr(self, '%s_ip' % interface.lower()), port)
 
-class Account(User):
-    transferred_totally = models.PositiveIntegerField('Transferred', default=0)
-    transferred_monthly = GenericRelation(MonthlyStatistics, related_query_name='account')
-    date_updated = models.DateTimeField('Date Updated', auto_now=True)
-
-    class Meta:
-        verbose_name = 'Shadowsocks Account'
-
-    def __init__(self, *args, **kwargs):
-        super(Account, self).__init__(*args, **kwargs)
-        self._original_username = self.username
-        self._original_is_active = self.is_active
-
-    def __unicode__(self):
-        return '%s (%s)' % (self.get_username(), self.get_full_name())
-
-    def save(self, *args, **kwargs):
-        ret = super(Account, self).save(*args, **kwargs)
-
-        # set a default group
-        obj = Group.objects.get(name='shadowsocks-clients')
-        if obj not in self.groups.all():
-            self.groups.add(obj)
-
-        return ret
-
-    def notify(self):
-        pass # TODO
+    def on_update(self):
+        for na in self.accounts_ref.all():
+            if self.is_active:
+                na.on_create()
+            else:
+                na.on_delete()
 
 
 class NodeAccount(models.Model):
@@ -170,97 +218,153 @@ class NodeAccount(models.Model):
     def __unicode__(self):
         return '%s on %s' % (self.account, self.node)
 
-    def is_alive(self):
-        pass # TODO
+    # test with Manager API ping
+    def is_created(self, original=False):
+        if original:
+            return self.node.ssmanager.is_port_created(self.account._original_username)
+        else:
+            return self.node.ssmanager.is_port_created(self.account.username)
+
+    is_created.boolean = True
+
+    # test if the port is connectable
+    @property
+    def is_accessable(self):
+        return self.node.is_port_accessable(self.account.username)
+
+    def on_create(self):
+        if self.node.ssmanager.is_accessable and not self.is_created():
+            retry(self.node.ssmanager.add_ex, port=self.account.username, password=self.account.password, count=5, delay=1)
+
+    def on_delete(self, original=False):
+        if original:
+            port = '_original_username'
+        else:
+            port = 'username'
+
+        if self.node.ssmanager.is_accessable and self.is_created(original=original):
+            retry(self.node.ssmanager.remove_ex, port=getattr(self.account, port), count=5, delay=1)
 
 
 class ManagerAPI(object):
-    def __init__(self, host, port, *args, **kwargs):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-        self.socket.connect((host, port))
 
-    def _call(self, command, read=False):
+    def __init__(self, host, port, *args, **kwargs):
+        super(ManagerAPI, self).__init__(*args, **kwargs)
+
+        self.host = host
+        self.port = port
+        self.node = None # set this if belongs to a Node
+
+    def __unicode__(self):
+        return '%s:%s' % (self.host, self.port)
+
+    def open(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+        self.socket.connect((self.host, self.port))
+
+    def close(self):
+        self.socket.close()
+
+    def call(self, command, read=False):
         ret = None
 
+        self.open()
         try:
             self.socket.send(bytes(command))
             if read:
+                self.socket.settimeout(Config.get('timeout'))
                 ret = self.socket.recv(4096)
+        except socket.timeout:
+            logger.error('timed out on calling command: %s' % command)
         except Exception as e:
-            print(e)
+            logger.error('unexpected error: %s' % e)
+            raise
+        finally:
+            self.close()
 
         return ret
 
-    def _add(self, port, password):
-        command = 'add: { "server_port": %s, "password": "%s" }' % (port, password)
-        return self._call(command)
-
     def add(self, port, password):
-        # try to remove the port first, adding a port twice will remove it.
-        self.remove(port)
-        self._add(port, password)
+        command = 'add: { "server_port": %s, "password": "%s" }' % (port, password)
+        self.call(command)
 
     def remove(self, port):
         command = 'remove: { "server_port": %s }' % port
-        return self._call(command)
+        self.call(command)
 
     def ping(self):
         command = "ping"
-        return self._call(command, read=True)
+        return self.call(command, read=True)
 
-    def update(self, port, password):
-        pass
+    def add_ex(self, port, password):
+        self.add(port, password)
+
+        return self.is_port_created(port)
+
+    def remove_ex(self, port):
+        self.remove(port)
+
+        return not self.is_port_created(port)
+
+
+    # test if a port is created with Manager API
+    def is_port_created(self, port):
+        stat = self.ping()
+        if stat:
+            obj = json.loads(stat.lstrip('stat: '))
+            return obj.has_key(str(port))
+        else:
+            return None
+
+    # test if the manager is in service
+    @property
+    def is_accessable(self):
+        return self.ping() is not None
+
+
+def retry(func, count=5, delay=0, *args, **kwargs):
+    for i in range(count):
+        ret = func(*args, **kwargs)
+
+        if ret:
+            return ret
+        else:
+            logger.warning('retrying %sth time in %s second(s)' % (i + 1, delay))
+            time.sleep(delay)
 
 
 @receiver(post_save, sender=NodeAccount)
 def create_account_on_node(sender, instance, **kwargs):
-    node = instance.node
-    account = instance.account
+    logger.info('in create_account_on_node')
 
-    if node.is_active and account.is_active:
-        node.ssmanager.add(account.username, account.password)
+    if sender == NodeAccount:
+        instance.on_create()
 
 
 @receiver(post_delete, sender=NodeAccount)
-def delete_account_on_node(sender, instance, original=False, **kwargs):
-    node = instance.node
-    account = instance.account
+def delete_account_on_node(sender, instance, **kwargs):
+    logger.info('in delete_account_on_node')
 
-    if original:
-        node.ssmanager.remove(account._original_username)
-    else:
-        node.ssmanager.remove(account.username)
+    if sender == NodeAccount:
+        instance.on_delete()
 
 
 @receiver(post_save, sender=Account)
 def update_by_account(sender, instance, **kwargs):
-    nas = instance.nodes_ref.all()
+    logger.info('in update_by_account')
 
-    # delete old port if port is modified
-    if instance._original_username != instance.username and instance._original_is_active:
-        for na in nas:
-            if na.node.is_active:
-                delete_account_on_node(NodeAccount, na, original=True)
-
-    # create the port
-    if instance.is_active:
-        for na in nas:
-            if na.node.is_active:
-                create_account_on_node(NodeAccount, na)
-            else:
-                delete_account_on_node(NodeAccount, na)
+    if sender == Account:
+        instance.on_update()
+    else:
+        pass
 
 
 @receiver(post_save, sender=Node)
-def update_by_node(sender, instance, update_fields, **kwargs):
-    nas = instance.accounts_ref.all()
+def update_by_node(sender, instance, **kwargs):
+    logger.info('in update_by_node')
 
-    if instance.is_active:
-        for na in nas:
-            if na.account.is_active:
-                create_account_on_node(NodeAccount, na)
+    if sender == Node:
+        instance.on_update()
     else:
-        for na in nas:
-            if na.account.is_active:
-                delete_account_on_node(NodeAccount, na)
+        pass
 
