@@ -12,13 +12,16 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
+from singleton.models import SingletonModel
+from notification.models import Template, Notify
+
 
 logger = logging.getLogger('django')
 
 
 # Create your models here.
 
-class Config(models.Model):
+class Config(SingletonModel):
     port_begin = models.PositiveIntegerField('Begin port', default=8381, help_text='Port range allowed for all Shadowsocks nodes, make sure they are opened on both network firewall and host firewall.')
     port_end = models.PositiveIntegerField('End port', default=8480, help_text='Port range allowed for all Shadowsocks nodes, make sure they are opened on both network firewall and host firewall.')
     admin_name = models.CharField(max_length=32, null=True, blank=True, help_text='Appears in the account notification Email, if leave blank, the name of the logged in user will be used.')
@@ -28,14 +31,7 @@ class Config(models.Model):
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
     class Meta:
-        verbose_name = 'Global Configuration'
-
-    def __unicode__(self):
-        return '%s-%s' % (self.port_begin, self.port_end)
-
-    @classmethod
-    def get(cls, name):
-        return getattr(cls.objects.all()[0], name)
+        verbose_name = 'Shadowsocks Configuration'
 
 
 def set_year():
@@ -137,7 +133,7 @@ class Node(models.Model):
         salsa20, chacha20 and chacha20-ietf.')
     timeout = models.PositiveIntegerField(default=30, help_text='Socket timeout in seconds for Shadowsocks client.')
     fastopen = models.BooleanField('Fast Open', default=False, help_text='Enable TCP fast open, with Linux kernel > 3.7.0.')
-    domain = models.CharField(max_length=64, null=True, blank=True, help_text='Domain name resolved to the node IP, appears in the account notification Email, if leave blank, the IP address for the node will be used, example: shadowsocks.yourdomain.com.')
+    domain = models.CharField(max_length=64, null=True, blank=True, help_text='Domain name resolved to the node IP, appears in the account notification Email, if leave blank, the public IP address for the node will be used, example: shadowsocks.yourdomain.com.')
     location = models.CharField(max_length=64, null=True, blank=True, help_text='Geography location for the node, appears in the account notification Email if not blank, example: Hongkong.')
     is_active = models.BooleanField(default=False, help_text='Is this node ready to be online')
     transferred_totally = models.PositiveIntegerField('Transferred', default=0, help_text='bytes transfered since the node created')
@@ -164,7 +160,7 @@ class Node(models.Model):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # TCP
 
         try:
-            s.settimeout(Config.get('timeout')) # seconds
+            s.settimeout(Config.load().timeout) # seconds
             s.connect((ip, int(port)))
             s.shutdown(socket.SHUT_RDWR)
             return True
@@ -272,7 +268,7 @@ class ManagerAPI(object):
         try:
             self.socket.send(bytes(command))
             if read:
-                self.socket.settimeout(Config.get('timeout'))
+                self.socket.settimeout(Config.load().timeout)
                 ret = self.socket.recv(4096)
         except socket.timeout:
             logger.error('timed out on calling command: %s' % command)
