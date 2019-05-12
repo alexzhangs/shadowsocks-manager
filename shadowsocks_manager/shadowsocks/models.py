@@ -24,9 +24,7 @@ logger = logging.getLogger('django')
 class Config(SingletonModel):
     port_begin = models.PositiveIntegerField('Begin port', default=8381, help_text='Port range allowed for all Shadowsocks nodes, make sure they are opened on both network firewall and host firewall.')
     port_end = models.PositiveIntegerField('End port', default=8480, help_text='Port range allowed for all Shadowsocks nodes, make sure they are opened on both network firewall and host firewall.')
-    admin_name = models.CharField(max_length=32, null=True, blank=True, help_text='Appears in the account notification Email, if leave blank, the name of the logged in user will be used.')
-    admin_email = models.CharField(max_length=64, null=True, blank=True, help_text='Appears in the account notification Email, if leave blank, the Email of the logged in user will be used, example: admin@shadowsocks.yourdomain.com.')
-    timeout = models.PositiveIntegerField('Network Timeout', default=5)
+    timeout = models.PositiveIntegerField('Network Timeout', default=5, help_text='Time out setting used by the manager internally, for communicating with SS nodes.')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 

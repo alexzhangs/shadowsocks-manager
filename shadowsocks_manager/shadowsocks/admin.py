@@ -3,19 +3,23 @@ from __future__ import unicode_literals
 
 from django.contrib import admin
 from django.contrib.auth.models import User, Group
+
 from .models import Config, Node, Account, NodeAccount, MonthlyStatistics
 
 
 # Register your models here.
 @admin.register(Config)
 class ConfigAdmin(admin.ModelAdmin):
-    fields = ('port_begin', 'port_end', 'admin_name', 'admin_email', 'timeout',
-                    'dt_created', 'dt_updated')
-
+    actions = None
+    fields = ('port_begin', 'port_end', 'timeout', 'dt_created', 'dt_updated')
     readonly_fields = ('dt_created', 'dt_updated')
+    list_display = ('port_begin', 'port_end', 'timeout', 'dt_created', 'dt_updated')
 
-    list_display = ('port_begin', 'port_end', 'admin_name', 'admin_email', 'timeout',
-                    'dt_created', 'dt_updated')
+    def has_add_permission(self, request):
+        return None
+
+    def has_delete_permission(self, request, obj=None):
+        return None
 
 
 class ReadonlyNodeAccountInline(admin.TabularInline):
