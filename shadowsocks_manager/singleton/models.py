@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import logging
 from django.db import models
 from django.core.cache import cache
+
+
+logger = logging.getLogger('django')
 
 
 # Create your models here.
@@ -26,8 +30,11 @@ class SingletonModel(models.Model):
 
     @classmethod
     def load(cls):
-        if cache.get(cls.__name__) is None:
+        obj = cache.get(cls.__name__)
+        if obj is None:
+            logger.debug("No cached Singleton object: %s, trying to fetch it beyond cache." % cls.__name__)
             obj, created = cls.objects.get_or_create(pk=1)
             if not created:
                 obj.set_cache()
-        return cache.get(cls.__name__)
+                
+        return obj
