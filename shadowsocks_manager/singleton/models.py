@@ -20,7 +20,7 @@ class SingletonModel(models.Model):
         pass
 
     def set_cache(self):
-        cache.set(self.__class__.__name__, self)
+        cache.set(self.__class__.get_cache_key(), self)
 
     def save(self, *args, **kwargs):
         self.pk = 1
@@ -29,8 +29,12 @@ class SingletonModel(models.Model):
         self.set_cache()
 
     @classmethod
+    def get_cache_key(cls):
+        return cls.__module__
+
+    @classmethod
     def load(cls):
-        obj = cache.get(cls.__name__)
+        obj = cache.get(cls.get_cache_key())
         if obj is None:
             logger.debug("No cached Singleton object: %s, trying to fetch it beyond cache." % cls.__name__)
             obj, created = cls.objects.get_or_create(pk=1)
