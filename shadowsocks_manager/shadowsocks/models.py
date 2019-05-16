@@ -13,7 +13,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
 from singleton.models import SingletonModel
-from notification.models import Template, Notify
+from notification.models import Config as NConfig, Template, Notify
 
 
 logger = logging.getLogger('django')
@@ -86,7 +86,35 @@ class Account(User):
         return ret
 
     def notify(self):
-        pass # TODO
+        if not self.email:
+            logger.error("There's no Email address configured for %s." % self.get_full_name())
+            return False
+
+        if not self.is_active:
+            logger.warning("Skipped sending account Email to %s(%s), beacause the user is inactive." % (self.email, self.get_full_name))
+            return False
+
+        nas = self.nodes_ref.filter(node__is_active=True)
+        if not nas:
+            logger.warning("Skipped sending account Email to %s(%s), there's no active node assigned." % (self.email, self.get_full_name()))
+            return False
+
+        template = Template.objects.get(type='account_created')
+
+        kwargs = {}
+        kwargs['account'] = self
+        kwargs['node_accounts'] = []
+        for na in nas:
+            d = {}
+            kwargs['node_accounts'].append(d)
+            d['node'] = na.node
+            d['account'] = na.account
+        kwargs['config'] = NConfig.load()
+
+        message = template.render(kwargs)
+
+        logger.info("Sending VPN account Email to %s(%s) on port %s" % (self.email, self.get_full_name(), self.username))
+        Notify.sendmail(message)
 
     def on_update(self):
         for na in self.nodes_ref.all():

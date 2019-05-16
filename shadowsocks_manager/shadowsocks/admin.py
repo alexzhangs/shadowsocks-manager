@@ -96,6 +96,14 @@ class AccountAdmin(admin.ModelAdmin):
 
     exclude = ('account',)
 
+    def notify(modeladmin, request, queryset):
+        for obj in queryset:
+            obj.notify()
+
+    notify.short_description = 'Send Notification Email to Selected Shadowsocks Accounts'
+
+    actions = (notify,)
+
 
 @admin.register(MonthlyStatistics)
 class MonthlyStatisticsAdmin(admin.ModelAdmin):
