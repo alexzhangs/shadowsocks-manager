@@ -145,7 +145,6 @@ class Account(User):
     def toggle_active(self):
         self.is_active = not self.is_active
         self.save()
-        return self.is_active
 
 
 class Node(models.Model):
@@ -233,7 +232,6 @@ class Node(models.Model):
     def toggle_active(self):
         self.is_active = not self.is_active
         self.save()
-        return self.is_active
 
 
 class NodeAccount(models.Model):
@@ -337,7 +335,6 @@ class ManagerAPI(object):
         self.remove(port)
 
         return not self.is_port_created(port)
-
 
     # test if a port is created with Manager API
     def is_port_created(self, port):

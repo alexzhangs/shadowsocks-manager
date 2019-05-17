@@ -80,8 +80,8 @@ class NodeAdmin(admin.ModelAdmin):
 
     def toggle_active(self, request, queryset):
         for obj in queryset:
-            is_active = obj.toggle_active()
-            messages.info(request, '%s %s now is %s' % (obj.__class__.__name__, obj, 'Active' if is_active else 'Inactive'))
+            obj.toggle_active()
+            messages.info(request, '%s %s now is %s' % (obj.__class__.__name__, obj, ('Active' if obj.is_active else 'Inactive')))
 
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Nodes'
 
@@ -116,8 +116,8 @@ class AccountAdmin(admin.ModelAdmin):
 
     def toggle_active(self, request, queryset):
         for obj in queryset:
-            is_active = obj.toggle_active()
-            messages.info(request, '%s %s now is %s' % (obj.__class__.__name__, obj, 'Active' if is_active else 'Inactive'))
+            obj.toggle_active()
+            messages.info(request, '%s %s now is %s' % (obj.__class__.__name__, obj, ('Active' if obj.is_active else 'Inactive')))
 
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Accounts'
 
