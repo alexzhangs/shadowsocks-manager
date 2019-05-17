@@ -142,6 +142,11 @@ class Account(User):
             else:
                 pass
 
+    def toggle_active(self):
+        self.is_active = not self.is_active
+        self.save()
+        return self.is_active
+
 
 class Node(models.Model):
     name = models.CharField(unique=True, max_length=32, help_text='Give the node a name.')
@@ -224,6 +229,11 @@ class Node(models.Model):
                 na.on_create()
             else:
                 na.on_delete()
+
+    def toggle_active(self):
+        self.is_active = not self.is_active
+        self.save()
+        return self.is_active
 
 
 class NodeAccount(models.Model):

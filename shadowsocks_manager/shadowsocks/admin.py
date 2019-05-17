@@ -78,6 +78,15 @@ class NodeAdmin(admin.ModelAdmin):
 
     exclude = ('node',)
 
+    def toggle_active(self, request, queryset):
+        for obj in queryset:
+            is_active = obj.toggle_active()
+            messages.info(request, '%s %s now is %s' % (obj.__class__.__name__, obj, 'Active' if is_active else 'Inactive'))
+
+    toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Nodes'
+
+    actions = (toggle_active,)
+
 
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
@@ -96,7 +105,7 @@ class AccountAdmin(admin.ModelAdmin):
 
     exclude = ('account',)
 
-    def notify(modeladmin, request, queryset):
+    def notify(self, request, queryset):
         for obj in queryset:
             if obj.notify():
                 messages.info(request, 'Message queued for %s(%s)' % (obj.email, obj.get_full_name()))
@@ -105,7 +114,14 @@ class AccountAdmin(admin.ModelAdmin):
 
     notify.short_description = 'Send Notification Email to Selected Shadowsocks Accounts'
 
-    actions = (notify,)
+    def toggle_active(self, request, queryset):
+        for obj in queryset:
+            is_active = obj.toggle_active()
+            messages.info(request, '%s %s now is %s' % (obj.__class__.__name__, obj, 'Active' if is_active else 'Inactive'))
+
+    toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Accounts'
+
+    actions = (toggle_active, notify,)
 
 
 @admin.register(MonthlyStatistics)
