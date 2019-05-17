@@ -114,7 +114,7 @@ class Account(User):
         message = template.render(kwargs)
 
         logger.info("Sending VPN account Email to %s(%s) on port %s" % (self.email, self.get_full_name(), self.username))
-        Notify.sendmail(message)
+        return Notify.sendmail(message)
 
     def on_update(self):
         for na in self.nodes_ref.all():

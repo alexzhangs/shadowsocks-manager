@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import logging, subprocess
+import logging
+import subprocess
+from subprocess import PIPE
 from django.db import models
 from django.template import engines, TemplateSyntaxError
 from django.template.loader import render_to_string
@@ -63,5 +65,18 @@ class Notify(models.Model):
                        "-F", config.sender_name,
                        "-f", config.sender_email,
                        "-t"]
-        p = subprocess.Popen(command, stdin=subprocess.PIPE)
-        p.communicate(message)
+        try:
+            proc = subprocess.Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            (stdout, stderr) = proc.communicate(message)
+            logger.debug(stdout)
+
+            rc = proc.wait()
+            if rc != 0:
+                logger.error('sendmail: return code: %s' % rc)
+                logger.error(stderr)
+                return False
+            else:
+                return True
+        except Exception as e:
+            logger.error(e)
+            return False

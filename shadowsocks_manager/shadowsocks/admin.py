@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.models import User, Group
 
 from .models import Config, Node, Account, NodeAccount, MonthlyStatistics
@@ -98,7 +98,10 @@ class AccountAdmin(admin.ModelAdmin):
 
     def notify(modeladmin, request, queryset):
         for obj in queryset:
-            obj.notify()
+            if obj.notify():
+                messages.info(request, 'Message queued for %s(%s)' % (obj.email, obj.get_full_name()))
+            else:
+                messages.error(request, 'Message not queued for %s(%s)' % (obj.email, obj.get_full_name()))
 
     notify.short_description = 'Send Notification Email to Selected Shadowsocks Accounts'
 
