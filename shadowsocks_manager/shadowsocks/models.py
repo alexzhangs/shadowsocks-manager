@@ -64,48 +64,94 @@ class Statistics(models.Model):
     def transferred(self):
         return self.transferred_past + self.transferred_live
 
-    def update_stat(self, data=None, timestamp=None):
-        # for NodeAccount
-        if self.content_type.name == 'NodeAccount':
-            if not stat or not timestamp:
-                logger.error("Parameters 'data' and 'timestamp' must be given with NodeAccount")
-                return False
-
-            transferred_live = data.get(self.content_object.account.username, 0)
-
-            # changing active/inactive status or restarting server clears the statistics
-            if transferred_live < self.transferred_live:
-                self.transferred_past += self.trasferred_live
-            else:
-                pass
-
-            self.transferred_live = transferred_live
-            self.dt_collected = timestamp
-            self.save()
-
-        # for Node and Account
+    @property
+    def period_type(self):
+        if self.year and self.month:
+            return 'Monthly'
+        elif self.year:
+            return 'Yearly'
+        elif not (self.year and self.month):
+            return 'Overall'
         else:
-            # collect Node or Account statistics data based on NodeAccount statistics data
-            kwargs = {
-                'content_type__name': 'NodeAccount',
-                'content_object__{0}'.format(self.content_type.name.lower()): self.content_object
+            logger.error('Unsupported period type: year %s, month %s' % (self.year, self.month))
+
+    @property
+    def object_type(self):
+        obj_type = content_type.name
+
+        if obj_type in ['NodeAccount', 'Node', 'Account']:
+            return obj_type
+        else:
+            logger.error('Unsupported object type: %s' % obj_type)
+
+    @property
+    def stat_type(self):
+        p = self.period_type
+        o = self.object_type
+        if p and o:
+            return p + o
+        else:
+            logger.error('Unable to get stat type')
+
+    def update_stat(self, data, timestamp):
+        # other than MonthlyNodeAccount, should use 'consolidate_stat'
+        assert(self.stat_type == 'MonthlyNodeAccount')
+
+        transferred_live = data.get(self.content_object.account.username, 0)
+        if transferred_live < self.transferred_live:
+            # changing active/inactive status or restarting server clears the statistics
+            self.transferred_past += self.trasferred_live
+        else:
+            pass
+
+        self.transferred_live = transferred_live
+        self.dt_collected = timestamp
+        self.save()
+
+    @property
+    def consolidate_policy(self):
+        policy = {
+            'MonthlyNodeAccount': {
+                'YearlyNodeAccount': {
+                    'OverallNodeAccount': None
+                },
+                'MonthlyNode': {
+                    'YearlyNode': {
+                        'OverallNode': None
+                    }
+                },
+                'MonthlyAccount': {
+                    'YearlyAccount': {
+                        'OverallAccount': None
+                    }
+                }
             }
+        }
 
-            mstat = self.__class__.objects.filter(**kwargs)
+        return policy
 
-            timestamp = None
-            transferred_past = 0
-            transferred_live = 0
+    def consolidate_filter(self):
+        pass
 
-            for obj in mstat:
-                transferred_past += obj.transferred_past
-                transferred_live += obj.transferred_live
-                timestamp = obj.dt_collected if obj.dt_collected > timestamp else timestamp
+    def consolidate_stat(self):
+        # MonthlyNodeAccount should use 'update_stat'
+        assert(self.stat_type != 'MonthlyNodeAccount')
 
-            self.transferred_past = transferred_past
-            self.transferred_live = transferred_live
-            self.dt_collected = timestamp
-            self.save()
+        timestamp = None
+        transferred_past = 0
+        transferred_live = 0
+
+        mstat = self.__class__.objects.filter(**self.consolidate_filter)
+
+        for obj in mstat:
+            transferred_past += obj.transferred_past
+            transferred_live += obj.transferred_live
+            timestamp = obj.dt_collected if obj.dt_collected > timestamp else timestamp
+
+        self.transferred_past = transferred_past
+        self.transferred_live = transferred_live
+        self.dt_collected = timestamp
+        self.save()
 
 
 class DynamicMethodModel(object):
