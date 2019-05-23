@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import socket, time, json
+import socket, time, json, types
 import logging
 from django.db import models
 from django.db.models.signals import post_save, post_delete
@@ -32,37 +32,173 @@ class Config(SingletonModel):
         verbose_name = 'Shadowsocks Configuration'
 
 
-def set_year():
-    return timezone.now().year
-
-
-def set_month():
-    return timezone.now().month
-
-
-class MonthlyStatistics(models.Model):
-    year = models.PositiveIntegerField(default=set_year)
-    month = models.PositiveIntegerField(default=set_month)
-    transferred_monthly = models.PositiveIntegerField(default=0)
+class Statistics(models.Model):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
-    dt_calculated = models.DateTimeField('Calculated')
+    transferred_past = models.PositiveIntegerField('Transferred in Past', default=0)
+    transferred_live = models.PositiveIntegerField('Transferred on Living Port', default=0)
+    year = models.PositiveIntegerField(null=True, blank=True)
+    month = models.PositiveIntegerField(null=True, blank=True)
+    dt_collected = models.DateTimeField('Collected', null=True, blank=True)
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
     class Meta:
-        verbose_name_plural = 'Monthly Statistics'
+        verbose_name = 'Statistics'
+        verbose_name_plural = verbose_name
         unique_together = ('year', 'month', 'content_type', 'object_id')
 
     def __unicode__(self):
-        return '%s-%s %s %s' % (year, month, total_transferred, content_object)
+        return '%s %s %s %s' % (self.content_type.name, self.content_object, self.transferred, self.period)
+
+    @property
+    def period(self):
+        return str(self.year) + ('-' + str(self.month) if self.month else '') if self.year else None
+
+    @property
+    def detailed_period(self):
+        return '~'.join([str(self.dt_created.date()), str(self.dt_updated.date())])
+
+    @property
+    def transferred(self):
+        return self.transferred_past + self.transferred_live
+
+    def update_stat(self, data=None, timestamp=None):
+        # for NodeAccount
+        if self.content_type.name == 'NodeAccount':
+            if not stat or not timestamp:
+                logger.error("Parameters 'data' and 'timestamp' must be given with NodeAccount")
+                return False
+
+            transferred_live = data.get(self.content_object.account.username, 0)
+
+            # changing active/inactive status or restarting server clears the statistics
+            if transferred_live < self.transferred_live:
+                self.transferred_past += self.trasferred_live
+            else:
+                pass
+
+            self.transferred_live = transferred_live
+            self.dt_collected = timestamp
+            self.save()
+
+        # for Node and Account
+        else:
+            # collect Node or Account statistics data based on NodeAccount statistics data
+            kwargs = {
+                'content_type__name': 'NodeAccount',
+                'content_object__{0}'.format(self.content_type.name.lower()): self.content_object
+            }
+
+            mstat = self.__class__.objects.filter(**kwargs)
+
+            timestamp = None
+            transferred_past = 0
+            transferred_live = 0
+
+            for obj in mstat:
+                transferred_past += obj.transferred_past
+                transferred_live += obj.transferred_live
+                timestamp = obj.dt_collected if obj.dt_collected > timestamp else timestamp
+
+            self.transferred_past = transferred_past
+            self.transferred_live = transferred_live
+            self.dt_collected = timestamp
+            self.save()
 
 
-class Account(User):
-    transferred_totally = models.PositiveIntegerField('Transferred', default=0)
-    transferred_monthly = GenericRelation(MonthlyStatistics, related_query_name='account')
-    date_updated = models.DateTimeField('Date Updated', auto_now=True)
+class DynamicMethodModel(object):
+
+    dynamic_methods = []
+
+    class Meta:
+        abstract = True
+
+    def create_method(self, data, name, decorator=None):
+        if isinstance(data, (str, unicode)):
+            #logger.info('%s.%s: Generating code object from str object' % (self, name))
+            try:
+                code = compile(data, '<stdin>', 'exec')
+            except SyntaxError as e:
+                logger.error(e)
+                return None
+        else:
+            code = data
+
+        if isinstance(code, types.CodeType):
+            #logger.info('%s.%s: Generating function object from code object' % (self, name))
+            func = types.FunctionType(code.co_consts[0], globals())
+        else:
+            logger.error('Unable to generate FunctionType with the input data: %s' % data)
+            return None
+
+        if decorator and decorator.get('property', None):
+            func = property(func)
+
+        setattr(self.__class__, name, func)
+
+    def __init__(self, *args, **kwargs):
+        super(DynamicMethodModel, self).__init__(*args, **kwargs)
+
+        for dm in self.__class__.dynamic_methods:
+            template = dm['template']
+            method = dm['method']
+
+            for key in method.keys():
+                m = method[key]
+                variables = m.get('variables', None)
+                prop = m.get('property', None)
+
+                self.create_method(
+                    data=template % tuple(variables),
+                    name=key,
+                    decorator={'property': prop}
+                )
+
+
+class StatisticsMethod(models.Model, DynamicMethodModel):
+
+    ## each '%s' within <template> will be replaced with the value of <variables> ##
+    dynamic_methods = [{
+        'template': '''
+def foo(self):
+    kwargs = {
+        "content_type": ContentType.objects.get_for_model(self),
+        "object_id": self.pk,
+        "year": None,
+        "month": None
+    }
+    return Statistics.objects.get(**kwargs).%s
+''',
+
+        'method': {
+            'transferred_past': {
+                'variables': ['transferred_past'],
+                'property': True
+            },
+            'transferred_live': {
+                'variables': ['transferred_live'],
+                'property': True
+            },
+            'transferred': {
+                'variables': ['transferred'],
+                'property': True
+            },
+            'dt_collected': {
+                'variables': ['dt_collected'],
+                'property': True
+            }
+        }
+    }]
+
+    class Meta:
+        abstract = True
+
+
+class Account(User, StatisticsMethod):
+    statistics = GenericRelation(Statistics, related_query_name='account')
+    dt_updated = models.DateTimeField('Updated', auto_now=True)
 
     class Meta:
         verbose_name = 'Shadowsocks Account'
@@ -147,7 +283,7 @@ class Account(User):
         self.save()
 
 
-class Node(models.Model):
+class Node(StatisticsMethod):
     name = models.CharField(unique=True, max_length=32, help_text='Give the node a name.')
     public_ip = models.GenericIPAddressField('Public IP', protocol='both', unpack_ipv4=True, unique=True, help_text='Public IP address for Shadowsocks clients.')
     manager_ip = models.GenericIPAddressField(protocol='both', unpack_ipv4=True, unique=True, null=True, blank=True, help_text='IP address bound to Manager API, use an internal IP if possible, leave it blank if the same with public IP address.')
@@ -166,8 +302,7 @@ class Node(models.Model):
     domain = models.CharField(max_length=64, null=True, blank=True, help_text='Domain name resolved to the node IP, appears in the account notification Email, if leave blank, the public IP address for the node will be used, example: shadowsocks.yourdomain.com.')
     location = models.CharField(max_length=64, null=True, blank=True, help_text='Geography location for the node, appears in the account notification Email if not blank, example: Hongkong.')
     is_active = models.BooleanField(default=False, help_text='Is this node ready to be online')
-    transferred_totally = models.PositiveIntegerField('Transferred', default=0, help_text='bytes transfered since the node created')
-    transferred_monthly = GenericRelation(MonthlyStatistics, related_query_name='node')
+    transferred = GenericRelation(Statistics, related_query_name='node')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -233,11 +368,36 @@ class Node(models.Model):
         self.is_active = not self.is_active
         self.save()
 
+    def statistics(self):
+        if self.is_active:
+            ts = timezone.now()
+            stat = self.ssmanager.ping()
+            if stat:
+                obj = json.loads(stat.lstrip('stat: '))
 
-class NodeAccount(models.Model):
+                for na in self.accounts_ref.filter(account__is_active=True):
+                    mstat = Statistics.objects.get_or_create(
+                        content_object=na,
+                        year=ts.year,
+                        month=ts.month)
+                    if mstat:
+                        mstat.update_stat(obj, ts)
+                    else:
+                        logger.error('Failed to get or craete a %s object' % Statistics.__name__)
+
+                    na.update_stat()
+
+            else:
+                # do nothing if no stat data returned
+                pass
+        else:
+            # no nothing if the node is inactive
+            pass
+
+
+class NodeAccount(StatisticsMethod):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='accounts_ref')
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='nodes_ref')
-    transferred_totally = models.PositiveIntegerField('Transferred', default=0)
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 

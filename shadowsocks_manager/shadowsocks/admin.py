@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from django.contrib import admin, messages
 from django.contrib.auth.models import User, Group
 
-from .models import Config, Node, Account, NodeAccount, MonthlyStatistics
+from .models import Config, Node, Account, NodeAccount, Statistics
 
 
 # Register your models here.
@@ -25,7 +25,10 @@ class ConfigAdmin(admin.ModelAdmin):
 class ReadonlyNodeAccountInline(admin.TabularInline):
     model = NodeAccount
     extra = 0
-    readonly_fields = ('node', 'account', 'is_created', 'is_accessable', 'transferred_totally', 'dt_created', 'dt_updated')
+    fields = ('node', 'account', 'is_created', 'is_accessable',
+                           'transferred', 'dt_collected', 'dt_created', 'dt_updated')
+
+    readonly_fields = fields
 
     def has_add_permission(self, request):
         return None
@@ -34,6 +37,12 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
         return obj.is_accessable
 
     is_accessable.boolean = True
+
+    def transferred(self, obj):
+        return obj.transferred
+
+    def dt_collected(self, obj):
+        return obj.dt_collected
 
 
 class NodeAccountInline(admin.TabularInline):
@@ -50,26 +59,36 @@ class NodeAccountInline(admin.TabularInline):
 class NodeAdmin(admin.ModelAdmin):
     fields = ('name', 'public_ip', ('manager_ip', 'manager_port'),
                   'is_active', 'domain', 'location',
+                  'transferred', 'dt_collected',
                   ('encrypt', 'timeout', 'fastopen'),
-                  'transferred_totally', 'dt_created', 'dt_updated')
+                  'dt_created', 'dt_updated')
 
-    readonly_fields = ('transferred_totally', 'dt_created', 'dt_updated')
+    readonly_fields = ('transferred', 'dt_collected', 'dt_created', 'dt_updated')
 
     list_display = ('name', 'public_ip', 'manager_ip', 'manager_port',
                         'is_active', 'is_manager_accessable', 'is_dns_record_correct',
                         'domain', 'location',
+                        'transferred', 'dt_collected',
                         'encrypt', 'timeout', 'fastopen',
-                        'transferred_totally', 'dt_created', 'dt_updated')
+                        'dt_created', 'dt_updated')
 
     def is_manager_accessable(self, obj):
         return obj.is_manager_accessable
 
     is_manager_accessable.boolean = True
+    is_manager_accessable.short_description = 'Manager'
 
     def is_dns_record_correct(self, obj):
         return obj.is_dns_record_correct
 
     is_dns_record_correct.boolean = True
+    is_dns_record_correct.short_description = 'DNS'
+
+    def transferred(self, obj):
+        return obj.transferred
+
+    def dt_collected(self, obj):
+        return obj.dt_collected
 
     inlines = [
         ReadonlyNodeAccountInline,
@@ -85,18 +104,30 @@ class NodeAdmin(admin.ModelAdmin):
 
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Nodes'
 
-    actions = (toggle_active,)
+    def statistics(self, request, queryset):
+        for obj in queryset:
+            obj.statistics()
+
+    statistics.short_description = 'Collect Statistics Data for Selected Shadwosocks Nodes'
+
+    actions = (toggle_active, statistics)
 
 
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
     fields = ('username', 'password', 'first_name', 'last_name', 'email', 'is_active',
-                  'groups', 'transferred_totally', 'date_joined', 'date_updated')
+                  'groups', 'transferred', 'dt_collected', 'date_joined', 'dt_updated')
 
-    readonly_fields = ('groups', 'transferred_totally', 'date_joined', 'date_updated')
+    readonly_fields = ('groups', 'transferred', 'dt_collected', 'date_joined', 'dt_updated')
 
     list_display = ('username', 'first_name', 'last_name', 'email', 'is_active',
-                        'transferred_totally', 'date_joined', 'date_updated')
+                        'transferred', 'dt_collected', 'date_joined', 'dt_updated')
+
+    def transferred(self, obj):
+        return obj.transferred
+
+    def dt_collected(self, obj):
+        return obj.dt_collected
 
     inlines = [
         ReadonlyNodeAccountInline,
@@ -124,10 +155,8 @@ class AccountAdmin(admin.ModelAdmin):
     actions = (toggle_active, notify,)
 
 
-@admin.register(MonthlyStatistics)
-class MonthlyStatisticsAdmin(admin.ModelAdmin):
-    readonly_fields = ('transferred_monthly',)
-
-    list_display = ('year', 'month', 'transferred_monthly', 'content_object',
-                    'dt_calculated')
+@admin.register(Statistics)
+class StatisticsAdmin(admin.ModelAdmin):
+    list_display = ('content_object', 'transferred', 'period',
+                    'dt_collected', 'dt_created', 'dt_updated')
 
