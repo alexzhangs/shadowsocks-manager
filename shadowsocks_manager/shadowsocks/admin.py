@@ -104,13 +104,13 @@ class NodeAdmin(admin.ModelAdmin):
 
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Nodes'
 
-    def statistics(self, request, queryset):
+    def collect_stat(self, request, queryset):
         for obj in queryset:
-            obj.statistics()
+            obj.collect_stat()
 
-    statistics.short_description = 'Collect Statistics Data for Selected Shadwosocks Nodes'
+    collect_stat.short_description = 'Collect Statistics Data for Selected Shadwosocks Nodes'
 
-    actions = (toggle_active, statistics)
+    actions = (toggle_active, collect_stat)
 
 
 @admin.register(Account)

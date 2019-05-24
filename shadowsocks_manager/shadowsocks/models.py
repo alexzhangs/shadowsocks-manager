@@ -77,7 +77,7 @@ class Statistics(models.Model):
 
     @property
     def object_type(self):
-        obj_type = content_type.name
+        obj_type = self.content_type.model_class().__name__
 
         if obj_type in ['NodeAccount', 'Node', 'Account']:
             return obj_type
@@ -348,7 +348,7 @@ class Node(StatisticsMethod):
     domain = models.CharField(max_length=64, null=True, blank=True, help_text='Domain name resolved to the node IP, appears in the account notification Email, if leave blank, the public IP address for the node will be used, example: shadowsocks.yourdomain.com.')
     location = models.CharField(max_length=64, null=True, blank=True, help_text='Geography location for the node, appears in the account notification Email if not blank, example: Hongkong.')
     is_active = models.BooleanField(default=False, help_text='Is this node ready to be online')
-    transferred = GenericRelation(Statistics, related_query_name='node')
+    statistics = GenericRelation(Statistics, related_query_name='node')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -414,7 +414,7 @@ class Node(StatisticsMethod):
         self.is_active = not self.is_active
         self.save()
 
-    def statistics(self):
+    def collect_stat(self):
         if self.is_active:
             ts = timezone.now()
             stat = self.ssmanager.ping()
@@ -422,16 +422,7 @@ class Node(StatisticsMethod):
                 obj = json.loads(stat.lstrip('stat: '))
 
                 for na in self.accounts_ref.filter(account__is_active=True):
-                    mstat = Statistics.objects.get_or_create(
-                        content_object=na,
-                        year=ts.year,
-                        month=ts.month)
-                    if mstat:
-                        mstat.update_stat(obj, ts)
-                    else:
-                        logger.error('Failed to get or craete a %s object' % Statistics.__name__)
-
-                    na.update_stat()
+                    na.update_stat(obj, ts)
 
             else:
                 # do nothing if no stat data returned
@@ -444,6 +435,7 @@ class Node(StatisticsMethod):
 class NodeAccount(StatisticsMethod):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='accounts_ref')
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='nodes_ref')
+    statistics = GenericRelation(Statistics, related_query_name='nodeaccount')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -480,6 +472,17 @@ class NodeAccount(StatisticsMethod):
 
         if self.node.ssmanager.is_accessable and self.is_created(original=original):
             retry(self.node.ssmanager.remove_ex, port=getattr(self.account, port), count=5, delay=1)
+
+    def update_stat(self, data, timestamp):
+        stat, created = Statistics.objects.get_or_create(
+            content_type=ContentType.objects.get_for_model(self),
+            object_id=self.pk,
+            year=timestamp.year,
+            month=timestamp.month)
+        if stat:
+            stat.update_stat(data, timestamp)
+        else:
+            logger.error('Failed to get or craete a %s object' % Statistics.__name__)
 
 
 class ManagerAPI(object):
