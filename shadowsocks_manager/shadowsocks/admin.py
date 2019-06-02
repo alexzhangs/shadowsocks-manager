@@ -27,7 +27,7 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
     model = NodeAccount
     extra = 0
     fields = ('node', 'account', 'is_created', 'is_accessable',
-                           'transferred', 'dt_collected', 'dt_created', 'dt_updated')
+                           'transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
 
     readonly_fields = fields
 
@@ -39,12 +39,15 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
 
     is_accessable.boolean = True
 
-    def transferred(self, obj):
-        return obj.transferred
+    def transferred_totally(self, obj):
+        return obj.transferred_totally
+
+    transferred_totally.short_description = 'Transferred'
 
     def dt_collected(self, obj):
         return obj.dt_collected
 
+    dt_collected.short_description = 'Collected'
 
 class NodeAccountInline(admin.TabularInline):
     model = NodeAccount
@@ -60,16 +63,16 @@ class NodeAccountInline(admin.TabularInline):
 class NodeAdmin(admin.ModelAdmin):
     fields = ('name', 'public_ip', ('manager_ip', 'manager_port'),
                   'is_active', 'domain', 'location',
-                  'transferred', 'dt_collected',
+                  'transferred_totally', 'dt_collected',
                   ('encrypt', 'timeout', 'fastopen'),
                   'dt_created', 'dt_updated')
 
-    readonly_fields = ('transferred', 'dt_collected', 'dt_created', 'dt_updated')
+    readonly_fields = ('transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
 
     list_display = ('name', 'public_ip', 'manager_ip', 'manager_port',
                         'is_active', 'is_manager_accessable', 'is_dns_record_correct',
                         'domain', 'location',
-                        'transferred', 'dt_collected',
+                        'transferred_totally', 'dt_collected',
                         'encrypt', 'timeout', 'fastopen',
                         'dt_created', 'dt_updated')
 
@@ -85,11 +88,15 @@ class NodeAdmin(admin.ModelAdmin):
     is_dns_record_correct.boolean = True
     is_dns_record_correct.short_description = 'DNS'
 
-    def transferred(self, obj):
-        return obj.transferred
+    def transferred_totally(self, obj):
+        return obj.transferred_totally
+
+    transferred_totally.short_description = 'Transferred'
 
     def dt_collected(self, obj):
         return obj.dt_collected
+
+    dt_collected.short_description = 'Collected'
 
     inlines = [
         ReadonlyNodeAccountInline,
@@ -111,18 +118,22 @@ class NodeAdmin(admin.ModelAdmin):
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
     fields = ('username', 'password', 'first_name', 'last_name', 'email', 'is_active',
-                  'groups', 'transferred', 'dt_collected', 'date_joined', 'dt_updated')
+                  'groups', 'transferred_totally', 'dt_collected', 'date_joined', 'dt_updated')
 
-    readonly_fields = ('groups', 'transferred', 'dt_collected', 'date_joined', 'dt_updated')
+    readonly_fields = ('groups', 'transferred_totally', 'dt_collected', 'date_joined', 'dt_updated')
 
     list_display = ('username', 'first_name', 'last_name', 'email', 'is_active',
-                        'transferred', 'dt_collected', 'date_joined', 'dt_updated')
+                        'transferred_totally', 'dt_collected', 'date_joined', 'dt_updated')
 
-    def transferred(self, obj):
-        return obj.transferred
+    def transferred_totally(self, obj):
+        return obj.transferred_totally
+
+    transferred_totally.short_description = 'Transferred'
 
     def dt_collected(self, obj):
         return obj.dt_collected
+
+    dt_collected.short_description = 'Collected'
 
     inlines = [
         ReadonlyNodeAccountInline,

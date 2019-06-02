@@ -55,7 +55,7 @@ def dynamic_method_template(self):
                 'variables': ['transferred_live'],
                 'property': True
             },
-            'transferred': {
+            'transferred_totally': {
                 'variables': ['transferred'],
                 'property': True
             },
