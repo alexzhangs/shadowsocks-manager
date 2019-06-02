@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import socket, time, json, types
+import socket, time, json
 import logging
 from django.db import models
 from django.db.models.signals import post_save, post_delete
@@ -13,6 +13,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
 from singleton.models import SingletonModel
+from dynamicmethod.models import DynamicMethodModel
 from notification.models import Config as NConfig, Template, Notify
 
 
@@ -154,68 +155,20 @@ class Statistics(models.Model):
         self.save()
 
 
-class DynamicMethodModel(object):
-
-    dynamic_methods = []
-
-    class Meta:
-        abstract = True
-
-    def create_method(self, data, name, decorator=None):
-        if isinstance(data, (str, unicode)):
-            #logger.info('%s.%s: Generating code object from str object' % (self, name))
-            try:
-                code = compile(data, '<stdin>', 'exec')
-            except SyntaxError as e:
-                logger.error(e)
-                return None
-        else:
-            code = data
-
-        if isinstance(code, types.CodeType):
-            #logger.info('%s.%s: Generating function object from code object' % (self, name))
-            func = types.FunctionType(code.co_consts[0], globals())
-        else:
-            logger.error('Unable to generate FunctionType with the input data: %s' % data)
-            return None
-
-        if decorator and decorator.get('property', None):
-            func = property(func)
-
-        setattr(self.__class__, name, func)
-
-    def __init__(self, *args, **kwargs):
-        super(DynamicMethodModel, self).__init__(*args, **kwargs)
-
-        for dm in self.__class__.dynamic_methods:
-            template = dm['template']
-            method = dm['method']
-
-            for key in method.keys():
-                m = method[key]
-                variables = m.get('variables', None)
-                prop = m.get('property', None)
-
-                self.create_method(
-                    data=template % tuple(variables),
-                    name=key,
-                    decorator={'property': prop}
-                )
-
-
 class StatisticsMethod(models.Model, DynamicMethodModel):
 
     ## each '%s' within <template> will be replaced with the value of <variables> ##
     dynamic_methods = [{
         'template': '''
-def foo(self):
+
+def dynamic_method_template(self):
+    import statistics
     kwargs = {
-        "content_type": ContentType.objects.get_for_model(self),
-        "object_id": self.pk,
-        "year": None,
-        "month": None
+        self.__class__.__name__.lower(): self,
+        "period": None
     }
-    return Statistics.objects.get(**kwargs).%s
+    return statistics.models.Statistics.objects.get(**kwargs).%s
+
 ''',
 
         'method': {
