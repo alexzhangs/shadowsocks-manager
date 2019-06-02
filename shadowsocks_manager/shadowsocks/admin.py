@@ -4,10 +4,11 @@ from __future__ import unicode_literals
 from django.contrib import admin, messages
 from django.contrib.auth.models import User, Group
 
-from .models import Config, Node, Account, NodeAccount, Statistics
+from .models import Config, Node, Account, NodeAccount
 
 
 # Register your models here.
+
 @admin.register(Config)
 class ConfigAdmin(admin.ModelAdmin):
     actions = None
@@ -104,13 +105,7 @@ class NodeAdmin(admin.ModelAdmin):
 
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Nodes'
 
-    def collect_stat(self, request, queryset):
-        for obj in queryset:
-            obj.collect_stat()
-
-    collect_stat.short_description = 'Collect Statistics Data for Selected Shadwosocks Nodes'
-
-    actions = (toggle_active, collect_stat)
+    actions = (toggle_active,)
 
 
 @admin.register(Account)
@@ -153,10 +148,3 @@ class AccountAdmin(admin.ModelAdmin):
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Accounts'
 
     actions = (toggle_active, notify,)
-
-
-@admin.register(Statistics)
-class StatisticsAdmin(admin.ModelAdmin):
-    list_display = ('content_object', 'transferred', 'period',
-                    'dt_collected', 'dt_created', 'dt_updated')
-

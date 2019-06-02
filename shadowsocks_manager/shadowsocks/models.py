@@ -7,10 +7,7 @@ from django.db import models
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import User, Group
-from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.fields import GenericRelation
-from django.contrib.contenttypes.models import ContentType
-from django.utils import timezone
 
 from singleton.models import SingletonModel
 from dynamicmethod.models import DynamicMethodModel
@@ -31,128 +28,6 @@ class Config(SingletonModel):
 
     class Meta:
         verbose_name = 'Shadowsocks Configuration'
-
-
-class Statistics(models.Model):
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
-    transferred_past = models.PositiveIntegerField('Transferred in Past', default=0)
-    transferred_live = models.PositiveIntegerField('Transferred on Living Port', default=0)
-    year = models.PositiveIntegerField(null=True, blank=True)
-    month = models.PositiveIntegerField(null=True, blank=True)
-    dt_collected = models.DateTimeField('Collected', null=True, blank=True)
-    dt_created = models.DateTimeField('Created', auto_now_add=True)
-    dt_updated = models.DateTimeField('Updated', auto_now=True)
-
-    class Meta:
-        verbose_name = 'Statistics'
-        verbose_name_plural = verbose_name
-        unique_together = ('year', 'month', 'content_type', 'object_id')
-
-    def __unicode__(self):
-        return '%s %s %s %s' % (self.content_type.name, self.content_object, self.transferred, self.period)
-
-    @property
-    def period(self):
-        return str(self.year) + ('-' + str(self.month) if self.month else '') if self.year else None
-
-    @property
-    def detailed_period(self):
-        return '~'.join([str(self.dt_created.date()), str(self.dt_updated.date())])
-
-    @property
-    def transferred(self):
-        return self.transferred_past + self.transferred_live
-
-    @property
-    def period_type(self):
-        if self.year and self.month:
-            return 'Monthly'
-        elif self.year:
-            return 'Yearly'
-        elif not (self.year and self.month):
-            return 'Overall'
-        else:
-            logger.error('Unsupported period type: year %s, month %s' % (self.year, self.month))
-
-    @property
-    def object_type(self):
-        obj_type = self.content_type.model_class().__name__
-
-        if obj_type in ['NodeAccount', 'Node', 'Account']:
-            return obj_type
-        else:
-            logger.error('Unsupported object type: %s' % obj_type)
-
-    @property
-    def stat_type(self):
-        p = self.period_type
-        o = self.object_type
-        if p and o:
-            return p + o
-        else:
-            logger.error('Unable to get stat type')
-
-    def update_stat(self, data, timestamp):
-        # other than MonthlyNodeAccount, should use 'consolidate_stat'
-        assert(self.stat_type == 'MonthlyNodeAccount')
-
-        transferred_live = data.get(self.content_object.account.username, 0)
-        if transferred_live < self.transferred_live:
-            # changing active/inactive status or restarting server clears the statistics
-            self.transferred_past += self.trasferred_live
-        else:
-            pass
-
-        self.transferred_live = transferred_live
-        self.dt_collected = timestamp
-        self.save()
-
-    @property
-    def consolidate_policy(self):
-        policy = {
-            'MonthlyNodeAccount': {
-                'YearlyNodeAccount': {
-                    'OverallNodeAccount': None
-                },
-                'MonthlyNode': {
-                    'YearlyNode': {
-                        'OverallNode': None
-                    }
-                },
-                'MonthlyAccount': {
-                    'YearlyAccount': {
-                        'OverallAccount': None
-                    }
-                }
-            }
-        }
-
-        return policy
-
-    def consolidate_filter(self):
-        pass
-
-    def consolidate_stat(self):
-        # MonthlyNodeAccount should use 'update_stat'
-        assert(self.stat_type != 'MonthlyNodeAccount')
-
-        timestamp = None
-        transferred_past = 0
-        transferred_live = 0
-
-        mstat = self.__class__.objects.filter(**self.consolidate_filter)
-
-        for obj in mstat:
-            transferred_past += obj.transferred_past
-            transferred_live += obj.transferred_live
-            timestamp = obj.dt_collected if obj.dt_collected > timestamp else timestamp
-
-        self.transferred_past = transferred_past
-        self.transferred_live = transferred_live
-        self.dt_collected = timestamp
-        self.save()
 
 
 class StatisticsMethod(models.Model, DynamicMethodModel):
@@ -196,7 +71,7 @@ def dynamic_method_template(self):
 
 
 class Account(User, StatisticsMethod):
-    statistics = GenericRelation(Statistics, related_query_name='account')
+    statistics = GenericRelation('statistics.Statistics', related_query_name='account')
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
     class Meta:
@@ -301,7 +176,7 @@ class Node(StatisticsMethod):
     domain = models.CharField(max_length=64, null=True, blank=True, help_text='Domain name resolved to the node IP, appears in the account notification Email, if leave blank, the public IP address for the node will be used, example: shadowsocks.yourdomain.com.')
     location = models.CharField(max_length=64, null=True, blank=True, help_text='Geography location for the node, appears in the account notification Email if not blank, example: Hongkong.')
     is_active = models.BooleanField(default=False, help_text='Is this node ready to be online')
-    statistics = GenericRelation(Statistics, related_query_name='node')
+    statistics = GenericRelation('statistics.Statistics', related_query_name='node')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -367,28 +242,11 @@ class Node(StatisticsMethod):
         self.is_active = not self.is_active
         self.save()
 
-    def collect_stat(self):
-        if self.is_active:
-            ts = timezone.now()
-            stat = self.ssmanager.ping()
-            if stat:
-                obj = json.loads(stat.lstrip('stat: '))
-
-                for na in self.accounts_ref.filter(account__is_active=True):
-                    na.update_stat(obj, ts)
-
-            else:
-                # do nothing if no stat data returned
-                pass
-        else:
-            # no nothing if the node is inactive
-            pass
-
 
 class NodeAccount(StatisticsMethod):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='accounts_ref')
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='nodes_ref')
-    statistics = GenericRelation(Statistics, related_query_name='nodeaccount')
+    statistics = GenericRelation('statistics.Statistics', related_query_name='nodeaccount')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -425,17 +283,6 @@ class NodeAccount(StatisticsMethod):
 
         if self.node.ssmanager.is_accessable and self.is_created(original=original):
             retry(self.node.ssmanager.remove_ex, port=getattr(self.account, port), count=5, delay=1)
-
-    def update_stat(self, data, timestamp):
-        stat, created = Statistics.objects.get_or_create(
-            content_type=ContentType.objects.get_for_model(self),
-            object_id=self.pk,
-            year=timestamp.year,
-            month=timestamp.month)
-        if stat:
-            stat.update_stat(data, timestamp)
-        else:
-            logger.error('Failed to get or craete a %s object' % Statistics.__name__)
 
 
 class ManagerAPI(object):
@@ -558,4 +405,3 @@ def update_by_node(sender, instance, **kwargs):
         instance.on_update()
     else:
         pass
-
