@@ -345,6 +345,18 @@ class ManagerAPI(object):
 
         return not self.is_port_created(port)
 
+    # Undocumented Shadowsocks Manager Command, but works
+    # List all users with password
+    def list(self):
+        command = 'list'
+        self.call(command, read=True)
+
+    # Undocumented Shadowsocks Manager Command, but works
+    # Set statistics data, but will be overridded soon
+    def stat(self, port, transferred):
+        command = 'stat: { "%s": %s }' % (port, transferred)
+        return self.call(command)
+
     # test if a port is created with Manager API
     def is_port_created(self, port):
         stat = self.ping()
