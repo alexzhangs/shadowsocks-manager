@@ -58,8 +58,11 @@ class ContentTypeListFilter(admin.SimpleListFilter):
 
 @admin.register(Statistics)
 class StatisticsAdmin(admin.ModelAdmin):
-    list_display = ('period', 'content_object', 'object_type', 'transferred',
-                    'dt_collected', )
-    fields = ('content_type', 'object_id')  + list_display + ('transferred_past', 'transferred_live', 'dt_created', 'dt_updated')
+    list_display = ('period', 'term', 'content_object', 'content_type', 'transferred', 'dt_collected', )
     list_filter = (TermListFilter, 'period', ContentTypeListFilter,)
+    fields = list_display + ('transferred_past', 'transferred_live', 'dt_created', 'dt_updated')
     readonly_fields = fields
+    ordering = ('-period', 'content_type', 'dt_collected')
+
+    def term(self, obj):
+        return obj.period.term
