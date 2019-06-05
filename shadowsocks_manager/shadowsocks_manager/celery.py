@@ -3,9 +3,9 @@ import os
 from celery import Celery
 
 # set the default Django settings module for the 'celery' program.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'shadowsocks-manager.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'shadowsocks_manager.settings')
 
-app = Celery('shadowsocks-manager')
+app = Celery('shadowsocks_manager')
 
 # Using a string here means the worker doesn't have to serialize
 # the configuration object to child processes.
