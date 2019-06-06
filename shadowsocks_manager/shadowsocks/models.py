@@ -37,12 +37,13 @@ class StatisticsMethod(models.Model, DynamicMethodModel):
         'template': '''
 
 def dynamic_method_template(self):
-    import statistics
+    from statistics.models import Statistics, Period
+    period = Period.objects.get(year=None, month=None)
     kwargs = {
         self.__class__.__name__.lower(): self,
-        "period": None
+        "period": period
     }
-    return statistics.models.Statistics.objects.get(**kwargs).%s
+    return Statistics.objects.get(**kwargs).%s
 
 ''',
 
