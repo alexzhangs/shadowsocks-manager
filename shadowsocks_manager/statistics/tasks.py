@@ -8,3 +8,7 @@ from .models import Statistics
 @shared_task
 def statistics():
     return Statistics.statistics()
+
+@shared_task
+def reset():
+    return Statistics.reset()

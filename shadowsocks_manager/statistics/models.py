@@ -289,3 +289,9 @@ class Statistics(models.Model):
                 else:
                     (stat, created) = Statistics.objects.get_or_create(**kwargs)
                     stat.consolidate()
+    @classmethod
+    def reset(cls):
+        for node in Node.objects.filter(is_active=True):
+            # reactivating a node will recreate all alive ports on the node
+            node.toggle_active()
+            node.toggle_active()
