@@ -238,7 +238,7 @@ class Statistics(models.Model):
                     transferred_live = ss_stat_obj.get(stat.content_object.account.username, 0)
                     if transferred_live < stat.transferred_live:
                         # changing active/inactive status or restarting server clears the statistics
-                        stat.transferred_past += stat.trasferred_live
+                        stat.transferred_past += stat.transferred_live
                     else:
                         pass
 
