@@ -285,6 +285,12 @@ class NodeAccount(StatisticsMethod):
         if self.node.ssmanager.is_accessable and self.is_created(original=original):
             retry(self.node.ssmanager.remove_ex, port=getattr(self.account, port), count=5, delay=1)
 
+    @classmethod
+    def heartbeat(cls):
+        for na in cls.objects.all():
+            if na.account.is_active and na.node.is_active:
+                na.on_create()
+
 
 class ManagerAPI(object):
 
