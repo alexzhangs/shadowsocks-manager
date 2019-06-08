@@ -350,7 +350,7 @@ class ManagerAPI(object):
     # List all users with password
     def list(self):
         command = 'list'
-        self.call(command, read=True)
+        return self.call(command, read=True)
 
     # Undocumented Shadowsocks Manager Command, but works
     # Set statistics data, but will be overridded soon
