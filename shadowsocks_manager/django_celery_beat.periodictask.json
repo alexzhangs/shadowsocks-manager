@@ -80,5 +80,31 @@
         "description": ""
     }
 },
+{
+    "model": "django_celery_beat.periodictask",
+    "pk": 5,
+    "fields": {
+        "name": "Shadowsocks Port Heartbeat",
+        "task": "shadowsocks.tasks.port_heartbeat",
+        "interval": 1,
+        "crontab": null,
+        "solar": null,
+        "clocked": null,
+        "args": "[]",
+        "kwargs": "{}",
+        "queue": null,
+        "exchange": null,
+        "routing_key": null,
+        "headers": "{}",
+        "priority": null,
+        "expires": null,
+        "one_off": false,
+        "start_time": null,
+        "enabled": true,
+        "last_run_at": "2019-06-08T16:50:00.116Z",
+        "total_run_count": 71,
+        "date_changed": "2019-06-08T16:50:35.166Z",
+        "description": ""
+    }
 }
 ]
