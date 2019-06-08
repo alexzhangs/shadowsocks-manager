@@ -1,0 +1,83 @@
+[
+{
+    "model": "django_celery_beat.periodictask",
+    "pk": 2,
+    "fields": {
+        "name": "Collect statistics every 3 minutes",
+        "task": "statistics.tasks.statistics",
+        "interval": null,
+        "crontab": 2,
+        "solar": null,
+        "clocked": null,
+        "args": "[]",
+        "kwargs": "{}",
+        "queue": null,
+        "exchange": null,
+        "routing_key": null,
+        "headers": "{}",
+        "priority": null,
+        "expires": null,
+        "one_off": false,
+        "start_time": null,
+        "enabled": true,
+        "last_run_at": "2019-06-08T10:57:00.000Z",
+        "total_run_count": 832,
+        "date_changed": "2019-06-08T10:57:10.041Z",
+        "description": "Avoid to run this job at 00:00, because statistics data needs to be reset at 00:00 on the first day of month monthly and yearly."
+    }
+},
+{
+    "model": "django_celery_beat.periodictask",
+    "pk": 3,
+    "fields": {
+        "name": "Reset statistics at begin of month",
+        "task": "statistics.tasks.reset",
+        "interval": null,
+        "crontab": 3,
+        "solar": null,
+        "clocked": null,
+        "args": "[]",
+        "kwargs": "{}",
+        "queue": null,
+        "exchange": null,
+        "routing_key": null,
+        "headers": "{}",
+        "priority": null,
+        "expires": null,
+        "one_off": false,
+        "start_time": null,
+        "enabled": true,
+        "last_run_at": null,
+        "total_run_count": 0,
+        "date_changed": "2019-06-07T09:28:40.329Z",
+        "description": ""
+    }
+},
+{
+    "model": "django_celery_beat.periodictask",
+    "pk": 4,
+    "fields": {
+        "name": "Reset statistics at begin of year",
+        "task": "statistics.tasks.reset",
+        "interval": null,
+        "crontab": 4,
+        "solar": null,
+        "clocked": null,
+        "args": "[]",
+        "kwargs": "{}",
+        "queue": null,
+        "exchange": null,
+        "routing_key": null,
+        "headers": "{}",
+        "priority": null,
+        "expires": null,
+        "one_off": false,
+        "start_time": null,
+        "enabled": true,
+        "last_run_at": null,
+        "total_run_count": 0,
+        "date_changed": "2019-06-07T09:29:29.788Z",
+        "description": ""
+    }
+}
+]
