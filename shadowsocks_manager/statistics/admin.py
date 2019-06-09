@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.contrib import admin, messages
 from django.utils.translation import ugettext_lazy as _
+from django.template.defaultfilters import filesizeformat
 
 from .models import Period, Statistics
 
@@ -66,3 +67,12 @@ class StatisticsAdmin(admin.ModelAdmin):
 
     def term(self, obj):
         return obj.period.term
+
+    def transferred(self, obj):
+        return filesizeformat(obj.transferred)
+
+    def transferred_past(self, obj):
+        return filesizeformat(obj.transferred_past)
+
+    def transferred_live(self, obj):
+        return filesizeformat(obj.transferred_live)

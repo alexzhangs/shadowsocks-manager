@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.contrib import admin, messages
 from django.contrib.auth.models import User, Group
+from django.template.defaultfilters import filesizeformat
 
 from .models import Config, Node, Account, NodeAccount
 
@@ -40,7 +41,7 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
     is_accessable.boolean = True
 
     def transferred_totally(self, obj):
-        return obj.transferred_totally
+        return filesizeformat(obj.transferred_totally)
 
     transferred_totally.short_description = 'Transferred'
 
@@ -89,7 +90,7 @@ class NodeAdmin(admin.ModelAdmin):
     is_dns_record_correct.short_description = 'DNS'
 
     def transferred_totally(self, obj):
-        return obj.transferred_totally
+        return filesizeformat(obj.transferred_totally)
 
     transferred_totally.short_description = 'Transferred'
 
@@ -126,7 +127,7 @@ class AccountAdmin(admin.ModelAdmin):
                         'transferred_totally', 'dt_collected', 'date_joined', 'dt_updated')
 
     def transferred_totally(self, obj):
-        return obj.transferred_totally
+        return filesizeformat(obj.transferred_totally)
 
     transferred_totally.short_description = 'Transferred'
 
