@@ -9,7 +9,7 @@ from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
-from django.core.cache import cache
+from django_lock import lock
 
 from shadowsocks.models import Node, Account, NodeAccount
 
@@ -215,7 +215,7 @@ class Statistics(models.Model):
         self.save()
 
     @classmethod
-    @cache.lock('statistics.collect', blocking=False)
+    @lock('statistics.collect', blocking=False)
     def collect(cls):
         # Collect the base statistics data depended by all other statistics
         for node in Node.objects.filter(is_active=True):
@@ -250,7 +250,7 @@ class Statistics(models.Model):
                 pass
 
     @classmethod
-    @cache.lock('statistics.statistics', blocking=False)
+    @lock('statistics.statistics', blocking=False)
     def statistics(cls):
         cls.collect()
 
@@ -294,7 +294,7 @@ class Statistics(models.Model):
                     stat.consolidate()
 
     @classmethod
-    @cache.lock('statistics.collect', blocking=300) # wait for 5 minutes
+    @lock('statistics.collect', blocking=300) # wait for 5 minutes
     def reset(cls):
         for node in Node.objects.filter(is_active=True):
             # reactivating a node will recreate all alive ports on the node
