@@ -20,8 +20,7 @@
         "one_off": false,
         "start_time": null,
         "enabled": true,
-        "last_run_at": "2019-06-08T10:57:00.000Z",
-        "total_run_count": 832,
+        "total_run_count": 0,
         "date_changed": "2019-06-08T10:57:10.041Z",
         "description": "Avoid to run this job at 00:00, because statistics data needs to be reset at 00:00 on the first day of month monthly and yearly."
     }
@@ -101,8 +100,7 @@
         "one_off": false,
         "start_time": null,
         "enabled": true,
-        "last_run_at": "2019-06-08T16:50:00.116Z",
-        "total_run_count": 71,
+        "total_run_count": 0,
         "date_changed": "2019-06-08T16:50:35.166Z",
         "description": ""
     }
