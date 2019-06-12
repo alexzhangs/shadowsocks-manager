@@ -161,19 +161,7 @@ class Account(User, StatisticsMethod):
 class Node(StatisticsMethod):
     name = models.CharField(unique=True, max_length=32, help_text='Give the node a name.')
     public_ip = models.GenericIPAddressField('Public IP', protocol='both', unpack_ipv4=True, unique=True, help_text='Public IP address for Shadowsocks clients.')
-    manager_ip = models.GenericIPAddressField(protocol='both', unpack_ipv4=True, unique=True, null=True, blank=True, help_text='IP address bound to Manager API, use an internal IP if possible, leave it blank if the same with public IP address.')
-    manager_port = models.PositiveIntegerField(default=6001, help_text='Port number bound to Manager API.')
-    encrypt = models.CharField(max_length=32, default='aes-256-cfb', help_text='Encrypt method: rc4-md5,\
-        aes-128-gcm, aes-192-gcm, aes-256-gcm,\
-        aes-128-cfb, aes-192-cfb, aes-256-cfb,\
-        aes-128-ctr, aes-192-ctr, aes-256-ctr,\
-        camellia-128-cfb, camellia-192-cfb,\
-        camellia-256-cfb, bf-cfb,\
-        chacha20-ietf-poly1305,\
-        xchacha20-ietf-poly1305,\
-        salsa20, chacha20 and chacha20-ietf.')
-    timeout = models.PositiveIntegerField(default=30, help_text='Socket timeout in seconds for Shadowsocks client.')
-    fastopen = models.BooleanField('Fast Open', default=False, help_text='Enable TCP fast open, with Linux kernel > 3.7.0.')
+    ssmanager = models.ForeignKey('SSManager', related_name='node'),
     domain = models.CharField(max_length=64, null=True, blank=True, help_text='Domain name resolved to the node IP, appears in the account notification Email, if leave blank, the public IP address for the node will be used, example: shadowsocks.yourdomain.com.')
     location = models.CharField(max_length=64, null=True, blank=True, help_text='Geography location for the node, appears in the account notification Email if not blank, example: Hongkong.')
     is_active = models.BooleanField(default=False, help_text='Is this node ready to be online')
@@ -191,9 +179,6 @@ class Node(StatisticsMethod):
 
     def __unicode__(self):
         return '%s (%s)' % (self.public_ip, self.name)
-
-    def get_manager(self):
-        return ManagerAPI(self.manager_ip or self.public_ip, self.manager_port)
 
     @classmethod
     def is_port_open(cls, ip, port):
@@ -293,14 +278,24 @@ class NodeAccount(StatisticsMethod):
                 na.on_create()
 
 
-class ManagerAPI(object):
+class SSManager(models.Model):
+    ip = models.GenericIPAddressField(protocol='both', unpack_ipv4=True, unique=True, null=True, blank=True, help_text='IP address bound to Manager API, use an internal IP if possible, leave it blank if the same with public IP address.')
+    port = models.PositiveIntegerField(default=6001, help_text='Port number bound to Manager API.')
+    encrypt = models.CharField(max_length=32, default='aes-256-cfb', help_text='Encrypt method: rc4-md5,\
+        aes-128-gcm, aes-192-gcm, aes-256-gcm,\
+        aes-128-cfb, aes-192-cfb, aes-256-cfb,\
+        aes-128-ctr, aes-192-ctr, aes-256-ctr,\
+        camellia-128-cfb, camellia-192-cfb,\
+        camellia-256-cfb, bf-cfb,\
+        chacha20-ietf-poly1305,\
+        xchacha20-ietf-poly1305,\
+        salsa20, chacha20 and chacha20-ietf.')
+    timeout = models.PositiveIntegerField(default=30, help_text='Socket timeout in seconds for Shadowsocks client.')
+    fastopen = models.BooleanField('Fast Open', default=False, help_text='Enable TCP fast open, with Linux kernel > 3.7.0.')
 
-    def __init__(self, host, port, *args, **kwargs):
-        super(ManagerAPI, self).__init__(*args, **kwargs)
+    class Meta:
+        verbose_name = 'Shadowsocks Manager'
 
-        self.host = host
-        self.port = port
-        self.node = None # set this if belongs to a Node
 
     def __unicode__(self):
         return '%s:%s' % (self.host, self.port)
