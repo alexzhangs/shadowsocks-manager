@@ -387,17 +387,23 @@ class SSManager(models.Model):
         cache.delete_many(keys)
 
     def ping_ex(self, from_cache=True):
+        """
+        cache 60 seconds
+        """
         key, value = ('{0}-{1}'.format(self, 'ping'), None)
         if from_cache:
             value = cache.get(key)
 
         if value is None:
             value = self.ping()
-            cache.set(key, value, timeout=86400)
+            cache.set(key, value, timeout=60)
 
         return value
 
     def list_ex(self, from_cache=True):
+        """
+        cache 1 day
+        """
         key, value = ('{0}-{1}'.format(self, 'list'), None)
         if from_cache:
             value = cache.get(key)
@@ -420,7 +426,7 @@ class SSManager(models.Model):
     # test if the manager is in service
     @property
     def is_accessable(self):
-        return self.ping() is not None
+        return self.ping_ex() is not None
 
 
 def retry(func, count=5, delay=0, *args, **kwargs):
