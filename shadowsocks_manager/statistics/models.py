@@ -222,8 +222,6 @@ class Statistics(models.Model):
             ts = timezone.now()
             ss_stat = node.ssmanager.ping()
             if ss_stat:
-                ss_stat_obj = json.loads(ss_stat.lstrip('stat: '))
-
                 # NodeAccount Monthly
                 for na in node.accounts_ref.filter(account__is_active=True):
                     (period, created) = Period.objects.get_or_create(
@@ -235,7 +233,7 @@ class Statistics(models.Model):
                         content_type=ContentType.objects.get_for_model(na),
                         object_id=na.pk)
 
-                    transferred_live = ss_stat_obj.get(stat.content_object.account.username, 0)
+                    transferred_live = ss_stat.get(stat.content_object.account.username, 0)
                     if transferred_live < stat.transferred_live:
                         # changing active/inactive status or restarting server clears the statistics
                         stat.transferred_past += stat.transferred_live
