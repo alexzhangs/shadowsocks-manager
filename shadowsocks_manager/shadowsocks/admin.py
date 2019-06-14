@@ -31,6 +31,7 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
                            'transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
 
     readonly_fields = fields
+    fields = fields + ('is_active',)
 
     def has_add_permission(self, request):
         return None
@@ -55,7 +56,7 @@ class NodeAccountInline(admin.TabularInline):
     model = NodeAccount
     extra = 1
     can_delete = False
-    fields = ('node', 'account')
+    fields = ('node', 'account', 'is_active')
 
     def has_change_permission(self, request):
         return None
