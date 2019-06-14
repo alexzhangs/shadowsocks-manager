@@ -223,7 +223,7 @@ class Statistics(models.Model):
             ss_stat = node.ssmanager.ping()
             if ss_stat:
                 # NodeAccount Monthly
-                for na in node.accounts_ref.filter(account__is_active=True):
+                for na in node.accounts_ref.filter(is_active=True):
                     (period, created) = Period.objects.get_or_create(
                         year=ts.year,
                         month=ts.month)
@@ -294,7 +294,7 @@ class Statistics(models.Model):
     @classmethod
     @lock('statistics.collect', blocking=300) # wait for 5 minutes
     def reset(cls):
-        for node in Node.objects.filter(is_active=True):
-            # reactivating a node will recreate all alive ports on the node
-            node.toggle_active()
-            node.toggle_active()
+        # recreate all active ports
+        for na in NodeAccount.objects.filter(is_active=True):
+            na.on_delete()
+            na.on_update()
