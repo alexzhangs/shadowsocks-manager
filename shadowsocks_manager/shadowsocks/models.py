@@ -381,7 +381,10 @@ class SSManager(models.Model):
             return None
 
     def clear_cache(self):
-        cache.delete_many([self + 'ping', self + 'list'])
+        keys = []
+        for str in ['ping', 'list']:
+            keys.append('{0}-{1}'.format(self, str))
+        cache.delete_many(keys)
 
     def ping_ex(self, from_cache=True):
         key, value = ('{0}-{1}'.format(self, 'ping'), None)
