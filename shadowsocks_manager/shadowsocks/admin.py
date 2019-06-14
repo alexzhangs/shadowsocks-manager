@@ -65,7 +65,18 @@ class NodeAccountInline(admin.TabularInline):
 class SSManagerInline(admin.TabularInline):
     model = SSManager
     extra = 1
-    can_delete = True
+    max_num = 1
+    can_delete = False
+
+    fields = ('ip', 'port', ('encrypt', 'timeout', 'fastopen'),
+                  'is_accessable', 'dt_created', 'dt_updated')
+
+    readonly_fields = ('is_accessable', 'dt_created', 'dt_updated')
+
+    def is_accessable(self, obj):
+        return obj.is_accessable
+
+    is_accessable.boolean = True
 
 
 @admin.register(Node)
