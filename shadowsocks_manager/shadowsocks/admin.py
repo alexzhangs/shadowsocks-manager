@@ -5,7 +5,7 @@ from django.contrib import admin, messages
 from django.contrib.auth.models import User, Group
 from django.template.defaultfilters import filesizeformat
 
-from .models import Config, Node, Account, NodeAccount
+from .models import Config, Node, Account, NodeAccount, SSManager
 
 
 # Register your models here.
@@ -50,6 +50,7 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
 
     dt_collected.short_description = 'Collected'
 
+
 class NodeAccountInline(admin.TabularInline):
     model = NodeAccount
     extra = 1
@@ -60,28 +61,25 @@ class NodeAccountInline(admin.TabularInline):
         return None
 
 
+class SSManagerInline(admin.TabularInline):
+    model = SSManager
+    extra = 1
+    can_delete = True
+
+
 @admin.register(Node)
 class NodeAdmin(admin.ModelAdmin):
-    fields = ('name', 'public_ip', ('manager_ip', 'manager_port'),
-                  'is_active', 'domain', 'location',
+    fields = ('name', 'public_ip', 'is_active', 'domain', 'location',
                   'transferred_totally', 'dt_collected',
-                  ('encrypt', 'timeout', 'fastopen'),
                   'dt_created', 'dt_updated')
 
     readonly_fields = ('transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
 
-    list_display = ('name', 'public_ip', 'manager_ip', 'manager_port',
-                        'is_active', 'is_manager_accessable', 'is_dns_record_correct',
+    list_display = ('name', 'public_ip',
+                        'is_active', 'is_dns_record_correct',
                         'domain', 'location',
                         'transferred_totally', 'dt_collected',
-                        'encrypt', 'timeout', 'fastopen',
                         'dt_created', 'dt_updated')
-
-    def is_manager_accessable(self, obj):
-        return obj.is_manager_accessable
-
-    is_manager_accessable.boolean = True
-    is_manager_accessable.short_description = 'Manager'
 
     def is_dns_record_correct(self, obj):
         return obj.is_dns_record_correct
@@ -100,6 +98,7 @@ class NodeAdmin(admin.ModelAdmin):
     dt_collected.short_description = 'Collected'
 
     inlines = [
+        SSManagerInline,
         ReadonlyNodeAccountInline,
         NodeAccountInline,
     ]

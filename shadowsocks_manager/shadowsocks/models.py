@@ -8,6 +8,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes.fields import GenericRelation
+from django.core.cache import cache
 
 from singleton.models import SingletonModel
 from dynamicmethod.models import DynamicMethodModel
@@ -82,6 +83,7 @@ class Account(User, StatisticsMethod):
         super(Account, self).__init__(*args, **kwargs)
         self._original_username = self.username
         self._original_password = self.password
+        self._original_is_active = self.is_active
 
     def __unicode__(self):
         return '%s (%s)' % (self.get_username(), self.get_full_name())
@@ -105,7 +107,7 @@ class Account(User, StatisticsMethod):
             logger.warning("Skipped sending account Email to %s(%s), beacause the user is inactive." % (self.email, self.get_full_name))
             return False
 
-        nas = self.nodes_ref.filter(node__is_active=True)
+        nas = self.nodes_ref.filter(is_active=True)
         if not nas:
             logger.warning("Skipped sending account Email to %s(%s), there's no active node assigned." % (self.email, self.get_full_name()))
             return False
@@ -129,29 +131,18 @@ class Account(User, StatisticsMethod):
 
     def on_update(self):
         for na in self.nodes_ref.all():
-
-            ## deletion stage
-
-            # if port is changed
-            if self._original_username != self.username:
-                # call on_delete() to handle deletion logic instead of a truely deletion
+            if self._original_username != self.username: # port is changed
                 na.on_delete(original=True)
-
-            # if password is changed
-            elif self._original_password != self.password or not self.is_active:
-                # call on_delete() to handle deletion logic instead of a truely deletion
+            elif self._original_password != self.password: # password is changed
                 na.on_delete()
-
             else:
                 pass
 
-            ## creation stage
-
-            if self.is_active:
-                # call on_create() to handle creation logic instead of a truely creation
-                na.on_create()
-            else:
-                pass
+            if self._original_is_active != self.is_active: # activity is changed
+                new = (self.is_active and na.node.is_active)
+                if na.is_active != new:
+                    na.is_active = new
+                    na.save()
 
     def toggle_active(self):
         self.is_active = not self.is_active
@@ -161,7 +152,6 @@ class Account(User, StatisticsMethod):
 class Node(StatisticsMethod):
     name = models.CharField(unique=True, max_length=32, help_text='Give the node a name.')
     public_ip = models.GenericIPAddressField('Public IP', protocol='both', unpack_ipv4=True, unique=True, help_text='Public IP address for Shadowsocks clients.')
-    ssmanager = models.ForeignKey('SSManager', related_name='node'),
     domain = models.CharField(max_length=64, null=True, blank=True, help_text='Domain name resolved to the node IP, appears in the account notification Email, if leave blank, the public IP address for the node will be used, example: shadowsocks.yourdomain.com.')
     location = models.CharField(max_length=64, null=True, blank=True, help_text='Geography location for the node, appears in the account notification Email if not blank, example: Hongkong.')
     is_active = models.BooleanField(default=False, help_text='Is this node ready to be online')
@@ -174,11 +164,16 @@ class Node(StatisticsMethod):
 
     def __init__(self, *args, **kwargs):
         super(Node, self).__init__(*args, **kwargs)
-        self.ssmanager = self.get_manager()
-        self.ssmanager.node = self
+        self._original_is_active = self.is_active
 
     def __unicode__(self):
         return '%s (%s)' % (self.public_ip, self.name)
+
+    @property
+    def ssmanager(self):
+        ssmanagers = self.ssmanagers.all()
+        if ssmanagers:
+            return ssmanagers[0]
 
     @classmethod
     def is_port_open(cls, ip, port):
@@ -203,26 +198,22 @@ class Node(StatisticsMethod):
 
         return ips
 
-    # test if Manager is up in UDP
-    @property
-    def is_manager_accessable(self):
-        return self.ssmanager.is_accessable
-
     # test if dns records match the public IP
     @property
     def is_dns_record_correct(self):
         return self.public_ip in self.get_dns_a_record(self.domain)
 
     # test if a port is open
-    def is_port_accessable(self, port, interface='public'):
-        return Node.is_port_open(getattr(self, '%s_ip' % interface.lower()), port)
+    def is_port_accessable(self, port):
+        return Node.is_port_open(self.public_ip, port)
 
     def on_update(self):
         for na in self.accounts_ref.all():
-            if self.is_active:
-                na.on_create()
-            else:
-                na.on_delete()
+            if self._original_is_active != self.is_active: # activity is changed
+                new = (self.is_active and na.account.is_active)
+                if na.is_active != new:
+                    na.is_active = new
+                    na.save()
 
     def toggle_active(self):
         self.is_active = not self.is_active
@@ -258,9 +249,14 @@ class NodeAccount(StatisticsMethod):
     def is_accessable(self):
         return self.node.is_port_accessable(self.account.username)
 
-    def on_create(self):
-        if self.node.ssmanager.is_accessable and not self.is_created():
-            retry(self.node.ssmanager.add_ex, port=self.account.username, password=self.account.password, count=5, delay=1)
+    def on_update(self):
+        if self.is_active:
+            if self.node.ssmanager.is_accessable:
+                retry(self.node.ssmanager.add, port=self.account.username, password=self.account.password, count=5, delay=1)
+            else:
+                logger.error('%s: creation eror: ssmanager %s currently is not available.' % (self, self.node.ssmanager))
+        else:
+            self.on_delete()
 
     def on_delete(self, original=False):
         if original:
@@ -268,18 +264,20 @@ class NodeAccount(StatisticsMethod):
         else:
             port = 'username'
 
-        if self.node.ssmanager.is_accessable and self.is_created(original=original):
-            retry(self.node.ssmanager.remove_ex, port=getattr(self.account, port), count=5, delay=1)
+        if self.node.ssmanager.is_accessable:
+            retry(self.node.ssmanager.remove, port=getattr(self.account, port), count=5, delay=1)
+        else:
+            logger.error('%s: deletion eror: ssmanager %s currently is not available.' % (self, self.node.ssmanager))
 
     @classmethod
     def heartbeat(cls):
         for na in cls.objects.all():
-            if na.account.is_active and na.node.is_active:
-                na.on_create()
+            na.on_update()
 
 
 class SSManager(models.Model):
-    ip = models.GenericIPAddressField(protocol='both', unpack_ipv4=True, unique=True, null=True, blank=True, help_text='IP address bound to Manager API, use an internal IP if possible, leave it blank if the same with public IP address.')
+    node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='ssmanagers')
+    ip = models.GenericIPAddressField(protocol='both', unpack_ipv4=True, unique=True, null=True, blank=True, help_text='IP address bound to Manager API, use an internal IP if possible, leave it blank will use the public IP address of the node.')
     port = models.PositiveIntegerField(default=6001, help_text='Port number bound to Manager API.')
     encrypt = models.CharField(max_length=32, default='aes-256-cfb', help_text='Encrypt method: rc4-md5,\
         aes-128-gcm, aes-192-gcm, aes-256-gcm,\
@@ -292,17 +290,22 @@ class SSManager(models.Model):
         salsa20, chacha20 and chacha20-ietf.')
     timeout = models.PositiveIntegerField(default=30, help_text='Socket timeout in seconds for Shadowsocks client.')
     fastopen = models.BooleanField('Fast Open', default=False, help_text='Enable TCP fast open, with Linux kernel > 3.7.0.')
+    dt_created = models.DateTimeField('Created', auto_now_add=True)
+    dt_updated = models.DateTimeField('Updated', auto_now=True)
 
     class Meta:
         verbose_name = 'Shadowsocks Manager'
 
-
     def __unicode__(self):
-        return '%s:%s' % (self.host, self.port)
+        return '%s:%s' % (self._ip, self.port)
 
-    def open(self):
+    @property
+    def _ip(self):
+        return self.ip or self.node.public_ip
+
+    def connect(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-        self.socket.connect((self.host, self.port))
+        self.socket.connect((self._ip, self.port))
 
     def close(self):
         self.socket.close()
@@ -310,64 +313,106 @@ class SSManager(models.Model):
     def call(self, command, read=False):
         ret = None
 
-        self.open()
+        self.connect()
         try:
             self.socket.send(bytes(command))
             if read:
                 self.socket.settimeout(Config.load().timeout)
                 ret = self.socket.recv(4096)
         except socket.timeout:
-            logger.error('timed out on calling command: %s' % command)
+            logger.error('%s: timed out on calling command: %s' % (self, command))
         except Exception as e:
-            logger.error('unexpected error: %s' % e)
+            logger.error('%s: unexpected error: %s' % (self, e))
             raise
         finally:
             self.close()
 
         return ret
 
-    def add(self, port, password):
+    def _add(self, port, password):
         command = 'add: { "server_port": %s, "password": "%s" }' % (port, password)
         self.call(command)
 
-    def remove(self, port):
+    def _remove(self, port):
         command = 'remove: { "server_port": %s }' % port
         self.call(command)
 
-    def ping(self):
+    def _ping(self):
         command = "ping"
         return self.call(command, read=True)
 
-    def add_ex(self, port, password):
-        self.add(port, password)
-
-        return self.is_port_created(port)
-
-    def remove_ex(self, port):
-        self.remove(port)
-
-        return not self.is_port_created(port)
-
     # Undocumented Shadowsocks Manager Command, but works
     # List all users with password
-    def list(self):
+    def _list(self):
         command = 'list'
         return self.call(command, read=True)
 
-    # Undocumented Shadowsocks Manager Command, but works
-    # Set statistics data, but will be overridded soon
-    def stat(self, port, transferred):
-        command = 'stat: { "%s": %s }' % (port, transferred)
-        return self.call(command)
+    def add(self, port, password):
+        exists = self.is_port_created(port)
+        if not exists:
+            self._add(port, password)
+            self.clear_cache()
+            exists = self.is_port_created(port)
+        return exists
+
+    def remove(self, port):
+        exists = self.is_port_created(port)
+        if exists:
+            self._remove(port)
+            self.clear_cache()
+            exists = self.is_port_created(port)
+        return not exists
+
+    def ping(self):
+        stat = self._ping()
+        if stat:
+            return json.loads(stat.lstrip('stat: '))
+        else:
+            return None
+
+    def list(self):
+        ports = self._list()
+        if ports:
+            try:
+                return json.loads(ports)
+            except ValueError:
+                return list()
+        else:
+            return None
+
+    def clear_cache(self):
+        cache.delete_many([self + 'ping', self + 'list'])
+
+    def ping_ex(self, from_cache=True):
+        key, value = ('{0}-{1}'.format(self, 'ping'), None)
+        if from_cache:
+            value = cache.get(key)
+
+        if value is None:
+            value = self.ping()
+            cache.set(key, value, timeout=86400)
+
+        return value
+
+    def list_ex(self, from_cache=True):
+        key, value = ('{0}-{1}'.format(self, 'list'), None)
+        if from_cache:
+            value = cache.get(key)
+
+        if value is None:
+            value = self.list()
+            cache.set(key, value, timeout=86400)
+
+        return value
 
     # test if a port is created with Manager API
     def is_port_created(self, port):
-        stat = self.ping()
-        if stat:
-            obj = json.loads(stat.lstrip('stat: '))
-            return obj.has_key(str(port))
-        else:
-            return None
+        items = self.list_ex()
+        if items:
+            for item in items:
+                if item['server_port'] == str(port):
+                    return True
+        return False
 
     # test if the manager is in service
     @property
@@ -382,41 +427,25 @@ def retry(func, count=5, delay=0, *args, **kwargs):
         if ret:
             return ret
         else:
-            logger.warning('retrying %sth time in %s second(s)' % (i + 1, delay))
+            logger.warning('%s: retrying %sth time in %s second(s)' % (func, i + 1, delay))
             time.sleep(delay)
 
 
 @receiver(post_save, sender=NodeAccount)
-def create_account_on_node(sender, instance, **kwargs):
-    logger.info('in create_account_on_node')
-
-    if sender == NodeAccount:
-        instance.on_create()
+def update_account_on_node(sender, instance, **kwargs):
+    instance.on_update()
 
 
 @receiver(post_delete, sender=NodeAccount)
 def delete_account_on_node(sender, instance, **kwargs):
-    logger.info('in delete_account_on_node')
-
-    if sender == NodeAccount:
-        instance.on_delete()
+    instance.on_delete()
 
 
 @receiver(post_save, sender=Account)
 def update_by_account(sender, instance, **kwargs):
-    logger.info('in update_by_account')
-
-    if sender == Account:
-        instance.on_update()
-    else:
-        pass
+    instance.on_update()
 
 
 @receiver(post_save, sender=Node)
 def update_by_node(sender, instance, **kwargs):
-    logger.info('in update_by_node')
-
-    if sender == Node:
-        instance.on_update()
-    else:
-        pass
+    instance.on_update()
