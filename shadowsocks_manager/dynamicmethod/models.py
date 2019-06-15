@@ -9,38 +9,40 @@ from django.db import models
 
 class DynamicMethodModel(object):
 
-    ## Usage:
-    ##   Inherit this class and set `dynamic_methods` in the subclass.
-    ##   Methods will be created with `dynamic_methods.template` and be available
-    ##   under the name of `dynamic_methods.method`.keys().
-    ##   Each '%s' within `dynamic_methods.template` will be replaced with the value
-    ##   of `variables`.
-    ##   Set `property` True if want a @property decorator on the dynamic method.
-    ##
-    ## Example:
-    ##
-    # class Person(models.Model, DynamicMethodModel):
-    #     dynamic_methods = [{
-    #         "template": '''
-    #             def pet(self):
-    #                 return '%s %s %s.'
-    #             ''',
-    #         "method": {
-    #             "dog": {
-    #                 "variables": ["one", "black", "dog"],
-    #                 'property': False
-    #             },
-    #             "cat": {
-    #                 "variables": ["two", "white", "cats"],
-    #                 'property': False
-    #             },
-    #             ...
-    #         }
-    #     }]
-    #
-    # obj = Person()
-    # obj.dog()   # 'one black dog.'
-    # obj.cat()   # 'two white cats.'
+    """
+    Usage:
+      Inherit this class and set `dynamic_methods` in the subclass.
+      Methods will be created with `dynamic_methods.template` and be available
+      under the name of `dynamic_methods.method`.keys().
+      Each '%s' within `dynamic_methods.template` will be replaced with the value
+      of `variables`.
+      Set `property` True if want a @property decorator on the dynamic method.
+
+    Example:
+
+    class Person(models.Model, DynamicMethodModel):
+        dynamic_methods = [{
+            "template": '''
+                def pet(self):
+                    return '%s %s %s.'
+                ''',
+            "method": {
+                "dog": {
+                    "variables": ["one", "black", "dog"],
+                    'property': False
+                },
+                "cat": {
+                    "variables": ["two", "white", "cats"],
+                    'property': False
+                },
+                ...
+            }
+        }]
+
+    obj = Person()
+    obj.dog()   # 'one black dog.'
+    obj.cat()   # 'two white cats.'
+    """
 
     dynamic_methods = []
 
