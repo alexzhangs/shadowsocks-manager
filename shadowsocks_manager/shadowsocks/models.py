@@ -10,6 +10,7 @@ from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core.cache import cache
 
+from retry import retry
 from singleton.models import SingletonModel
 from dynamicmethod.models import DynamicMethodModel
 from notification.models import Config as NConfig, Template, Notify
@@ -252,7 +253,7 @@ class NodeAccount(StatisticsMethod):
     def on_update(self):
         if self.is_active:
             if self.node.ssmanager.is_accessable:
-                retry(self.node.ssmanager.add, port=self.account.username, password=self.account.password, count=5, delay=1)
+                self.node.ssmanager.add(port=self.account.username, password=self.account.password)
             else:
                 logger.error('%s: creation eror: ssmanager %s currently is not available.' % (self, self.node.ssmanager))
         else:
@@ -265,7 +266,7 @@ class NodeAccount(StatisticsMethod):
             port = 'username'
 
         if self.node.ssmanager.is_accessable:
-            retry(self.node.ssmanager.remove, port=getattr(self.account, port), count=5, delay=1)
+            self.node.ssmanager.remove(port=getattr(self.account, port))
         else:
             logger.error('%s: deletion eror: ssmanager %s currently is not available.' % (self, self.node.ssmanager))
 
@@ -347,6 +348,7 @@ class SSManager(models.Model):
         command = 'list'
         return self.call(command, read=True)
 
+    @retry(count=5, delay=1, logger=logger, level='warning')
     def add(self, port, password):
         exists = self.is_port_created(port)
         if not exists:
@@ -355,6 +357,7 @@ class SSManager(models.Model):
             exists = self.is_port_created(port)
         return exists
 
+    @retry(count=5, delay=1, logger=logger, level='warning')
     def remove(self, port):
         exists = self.is_port_created(port)
         if exists:
@@ -427,17 +430,6 @@ class SSManager(models.Model):
     @property
     def is_accessable(self):
         return self.ping_ex() is not None
-
-
-def retry(func, count=5, delay=0, *args, **kwargs):
-    for i in range(count):
-        ret = func(*args, **kwargs)
-
-        if ret:
-            return ret
-        else:
-            logger.warning('%s: retrying %sth time in %s second(s)' % (func, i + 1, delay))
-            time.sleep(delay)
 
 
 @receiver(post_save, sender=NodeAccount)
