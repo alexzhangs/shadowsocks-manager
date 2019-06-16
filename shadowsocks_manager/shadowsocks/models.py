@@ -225,7 +225,7 @@ class NodeAccount(StatisticsMethod):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='accounts_ref')
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='nodes_ref')
     statistics = GenericRelation('statistics.Statistics', related_query_name='nodeaccount')
-    is_active = models.BooleanField(default=False, help_text='Is this node ready to be online')
+    is_active = models.BooleanField(default=True, help_text='Creating account on this node?')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
