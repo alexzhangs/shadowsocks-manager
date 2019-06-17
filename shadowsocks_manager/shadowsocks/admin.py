@@ -156,10 +156,14 @@ class AccountAdmin(admin.ModelAdmin):
 
     def notify(self, request, queryset):
         for obj in queryset:
-            if obj.notify():
-                messages.info(request, 'Message queued for %s(%s)' % (obj.email, obj.get_full_name()))
-            else:
-                messages.error(request, 'Message not queued for %s(%s)' % (obj.email, obj.get_full_name()))
+            to = '{}<{}>'.format(obj.get_full_name(), obj.email)
+            try:
+                if obj.notify(sender=request.user):
+                    messages.info(request, 'Message queued for {}'.format(to))
+                else:
+                    messages.error(request, 'Message not queued for {}'.format(to))
+            except Exception as e:
+                messages.error(request, e)
 
     notify.short_description = 'Send Notification Email to Selected Shadowsocks Accounts'
 

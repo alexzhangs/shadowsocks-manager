@@ -13,7 +13,7 @@ from django.core.cache import cache
 from retry import retry
 from singleton.models import SingletonModel
 from dynamicmethod.models import DynamicMethodModel
-from notification.models import Config as NConfig, Template, Notify
+from notification.models import Template, Notify
 
 
 logger = logging.getLogger('django')
@@ -99,7 +99,7 @@ class Account(User, StatisticsMethod):
 
         return ret
 
-    def notify(self):
+    def notify(self, sender=None):
         if not self.email:
             logger.error("There's no Email address configured for %s." % self.get_full_name())
             return False
@@ -123,12 +123,12 @@ class Account(User, StatisticsMethod):
             kwargs['node_accounts'].append(d)
             d['node'] = na.node
             d['account'] = na.account
-        kwargs['config'] = NConfig.load()
+        kwargs['sender'] = sender
 
         message = template.render(kwargs)
 
         logger.info("Sending VPN account Email to %s(%s) on port %s" % (self.email, self.get_full_name(), self.username))
-        return Notify.sendmail(message)
+        return Notify.sendmail(message, sender.get_full_name(), sender.email)
 
     def on_update(self):
         for na in self.nodes_ref.all():

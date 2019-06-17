@@ -16,16 +16,6 @@ logger = logging.getLogger('django')
 
 # Create your models here.
 
-class Config(SingletonModel):
-    sender_name = models.CharField(max_length=32, default='VPN Service', help_text='Appears in the account notification Email.')
-    sender_email = models.CharField(max_length=64, null=True, blank=True, help_text='Appears in the account notification Email, example: admin@shadowsocks.yourdomain.com.')
-    dt_created = models.DateTimeField('Created', auto_now_add=True)
-    dt_updated = models.DateTimeField('Updated', auto_now=True)
-
-    class Meta:
-        verbose_name = 'Notification Config'
-
-
 class Template(models.Model):
     type = models.CharField(max_length=32, choices=[('account_created', 'Account Created')])
     content = models.TextField()
@@ -37,14 +27,9 @@ class Template(models.Model):
         verbose_name = 'Notification Template'
         unique_together = ('type', 'is_active')
 
-    def __init__(self, *args, **kwargs):
-        super(Template, self).__init__(*args, **kwargs)
-
-        self.template = None
-        try:
-            self.template = engines['django'].from_string(self.content)
-        except TemplateSyntaxError as e:
-            logger.error(e)
+    @property
+    def template(self):
+        return engines['django'].from_string(self.content)
 
     def __unicode__(self):
         return self.type
@@ -53,30 +38,25 @@ class Template(models.Model):
         if self.template:
             return self.template.render(kwargs)
         else:
-            logger.error("The template '%s' is not correctly configured." % self)
+            raise RuntimeError("The template '%s' is not correctly configured." % self)
 
 
 class Notify(models.Model):
 
     @classmethod
-    def sendmail(cls, message):
-        config = Config.load()
+    def sendmail(cls, message, sender, email):
         command = ["sendmail",
-                       "-F", config.sender_name,
-                       "-f", config.sender_email,
+                       "-F", sender,
+                       "-f", email,
                        "-t"]
-        try:
-            proc = subprocess.Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-            (stdout, stderr) = proc.communicate(message)
-            logger.debug(stdout)
 
-            rc = proc.wait()
-            if rc != 0:
-                logger.error('sendmail: return code: %s' % rc)
-                logger.error(stderr)
-                return False
-            else:
-                return True
-        except Exception as e:
-            logger.error(e)
+        proc = subprocess.Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        (stdout, stderr) = proc.communicate(message)
+
+        rc = proc.wait()
+        if rc != 0:
+            logger.error('sendmail: return code: %s' % rc)
+            logger.error(stderr)
             return False
+        else:
+            return True
