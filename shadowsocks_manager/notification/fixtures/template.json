@@ -4,10 +4,10 @@
     "pk": 1,
     "fields": {
         "type": "account_created",
-        "content": "Subject: CREDENTIAL: VPN Account (Shadowsocks)\r\nTo: {{ account.email }}\r\nDear {{ account.first_name }},\r\n\r\nYour VPN account is setup as below.\r\n\r\n* Port: {{ account.username }}\r\n* Password: {{ account.password }}\r\n\r\nIt's available on {{ node_accounts|length }} node(s):\r\n\r\n{% spaceless %}\r\n{% for obj in node_accounts %}\r\nNode #{{ forloop.counter }}:\r\n------\r\n{% spaceless %}\r\n{% ifchanged %}\r\n* VPN Server: {{ obj.node.domain }}\r\n* Location: {{ obj.node.location }}\r\n* Encrypt: {{ obj.node.ssmanager.encrypt }}\r\n{% else %}\r\nThis node shares the same settings with above.\r\n{%endifchanged%}\r\n{% endspaceless %}\r\n{% endfor %}\r\n{% endspaceless %}\r\n{% if sender.get_full_name %} {{ sender.get_full_name }} {% else %} {{ '' }} {% endif %}",
+        "content": "Subject: CREDENTIAL: VPN Account (Shadowsocks)\r\nTo: {{ account.email }}\r\nDear {{ account.first_name }},\r\n\r\nYour VPN account is setup as below.\r\n\r\n* Port: {{ account.username }}\r\n* Password: {{ account.password }}\r\n\r\nIt's available on {{ node_accounts|length }} node(s):\r\n\r\n{% spaceless %}\r\n{% for obj in node_accounts %}\r\nNode #{{ forloop.counter }}:\r\n------\r\n{% spaceless %}\r\n{% ifchanged %}\r\n* VPN Server: {% if obj.node.domain %} {{ obj.node.domain }} {% else %} {{ obj.node.public_ip }} {% endif %}\r\n* Location: {{ obj.node.location }}\r\n* Encrypt: {{ obj.node.ssmanager.encrypt }}\r\n{% else %}\r\nThis node shares the same settings with above.\r\n{%endifchanged%}\r\n{% endspaceless %}\r\n{% endfor %}\r\n{% endspaceless %}\r\n{% if sender.get_full_name %} {{ sender.get_full_name }} {% else %} {{ '' }} {% endif %}",
         "is_active": true,
         "dt_created": "2019-05-12T15:37:42.356Z",
-        "dt_updated": "2019-06-17T22:15:31.857Z"
+        "dt_updated": "2019-06-18T20:21:16.078Z"
     }
 }
 ]
