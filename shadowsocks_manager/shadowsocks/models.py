@@ -155,7 +155,7 @@ class Node(StatisticsMethod):
     public_ip = models.GenericIPAddressField('Public IP', protocol='both', unpack_ipv4=True, unique=True, help_text='Public IP address for Shadowsocks clients.')
     domain = models.CharField(max_length=64, null=True, blank=True, help_text='Domain name resolved to the node IP, appears in the account notification Email, if leave blank, the public IP address for the node will be used, example: shadowsocks.yourdomain.com.')
     location = models.CharField(max_length=64, null=True, blank=True, help_text='Geography location for the node, appears in the account notification Email if not blank, example: Hongkong.')
-    is_active = models.BooleanField(default=False, help_text='Is this node ready to be online')
+    is_active = models.BooleanField(default=True, help_text='Is this node ready to be online')
     statistics = GenericRelation('statistics.Statistics', related_query_name='node')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
