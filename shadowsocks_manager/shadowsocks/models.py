@@ -172,7 +172,11 @@ class Node(StatisticsMethod):
         self._original_is_active = self.is_active
 
     def __unicode__(self):
-        return '%s (%s)' % (self.public_ip, self.name)
+        return self.name
+
+    def clean(self):
+        if not (self.domain or self.public_ip):
+            raise ValidationError(_('%s: Require to input at least one field: domain and public_ip.' % self))
 
     @property
     def ssmanager(self):
