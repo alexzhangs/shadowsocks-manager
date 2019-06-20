@@ -28,7 +28,7 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
     model = NodeAccount
     extra = 0
     fields = ('node', 'account', 'is_created', 'is_accessable',
-                           'transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
+                  'transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
 
     readonly_fields = fields
     fields = fields + ('is_active',)
@@ -120,7 +120,10 @@ class NodeAdmin(admin.ModelAdmin):
     def toggle_active(self, request, queryset):
         for obj in queryset:
             obj.toggle_active()
-            messages.info(request, '%s %s now is %s' % (obj.__class__.__name__, obj, ('Active' if obj.is_active else 'Inactive')))
+            messages.info(request, '{cls} {obj} now is {status}'.format(
+                cls=obj.__class__.__name__,
+                obj=obj,
+                status=('Active' if obj.is_active else 'Inactive')))
 
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Nodes'
 
@@ -170,7 +173,10 @@ class AccountAdmin(admin.ModelAdmin):
     def toggle_active(self, request, queryset):
         for obj in queryset:
             obj.toggle_active()
-            messages.info(request, '%s %s now is %s' % (obj.__class__.__name__, obj, ('Active' if obj.is_active else 'Inactive')))
+            messages.info(request, '{cls} {obj} now is {status}'.format(
+                cls=obj.__class__.__name__,
+                obj=obj,
+                status=('Active' if obj.is_active else 'Inactive')))
 
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Accounts'
 

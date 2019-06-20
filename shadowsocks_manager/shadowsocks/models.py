@@ -25,9 +25,15 @@ logger = logging.getLogger('django')
 # Create your models here.
 
 class Config(SingletonModel):
-    port_begin = models.PositiveIntegerField('Begin port', default=8381, help_text='Port range allowed for all Shadowsocks nodes, make sure they are opened on both network firewall and host firewall.')
-    port_end = models.PositiveIntegerField('End port', default=8480, help_text='Port range allowed for all Shadowsocks nodes, make sure they are opened on both network firewall and host firewall.')
-    timeout = models.PositiveIntegerField('Network Timeout', default=5, help_text='Time out setting used by the manager internally, for communicating with SS nodes.')
+    port_begin = models.PositiveIntegerField('Begin port', default=8381,
+        help_text='Port range allowed for all Shadowsocks nodes, make sure they are opened '
+            'on both network firewall and host firewall.')
+    port_end = models.PositiveIntegerField('End port', default=8480,
+        help_text='Port range allowed for all Shadowsocks nodes, make sure they are opened '
+            'on both network firewall and host firewall.')
+    timeout = models.PositiveIntegerField('Network Timeout', default=5,
+        help_text='Time out setting used by the manager internally, for communicating with '
+            'SS nodes.')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -95,7 +101,8 @@ class Account(User, StatisticsMethod):
     def clean(self):
         config = Config.load()
         if self.username not in range(config.port_begin, config.port_end + 1):
-            raise ValidationError(_('Port number must be in the range of Config: port_begin(%s) and port_end(%s)' % (config.port_begin, config.port_end)))
+            raise ValidationError(_('Port number must be in the range of Config: '
+                'port_begin(%s) and port_end(%s)' % (config.port_begin, config.port_end)))
 
     def save(self, *args, **kwargs):
         ret = super(Account, self).save(*args, **kwargs)
@@ -113,12 +120,14 @@ class Account(User, StatisticsMethod):
             return False
 
         if not self.is_active:
-            logger.warning("Skipped sending account Email to %s(%s), beacause the user is inactive." % (self.email, self.get_full_name))
+            logger.warning("Skipped sending account Email to %s(%s), beacause the user is "
+                "inactive." % (self.email, self.get_full_name))
             return False
 
         nas = self.nodes_ref.filter(is_active=True)
         if not nas:
-            logger.warning("Skipped sending account Email to %s(%s), there's no active node assigned." % (self.email, self.get_full_name()))
+            logger.warning("Skipped sending account Email to %s(%s), there's no active node "
+                "assigned." % (self.email, self.get_full_name()))
             return False
 
         template = Template.objects.get(type='account_created')
@@ -135,7 +144,8 @@ class Account(User, StatisticsMethod):
 
         message = template.render(kwargs)
 
-        logger.info("Sending VPN account Email to %s(%s) on port %s" % (self.email, self.get_full_name(), self.username))
+        logger.info("Sending VPN account Email to %s(%s) on port %s" % (self.email, \
+            self.get_full_name(), self.username))
         return Notify.sendmail(message, sender.get_full_name(), sender.email)
 
     def on_update(self):
@@ -160,10 +170,15 @@ class Account(User, StatisticsMethod):
 
 class Node(StatisticsMethod):
     name = models.CharField(unique=True, max_length=32, help_text='Give the node a name.')
-    domain = models.CharField(max_length=64, null=True, blank=True, help_text='Domain name resolved to the node IP. Example: vpn.yourdomain.com.')
-    public_ip = models.GenericIPAddressField('Public IP', protocol='both', unpack_ipv4=True, unique=True, null=True, blank=True, help_text='Public IP address for the node.')
-    private_ip = models.GenericIPAddressField('Private IP', protocol='both', unpack_ipv4=True, null=True, blank=True, help_text='Private IP address for the node.')
-    location = models.CharField(max_length=64, null=True, blank=True, help_text='Geography location for the node, appears in the account notification Email if not blank, example: Hongkong.')
+    domain = models.CharField(max_length=64, null=True, blank=True,
+        help_text='Domain name resolved to the node IP. Example: vpn.yourdomain.com.')
+    public_ip = models.GenericIPAddressField('Public IP', protocol='both', unpack_ipv4=True,
+        unique=True, null=True, blank=True, help_text='Public IP address for the node.')
+    private_ip = models.GenericIPAddressField('Private IP', protocol='both', unpack_ipv4=True,
+        null=True, blank=True, help_text='Private IP address for the node.')
+    location = models.CharField(max_length=64, null=True, blank=True,
+        help_text='Geography location for the node, appears in the account notification '
+            'Email if not blank, example: Hongkong.')
     is_active = models.BooleanField(default=True, help_text='Is this node ready to be online')
     statistics = GenericRelation('statistics.Statistics', related_query_name='node')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
@@ -181,7 +196,8 @@ class Node(StatisticsMethod):
 
     def clean(self):
         if not (self.domain or self.public_ip):
-            raise ValidationError(_('%s: Require to input at least one field: domain and public_ip.' % self))
+            raise ValidationError(_('%s: Require to input at least one field: domain and '
+                'public_ip.' % self))
 
     @property
     def ssmanager(self):
@@ -274,7 +290,8 @@ class NodeAccount(StatisticsMethod):
             if self.node.ssmanager.is_accessable:
                 self.node.ssmanager.add(port=self.account.username, password=self.account.password)
             else:
-                logger.error('%s: creation eror: ssmanager %s currently is not available.' % (self, self.node.ssmanager))
+                logger.error('%s: creation eror: ssmanager %s currently is not available.' \
+                    % (self, self.node.ssmanager))
         else:
             self.on_delete()
 
@@ -287,7 +304,8 @@ class NodeAccount(StatisticsMethod):
         if self.node.ssmanager.is_accessable:
             self.node.ssmanager.remove(port=getattr(self.account, port))
         else:
-            logger.error('%s: deletion eror: ssmanager %s currently is not available.' % (self, self.node.ssmanager))
+            logger.error('%s: deletion eror: ssmanager %s currently is not available.' % (self, \
+                self.node.ssmanager))
 
     @classmethod
     def heartbeat(cls):
@@ -310,20 +328,19 @@ class InterfaceList(enum.Enum):
 class SSManager(models.Model):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='ssmanagers')
     interface = enum.EnumField(InterfaceList, default=InterfaceList.LOCALHOST,
-                                     help_text='Network interface bound to Manager API on \
-                                     the node, use an internal interface if possible.')
-    port = models.PositiveIntegerField(default=6001, help_text='Port number bound to Manager API.')
-    encrypt = models.CharField(max_length=32, default='aes-256-cfb', help_text='Encrypt method: rc4-md5,\
-        aes-128-gcm, aes-192-gcm, aes-256-gcm,\
-        aes-128-cfb, aes-192-cfb, aes-256-cfb,\
-        aes-128-ctr, aes-192-ctr, aes-256-ctr,\
-        camellia-128-cfb, camellia-192-cfb,\
-        camellia-256-cfb, bf-cfb,\
-        chacha20-ietf-poly1305,\
-        xchacha20-ietf-poly1305,\
-        salsa20, chacha20 and chacha20-ietf.')
-    timeout = models.PositiveIntegerField(default=30, help_text='Socket timeout in seconds for Shadowsocks client.')
-    fastopen = models.BooleanField('Fast Open', default=False, help_text='Enable TCP fast open, with Linux kernel > 3.7.0.')
+        help_text='Network interface bound to Manager API on the node, use an internal '
+            'interface if possible.')
+    port = models.PositiveIntegerField(default=6001,
+        help_text='Port number bound to Manager API.')
+    encrypt = models.CharField(max_length=32, default='aes-256-cfb',
+        help_text='Encrypt method: rc4-md5, aes-128-gcm, aes-192-gcm, aes-256-gcm,'
+        'aes-128-cfb, aes-192-cfb, aes-256-cfb, aes-128-ctr, aes-192-ctr, aes-256-ctr, '
+        'camellia-128-cfb, camellia-192-cfb, camellia-256-cfb, bf-cfb, chacha20-ietf-poly1305, '
+        'xchacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf.')
+    timeout = models.PositiveIntegerField(default=30,
+        help_text='Socket timeout in seconds for Shadowsocks client.')
+    fastopen = models.BooleanField('Fast Open', default=False,
+        help_text='Enable TCP fast open, with Linux kernel > 3.7.0.')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
