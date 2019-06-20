@@ -68,7 +68,7 @@ class SSManagerInline(admin.TabularInline):
     max_num = 1
     can_delete = False
 
-    fields = ('ip', 'port', ('encrypt', 'timeout', 'fastopen'),
+    fields = ('interface', 'port', ('encrypt', 'timeout', 'fastopen'),
                   'is_accessable', 'dt_created', 'dt_updated')
 
     readonly_fields = ('is_accessable', 'dt_created', 'dt_updated')
@@ -81,15 +81,15 @@ class SSManagerInline(admin.TabularInline):
 
 @admin.register(Node)
 class NodeAdmin(admin.ModelAdmin):
-    fields = ('name', 'public_ip', 'is_active', 'domain', 'location',
+    fields = ('name', 'domain', 'public_ip', 'private_ip', 'is_active', 'location',
                   'transferred_totally', 'dt_collected',
                   'dt_created', 'dt_updated')
 
     readonly_fields = ('transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
 
-    list_display = ('name', 'public_ip',
+    list_display = ('name', 'domain', 'public_ip', 'private_ip',
                         'is_active', 'is_dns_record_correct',
-                        'domain', 'location',
+                        'location',
                         'transferred_totally', 'dt_collected',
                         'dt_created', 'dt_updated')
 

@@ -8,7 +8,10 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes.fields import GenericRelation
+from django.core.exceptions import ValidationError
 from django.core.cache import cache
+from django.utils.translation import gettext_lazy as _
+from django_enumfield import enum
 
 from retry import retry
 from singleton.models import SingletonModel
@@ -152,8 +155,9 @@ class Account(User, StatisticsMethod):
 
 class Node(StatisticsMethod):
     name = models.CharField(unique=True, max_length=32, help_text='Give the node a name.')
-    public_ip = models.GenericIPAddressField('Public IP', protocol='both', unpack_ipv4=True, unique=True, help_text='Public IP address for Shadowsocks clients.')
-    domain = models.CharField(max_length=64, null=True, blank=True, help_text='Domain name resolved to the node IP, appears in the account notification Email, if leave blank, the public IP address for the node will be used, example: shadowsocks.yourdomain.com.')
+    domain = models.CharField(max_length=64, null=True, blank=True, help_text='Domain name resolved to the node IP. Example: vpn.yourdomain.com.')
+    public_ip = models.GenericIPAddressField('Public IP', protocol='both', unpack_ipv4=True, unique=True, null=True, blank=True, help_text='Public IP address for the node.')
+    private_ip = models.GenericIPAddressField('Private IP', protocol='both', unpack_ipv4=True, null=True, blank=True, help_text='Private IP address for the node.')
     location = models.CharField(max_length=64, null=True, blank=True, help_text='Geography location for the node, appears in the account notification Email if not blank, example: Hongkong.')
     is_active = models.BooleanField(default=True, help_text='Is this node ready to be online')
     statistics = GenericRelation('statistics.Statistics', related_query_name='node')
@@ -203,6 +207,12 @@ class Node(StatisticsMethod):
     @property
     def is_dns_record_correct(self):
         return self.public_ip in self.get_dns_a_record(self.domain)
+
+    def get_ip_by_interface(self, interface):
+        if interface == InterfaceList.LOCALHOST:
+            return '127.0.0.1'
+        else:
+            return getattr(self, '{}_ip'.format(InterfaceList.name(interface).lower()))
 
     # test if a port is open
     def is_port_accessable(self, port):
@@ -276,9 +286,23 @@ class NodeAccount(StatisticsMethod):
             na.on_update()
 
 
+class InterfaceList(enum.Enum):
+    LOCALHOST = 1
+    PRIVATE = 2
+    PUBLIC = 3
+
+    labels = {
+        LOCALHOST: "Localhost",
+        PRIVATE: "Private",
+        PUBLIC: "Public"
+    }
+
+
 class SSManager(models.Model):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='ssmanagers')
-    ip = models.GenericIPAddressField(protocol='both', unpack_ipv4=True, unique=True, null=True, blank=True, help_text='IP address bound to Manager API, use an internal IP if possible, leave it blank will use the public IP address of the node.')
+    interface = enum.EnumField(InterfaceList, default=InterfaceList.LOCALHOST,
+                                     help_text='Network interface bound to Manager API on \
+                                     the node, use an internal interface if possible.')
     port = models.PositiveIntegerField(default=6001, help_text='Port number bound to Manager API.')
     encrypt = models.CharField(max_length=32, default='aes-256-cfb', help_text='Encrypt method: rc4-md5,\
         aes-128-gcm, aes-192-gcm, aes-256-gcm,\
@@ -300,9 +324,13 @@ class SSManager(models.Model):
     def __unicode__(self):
         return '%s:%s' % (self._ip, self.port)
 
+    def clean(self):
+        if not self._ip:
+            raise ValidationError(_('There is no IP address set for selected interface on the node.'))
+
     @property
     def _ip(self):
-        return self.ip or self.node.public_ip
+        return self.node.get_ip_by_interface(self.interface)
 
     def connect(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP

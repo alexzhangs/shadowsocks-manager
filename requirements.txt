@@ -3,5 +3,6 @@ Django==1.11.20
 django-cache-lock==0.2.1
 django-celery-beat==1.5.0
 django-celery-results==1.1.1
+django-enumfield==1.5
 python-memcached==1.59
 pytz==2019.1
