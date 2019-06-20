@@ -361,7 +361,6 @@ class SSManager(models.Model):
             logger.error('%s: timed out on calling command: %s' % (self, command))
         except Exception as e:
             logger.error('%s: unexpected error: %s' % (self, e))
-            raise
         finally:
             self.close()
 
