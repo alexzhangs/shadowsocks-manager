@@ -92,6 +92,11 @@ class Account(User, StatisticsMethod):
     def __unicode__(self):
         return '%s (%s)' % (self.get_username(), self.get_full_name())
 
+    def clean(self):
+        config = Config.load()
+        if self.username not in range(config.port_begin, config.port_end + 1):
+            raise ValidationError(_('Port number must be in the range of Config: port_begin(%s) and port_end(%s)' % (config.port_begin, config.port_end)))
+
     def save(self, *args, **kwargs):
         ret = super(Account, self).save(*args, **kwargs)
 
