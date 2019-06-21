@@ -77,7 +77,7 @@ printf "Creating static dir: $static_dir...\n"
 mkdir -p "$static_dir"
 
 function guid () {
-    od  -vN "$(($1 / 2))" -An -tx1 /dev/urandom | tr -d ' \n'
+    od -vN "$(($1 / 2))" -An -tx1 /dev/urandom | tr -d ' \n'
 }
 
 printf "Modifying Django settings...\n"
@@ -111,6 +111,9 @@ python manage.py collectstatic --no-input -c
 printf "Copying and patching init.d scripts...\n"
 cp -a "$WORKDIR/shadowsocks-manager-web" /etc/init.d/
 sed -i "s/LISTEN_ADDRESS=.*/LISTEN_ADDRESS=$IP:$PORT/" /etc/init.d/shadowsocks-manager-web
+chmod 755 /etc/init.d/shadowsocks-manager-web
+
 cp -a "$WORKDIR/shadowsocks-manager-job" /etc/init.d/
+chmod 755 /etc/init.d/shadowsocks-manager-job
 
 exit
