@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 from django.contrib import admin, messages
 from django.contrib.auth.models import User, Group
 from django.template.defaultfilters import filesizeformat
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
 
 from .models import Config, Node, Account, NodeAccount, SSManager
 
@@ -130,8 +132,16 @@ class NodeAdmin(admin.ModelAdmin):
     actions = (toggle_active,)
 
 
+class AccountResource(resources.ModelResource):
+    
+    class Meta:
+        model = Account
+        fields = ('username', 'email', 'first_name', 'last_name', 'date_joined',)
+        export_order = ('username',)
+
+
 @admin.register(Account)
-class AccountAdmin(admin.ModelAdmin):
+class AccountAdmin(ImportExportModelAdmin):
     fields = ('username', 'password', 'first_name', 'last_name', 'email', 'is_active',
                   'groups', 'transferred_totally', 'dt_collected', 'date_joined', 'dt_updated')
 
@@ -181,3 +191,4 @@ class AccountAdmin(admin.ModelAdmin):
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Accounts'
 
     actions = (toggle_active, notify,)
+    resource_class = AccountResource

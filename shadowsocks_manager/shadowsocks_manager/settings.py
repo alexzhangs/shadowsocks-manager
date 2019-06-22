@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_celery_beat',
     'django_celery_results',
+    'import_export',
     'rest_framework',
     'shadowsocks',
     'statistics',
