@@ -192,8 +192,8 @@ bash shadowsocks-manager/install.sh
     Example commands:
 
     ```
-    python manage.py createsuperuser --username admin --email
-    admin@shadowsocks.yourdomain.com --noinput
+    python manage.py createsuperuser --username admin --email \
+        admin@vpn.yourdomain.com --noinput
     ```
 
     Set a password for the user:
