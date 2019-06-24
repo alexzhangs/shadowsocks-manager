@@ -61,7 +61,7 @@ done
 [[ -z $PASSWORD ]] && PASSWORD=passw0rd
 [[ -z $TIMEZONE ]] && TIMEZONE=UTC
 
-WORKDIR=${0%/*}
+WORKDIR=$(dirname "$0"; pwd)
 
 if [[ $(uname) != 'Linux' ]]; then
     printf "Error: this script support Linux only.\n" >&2
