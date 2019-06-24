@@ -309,7 +309,7 @@ class NodeAccount(StatisticsMethod):
 
     @classmethod
     def heartbeat(cls):
-        for na in cls.objects.all():
+        for na in cls.objects.filter(is_active=True):
             na.on_update()
 
 
