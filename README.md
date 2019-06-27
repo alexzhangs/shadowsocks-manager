@@ -55,6 +55,7 @@ configuration, the details are out of scope for this document.
     ```
     yum install rabbitmq-server
     service rabbitmq-server start
+    chkconfig --add rabbitmq-server
     ```
 
 3. Memcached
@@ -74,6 +75,7 @@ configuration, the details are out of scope for this document.
     ```
     yum install memcached
     service memcached start
+    chkconfig --add memcached
     ```
 
 4. Sendmail (Optional)
