@@ -136,7 +136,7 @@ class AccountResource(resources.ModelResource):
     
     class Meta:
         model = Account
-        fields = ('username', 'email', 'first_name', 'last_name', 'date_joined',)
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'date_joined',)
         export_order = ('username',)
 
 
