@@ -66,6 +66,9 @@ RUN_AS=ssm
 INSTALL_DIR=/home/$RUN_AS/shadowsocks-manager
 
 printf "Creating user $RUN_AS...\n"
+if id $RUN_AS >/dev/null 2>&1; then
+    userdel -m $RUN_AS
+fi
 useradd $RUN_AS
 
 printf "Copying project files to $INSTALL_DIR...\n"
