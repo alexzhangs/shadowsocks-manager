@@ -111,20 +111,21 @@ printf "Changing to Django directory...\n"
 cd "$INSTALL_DIR/shadowsocks_manager"
 
 printf "Load Django fixtures...\n"
-python manage.py makemigrations
-python manage.py migrate
-python manage.py loaddata auth.group.json \
+su - $RUN_AS -c "python manage.py makemigrations"
+su - $RUN_AS -c "python manage.py migrate"
+su - $RUN_AS -c "python manage.py loaddata auth.group.json \
        django_celery_beat.crontabschedule.json \
        django_celery_beat.intervalschedule.json \
        django_celery_beat.periodictask.json \
        config.json \
-       template.json
+       template.json"
 
 printf "Creating super user...\n"
 echo "from django.contrib.auth.models import User; User.objects.filter(username='$USERNAME').delete(); User.objects.create_superuser('$USERNAME', '$EMAIL', '$PASSWORD')" \
-    | python manage.py shell
+    | su - $RUN_AS -c "python manage.py shell"
 
 printf "Collecting static files...\n"
-python manage.py collectstatic --no-input -c
+su - $RUN_AS -c "python manage.py collectstatic --no-input -c"
 
 exit
+
