@@ -4,12 +4,12 @@
 set -o pipefail -e
 
 usage () {
-    printf "Usage: ${0##*/} [-d DOMAIN] [-i IP] [-o PORT] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE]\n"
+    printf "Usage: ${0##*/} [-n DOMAIN] [-a IP] [-o PORT] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE]\n"
     printf "Run this script under root on Linux.\n"
     printf "OPTIONS\n"
-    printf "\t[-d DOMAIN]\n\n"
+    printf "\t[-n DOMAIN]\n\n"
     printf "\tDomain name resolved to shadowsocks-manager web application.\n\n"
-    printf "\t[-i IP]\n\n"
+    printf "\t[-a IP]\n\n"
     printf "\tIP address bound to shadowsocks-manager web application, default is 127.0.0.1.\n\n"
     printf "\t[-o PORT]\n\n"
     printf "\tPort number bound to shadowsocks-manager web application, default is 8000.\n\n"
@@ -26,12 +26,12 @@ usage () {
     exit 255
 }
 
-while getopts d:i:o:u:p:e:t:h opt; do
+while getopts n:a:o:u:p:e:t:h opt; do
     case $opt in
-        d)
+        n)
             DOMAIN=$OPTARG
             ;;
-        i)
+        a)
             IP=$OPTARG
             ;;
         o)
@@ -61,20 +61,31 @@ done
 [[ -z $PASSWORD ]] && PASSWORD=passw0rd
 [[ -z $TIMEZONE ]] && TIMEZONE=UTC
 
-WORKDIR=$(cd "$(dirname "$0")"; pwd)
+WORK_DIR=$(cd "$(dirname "$0")"; pwd)
 
 if [[ $(uname) != 'Linux' ]]; then
     printf "Error: this script support Linux only.\n" >&2
     exit 9
 fi
 
+RUN_AS=ssm
+INSTALL_DIR=/home/$RUN_AS
+
+printf "Creating user $RUN_AS...\n"
+useradd $RUN_AS
+
+printf "Copying project files to $INSTALL_DIR...\n"
+su - $RUN_AS -c "cp -a $WORK_DIR $INSTALL_DIR"
+
 printf "Installing python dependencies...\n"
-pip install -r "$WORKDIR/requirements.txt"
+pip install -r "$INSTALL_DIR/requirements.txt"
 
-static_dir="/var/local/www/$DOMAIN/static/"
+STATIC_DIR="/var/local/www/$DOMAIN/static/"
+printf "Creating static dir: $STATIC_DIR...\n"
+mkdir -p "$STATIC_DIR"
 
-printf "Creating static dir: $static_dir...\n"
-mkdir -p "$static_dir"
+printf "Modifying nginx conf files...\n"
+sed -i "s/{DOMAIN}/${DOMAIN}/" $INSTALL_DIR/nginx/conf.d/shadowsocks-manager.conf
 
 function guid () {
     od -vN "$(($1 / 2))" -An -tx1 /dev/urandom | tr -d ' \n'
@@ -82,16 +93,18 @@ function guid () {
 
 printf "Modifying Django settings...\n"
 secret_key=$(guid 50)
-setting_file="$WORKDIR/shadowsocks_manager/shadowsocks_manager/settings.py"
+setting_file="$INSTALL_DIR/shadowsocks_manager/shadowsocks_manager/settings.py"
 sed -e "s/DEBUG = True/DEBUG = False/" \
     -e "s/ALLOWED_HOSTS = .*/ALLOWED_HOSTS = ['$IP', '$DOMAIN']/" \
-    -e "s|STATIC_ROOT = .*|STATIC_ROOT = '$static_dir'|" \
+    -e "s|STATIC_ROOT = .*|STATIC_ROOT = '$STATIC_DIR'|" \
     -e "s/SECRET_KEY = .*/SECRET_KEY = '$secret_key'/" \
     -e "s/TIME_ZONE = .*/TIME_ZONE = '$TIMEZONE'/" \
     -i "$setting_file"
 
+printf "Changing to Django directory...\n"
+cd "$INSTALL_DIR/shadowsocks_manager"
+
 printf "Load Django fixtures...\n"
-cd "$WORKDIR/shadowsocks_manager"
 python manage.py makemigrations
 python manage.py migrate
 python manage.py loaddata auth.group.json \
@@ -108,12 +121,10 @@ echo "from django.contrib.auth.models import User; User.objects.filter(username=
 printf "Collecting static files...\n"
 python manage.py collectstatic --no-input -c
 
-printf "Copying and patching init.d scripts...\n"
-cp -a "$WORKDIR/shadowsocks-manager-web" /etc/init.d/
-sed -i "s/LISTEN_ADDRESS=.*/LISTEN_ADDRESS=$IP:$PORT/" /etc/init.d/shadowsocks-manager-web
-chmod 755 /etc/init.d/shadowsocks-manager-web
+printf "Copying nginx conf files...\n"
+cp -a $INSTALL_DIR/nginx/* /etc/nginx/
 
-cp -a "$WORKDIR/shadowsocks-manager-job" /etc/init.d/
-chmod 755 /etc/init.d/shadowsocks-manager-job
+printf "Copying supervisor program conf files...\n"
+cp -a $INSTALL_DIR/supervisor/* /etc/supervisor/conf.d/
 
 exit
