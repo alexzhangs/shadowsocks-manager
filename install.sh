@@ -99,7 +99,7 @@ function guid () {
 
 printf "Modifying Django settings...\n"
 secret_key=$(guid 50)
-setting_file="$INSTALL_DIR/shadowsocks_manager/settings.py"
+setting_file="$INSTALL_DIR/shadowsocks_manager/shadowsocks_manager/settings.py"
 sed -e "s/DEBUG = True/DEBUG = False/" \
     -e "s/ALLOWED_HOSTS = .*/ALLOWED_HOSTS = ['$IP', '$DOMAIN']/" \
     -e "s|STATIC_ROOT = .*|STATIC_ROOT = '$STATIC_DIR'|" \
