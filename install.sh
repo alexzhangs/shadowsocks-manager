@@ -67,7 +67,7 @@ INSTALL_DIR=/home/$RUN_AS/shadowsocks-manager
 
 printf "Creating user $RUN_AS...\n"
 if id $RUN_AS >/dev/null 2>&1; then
-    userdel -m $RUN_AS
+    userdel -r $RUN_AS
 fi
 useradd $RUN_AS
 
