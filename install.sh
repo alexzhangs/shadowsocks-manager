@@ -72,7 +72,7 @@ fi
 useradd $RUN_AS
 
 printf "Copying project files to $INSTALL_DIR...\n"
-su - $RUN_AS -c "cp -a $WORK_DIR $INSTALL_DIR"
+su $RUN_AS -c "cp -a $WORK_DIR $INSTALL_DIR"
 
 printf "Changing to install directory...\n"
 cd "$INSTALL_DIR"
@@ -89,31 +89,30 @@ cp -a nginx/* /etc/nginx/
 printf "Copying supervisor program conf files...\n"
 cp -a supervisor/* /etc/supervisor/conf.d/
 
-STATIC_DIR="/var/local/www/$DOMAIN/static/"
-printf "Creating static dir: $STATIC_DIR...\n"
-mkdir -p "$STATIC_DIR"
-
 function guid () {
     od -vN "$(($1 / 2))" -An -tx1 /dev/urandom | tr -d ' \n'
 }
 
 printf "Modifying Django settings...\n"
-secret_key=$(guid 50)
-setting_file="$INSTALL_DIR/shadowsocks_manager/shadowsocks_manager/settings.py"
+STATIC_DIR="/var/local/www/$DOMAIN/static/"
+SECRET_KEY=$(guid 50)
+SETTING_FILE="$INSTALL_DIR/shadowsocks_manager/shadowsocks_manager/settings.py"
 sed -e "s/DEBUG = True/DEBUG = False/" \
     -e "s/ALLOWED_HOSTS = .*/ALLOWED_HOSTS = ['$IP', '$DOMAIN']/" \
     -e "s|STATIC_ROOT = .*|STATIC_ROOT = '$STATIC_DIR'|" \
-    -e "s/SECRET_KEY = .*/SECRET_KEY = '$secret_key'/" \
+    -e "s/SECRET_KEY = .*/SECRET_KEY = '$SECRET_KEY'/" \
     -e "s/TIME_ZONE = .*/TIME_ZONE = '$TIMEZONE'/" \
-    -i "$setting_file"
+    -i "$SETTING_FILE"
 
 printf "Changing to Django directory...\n"
 cd "$INSTALL_DIR/shadowsocks_manager"
 
-printf "Load Django fixtures...\n"
-su - $RUN_AS -c "python manage.py makemigrations"
-su - $RUN_AS -c "python manage.py migrate"
-su - $RUN_AS -c "python manage.py loaddata auth.group.json \
+printf "Migrating Django...\n"
+su $RUN_AS -c "python manage.py makemigrations"
+su $RUN_AS -c "python manage.py migrate"
+
+printf "Loading Django fixtures...\n"
+su $RUN_AS -c "python manage.py loaddata auth.group.json \
        django_celery_beat.crontabschedule.json \
        django_celery_beat.intervalschedule.json \
        django_celery_beat.periodictask.json \
@@ -122,10 +121,14 @@ su - $RUN_AS -c "python manage.py loaddata auth.group.json \
 
 printf "Creating super user...\n"
 echo "from django.contrib.auth.models import User; User.objects.filter(username='$USERNAME').delete(); User.objects.create_superuser('$USERNAME', '$EMAIL', '$PASSWORD')" \
-    | su - $RUN_AS -c "python manage.py shell"
+    | su $RUN_AS -c "python manage.py shell"
+
+printf "Creating static dir: $STATIC_DIR...\n"
+mkdir -p "$STATIC_DIR"
+chown $RUN_AS:$RUN_AS "$STATIC_DIR"
 
 printf "Collecting static files...\n"
-su - $RUN_AS -c "python manage.py collectstatic --no-input -c"
+su $RUN_AS -c "python manage.py collectstatic --no-input -c"
 
 exit
 
