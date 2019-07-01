@@ -1,3 +1,4 @@
+backports.weakref  # workaround with defect: ImportError: No module named backports
 celery==4.3.0
 Django==1.11.20
 django-cache-lock==0.2.1
