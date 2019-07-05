@@ -31,7 +31,7 @@ def get_public_ip():
     import requests
     public_ip = None
     try:
-        public_ip = requests.get('http://checkip.amazonaws.com')
+        public_ip = requests.get('http://checkip.amazonaws.com').text.rstrip('\n')
     except requests.exceptions.RequestException:
         pass
     return public_ip
