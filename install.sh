@@ -4,7 +4,7 @@
 set -o pipefail -e
 
 usage () {
-    printf "Usage: ${0##*/} [-n DOMAIN] [- USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE]\n"
+    printf "Usage: ${0##*/} [-n DOMAIN] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE]\n"
     printf "Run this script under root on Linux.\n"
     printf "OPTIONS\n"
     printf "\t[-n DOMAIN]\n\n"
@@ -22,7 +22,7 @@ usage () {
     exit 255
 }
 
-while getopts n:a:u:p:e:t:h opt; do
+while getopts n:u:p:e:t:h opt; do
     case $opt in
         n)
             DOMAIN=$OPTARG
