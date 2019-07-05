@@ -85,7 +85,7 @@ function guid () {
 }
 
 printf "Modifying Django settings...\n"
-STATIC_DIR="/var/local/www/$DOMAIN/static/"
+STATIC_DIR="/var/local/www/ssm/static/"
 SECRET_KEY=$(guid 50)
 SETTING_FILE="$INSTALL_DIR/shadowsocks_manager/shadowsocks_manager/settings.py"
 sed -e "s/DEBUG = True/DEBUG = False/" \
