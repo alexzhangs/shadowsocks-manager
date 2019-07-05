@@ -25,7 +25,7 @@ SECRET_KEY = '1a22&*@(!7sdzwd$oc3^q3*va!k6u&*a4s-h#^0r=5so!&6^u4'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 def get_public_ip():
     import requests
