@@ -4,13 +4,11 @@
 set -o pipefail -e
 
 usage () {
-    printf "Usage: ${0##*/} [-n DOMAIN] [-a IP] [- USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE]\n"
+    printf "Usage: ${0##*/} [-n DOMAIN] [- USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE]\n"
     printf "Run this script under root on Linux.\n"
     printf "OPTIONS\n"
     printf "\t[-n DOMAIN]\n\n"
     printf "\tDomain name resolved to shadowsocks-manager web application.\n\n"
-    printf "\t[-a IP]\n\n"
-    printf "\tIP address bound to shadowsocks-manager web application, default is 127.0.0.1.\n\n"
     printf "\t[-u USERNAME]\n\n"
     printf "\tUsername for shadowsocks-manager administrator, default is 'admin'.\n\n"
     printf "\t[-p PASSWORD]\n\n"
@@ -28,9 +26,6 @@ while getopts n:a:u:p:e:t:h opt; do
     case $opt in
         n)
             DOMAIN=$OPTARG
-            ;;
-        a)
-            IP=$OPTARG
             ;;
         u)
             USERNAME=$OPTARG
@@ -50,7 +45,6 @@ while getopts n:a:u:p:e:t:h opt; do
     esac
 done
 
-[[ -z $IP ]] && IP=127.0.0.1
 [[ -z $USERNAME ]] && USERNAME=admin
 [[ -z $PASSWORD ]] && PASSWORD=passw0rd
 [[ -z $TIMEZONE ]] && TIMEZONE=UTC
@@ -80,9 +74,6 @@ cd "$INSTALL_DIR"
 printf "Installing python dependencies...\n"
 pip install -r requirements.txt
 
-printf "Modifying nginx conf files...\n"
-sed -i "s/{DOMAIN}/${DOMAIN}/" nginx/conf.d/shadowsocks-manager.conf
-
 printf "Copying nginx conf files...\n"
 cp -a nginx/* /etc/nginx/
 
@@ -98,7 +89,7 @@ STATIC_DIR="/var/local/www/$DOMAIN/static/"
 SECRET_KEY=$(guid 50)
 SETTING_FILE="$INSTALL_DIR/shadowsocks_manager/shadowsocks_manager/settings.py"
 sed -e "s/DEBUG = True/DEBUG = False/" \
-    -e "s/ALLOWED_HOSTS = .*/ALLOWED_HOSTS = ['$IP', '$DOMAIN']/" \
+    -e "s/DOMAIN = .*/DOMAIN = '$DOMAIN'/" \
     -e "s|STATIC_ROOT = .*|STATIC_ROOT = '$STATIC_DIR'|" \
     -e "s/SECRET_KEY = .*/SECRET_KEY = '$SECRET_KEY'/" \
     -e "s/TIME_ZONE = .*/TIME_ZONE = '$TIMEZONE'/" \
@@ -120,7 +111,9 @@ su $RUN_AS -c "python manage.py loaddata auth.group.json \
        template.json"
 
 printf "Creating super user...\n"
-echo "from django.contrib.auth.models import User; User.objects.filter(username='$USERNAME').delete(); User.objects.create_superuser('$USERNAME', '$EMAIL', '$PASSWORD')" \
+echo "from django.contrib.auth.models import User;
+User.objects.filter(username='$USERNAME').delete();
+User.objects.create_superuser('$USERNAME', '$EMAIL', '$PASSWORD')" \
     | su $RUN_AS -c "python manage.py shell"
 
 printf "Creating static dir: $STATIC_DIR...\n"

@@ -25,7 +25,24 @@ SECRET_KEY = '1a22&*@(!7sdzwd$oc3^q3*va!k6u&*a4s-h#^0r=5so!&6^u4'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1']
+
+def get_public_ip():
+    import requests
+    public_ip = None
+    try:
+        public_ip = requests.get('http://checkip.amazonaws.com')
+    except requests.exceptions.RequestException:
+        pass
+    return public_ip
+
+PUBLIC_IP = get_public_ip()
+if PUBLIC_IP:
+    ALLOWED_HOSTS.append(PUBLIC_IP)
+
+DOMAIN = ''
+if DOMAIN:
+    ALLOWED_HOSTS.append(DOMAIN)
 
 
 # Application definition
