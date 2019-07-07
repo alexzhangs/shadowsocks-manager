@@ -34,7 +34,7 @@ class Retry(object):
     def log_retry(self, func, attempts):
         if self.logger:
             msg = '{func}: Retrying {attempts} of {count} in {delay} second(s)...'.format(
-                func=func, attempts='{}', count=self.count, delay=self.delay)
+                func=func, attempts=attempts, count=self.count, delay=self.delay)
             self.logger(msg)
 
     def log_failure(self, func):
