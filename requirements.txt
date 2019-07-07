@@ -9,3 +9,4 @@ django-import-export==1.2.0
 djangorestframework==3.9.2
 python-memcached==1.59
 pytz==2019.1
+requests==2.22.0
