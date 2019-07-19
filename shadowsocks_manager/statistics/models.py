@@ -207,7 +207,7 @@ class Statistics(models.Model):
             transferred_live += obj.transferred_live
             if self.dt_collected is None:
                 self.dt_collected = obj.dt_collected
-            elif obj.dt_collected > self.dt_collected:
+            elif obj.dt_collected and obj.dt_collected > self.dt_collected:
                 self.dt_collected = obj.dt_collected
 
         self.transferred_past = transferred_past
