@@ -100,7 +100,7 @@ class Account(User, StatisticsMethod):
 
     def clean(self):
         config = Config.load()
-        if self.username not in range(config.port_begin, config.port_end + 1):
+        if int(self.username) not in range(config.port_begin, config.port_end + 1):
             raise ValidationError(_('Port number must be in the range of Config: '
                 'port_begin(%s) and port_end(%s)' % (config.port_begin, config.port_end)))
 
