@@ -83,7 +83,7 @@ configuration, the details are out of scope for this document.
     gcc is required while installing uWSGI with pip.
 
     ** Linux**
-    
+
     ```
     yum install gcc
     ```
@@ -319,3 +319,69 @@ following scripts.
 
     For unknown reason sometimes DNS query returns only one IP address
     even multiple IPs were configured for the domain.
+
+
+## Troubleshooting
+
+1. Check Logs
+
+   uWSGI:
+
+   ```
+   cat /var/log/ssm-uwsgi.log
+   ```
+
+   Celery:
+
+   ```
+   cat /var/log/ssm-cerlery*
+   ```
+
+   Supervisor
+
+   ```
+   cat /tmp/supervisord.log
+   ```
+
+1. Check Services
+
+   Supervisor:
+
+   ```
+   service supervisor status
+   supervisorctl reload
+   supervisorctl start all
+   ```
+
+   uWSGI:
+
+   ```
+   supervisorctl start ssm-uwsgi
+   ```
+
+   Celery:
+
+   ```
+   supervisorctl start ssm-celery-worker
+   supervisorctl start ssm-celery-beat
+   ```
+
+   1. Check Ports
+
+   TCP:
+
+   ```
+   netstat -tan
+   ```
+
+   UDP:
+
+   ```
+   netstat -uan
+   ```
+
+   1. Check Processes
+
+   ```
+   ps -ef
+   ```
