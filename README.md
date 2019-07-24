@@ -78,7 +78,17 @@ configuration, the details are out of scope for this document.
     chkconfig --add memcached
     ```
 
-4. Sendmail (Optional)
+4. gcc
+
+    gcc is required while installing uWSGI with pip.
+
+    ** Linux**
+    
+    ```
+    yum install gcc
+    ```
+
+5. Sendmail (Optional)
 
     `sendmail` is used to send account notification Email, it should
     be configured on the same server if you want this feature.
@@ -279,8 +289,7 @@ following scripts.
     Refer to the doc:
     [How to use Django with uWSGI](https://docs.djangoproject.com/en/2.2/howto/deployment/wsgi/uwsgi/).
 
-
-2. Web Server(Optional):
+1. Web Server(Optional):
 
     Serving static files from a dedicated server such as nginx is recommended for
     production deployment.
