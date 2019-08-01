@@ -181,9 +181,15 @@ class Statistics(models.Model):
 
         if depend[1] == 'Monthly':
             kwargs['period__year'] = self.period.year
-            kwargs['period__month__isnull'] = False
+            if self.period.term == depend[1]:
+                kwargs['period__month'] = self.period.month
+            else:
+                kwargs['period__month__isnull'] = False
         elif depend[1] == 'Yearly':
-            kwargs['period__year__isnull'] = False
+            if self.period.term == depend[1]:
+                kwargs['period__year'] = self.period.year
+            else:
+                kwargs['period__year__isnull'] = False
             kwargs['period__month__isnull'] = True
         elif depend[1] == 'All':
             kwargs['period__year__isnull'] = True
