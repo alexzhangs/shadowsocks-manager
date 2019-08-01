@@ -301,7 +301,7 @@ class Statistics(models.Model):
     @lock('statistics.collect', blocking=300) # wait for 5 minutes
     def reset(cls):
         # recreate all active ports
-        nas = NodeAccount.objects.filter(is_active=True):
+        nas = NodeAccount.objects.filter(is_active=True)
 
         for na in nas:
             na.on_delete()
