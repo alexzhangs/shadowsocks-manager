@@ -348,7 +348,7 @@ following scripts.
    Supervisor:
 
    ```
-   service supervisor status
+   service supervisord status
    supervisorctl reload
    supervisorctl start all
    ```
