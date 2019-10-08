@@ -366,7 +366,7 @@ following scripts.
    supervisorctl start ssm-celery-beat
    ```
 
-   1. Check Ports
+1. Check Ports
 
    TCP:
 
@@ -380,7 +380,7 @@ following scripts.
    netstat -uan
    ```
 
-   1. Check Processes
+1. Check Processes
 
    ```
    ps -ef
