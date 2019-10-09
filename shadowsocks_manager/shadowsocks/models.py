@@ -449,8 +449,7 @@ class SSManager(models.Model):
         key, value = ('{0}-{1}'.format(self, 'ping'), None)
         if from_cache:
             value = cache.get(key)
-
-        if value is None:
+        else:
             value = self.ping()
             cache.set(key, value, timeout=60)
 
@@ -463,8 +462,7 @@ class SSManager(models.Model):
         key, value = ('{0}-{1}'.format(self, 'list'), None)
         if from_cache:
             value = cache.get(key)
-
-        if value is None:
+        else:
             value = self.list()
             cache.set(key, value, timeout=86400)
 
