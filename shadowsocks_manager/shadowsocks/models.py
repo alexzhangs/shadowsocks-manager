@@ -457,14 +457,14 @@ class SSManager(models.Model):
 
     def list_ex(self, from_cache=True):
         """
-        cache 1 day
+        cache 60 seconds
         """
         key, value = ('{0}-{1}'.format(self, 'list'), None)
         if from_cache:
             value = cache.get(key)
         else:
             value = self.list()
-            cache.set(key, value, timeout=86400)
+            cache.set(key, value, timeout=60)
 
         return value
 
