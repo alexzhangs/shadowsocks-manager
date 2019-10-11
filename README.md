@@ -12,7 +12,7 @@ supported by Shadowsocks libev and Python version by now.
 
 This repo is tested under:
 
-* Linux Kernel 4.14 and macOS High Sierra
+* AWS Amazon Linux (Not the Amazon Linux 2) and macOS High Sierra
 * Python 2.7
 * Shadowsocks-libev 3.2.0 for Linux
 
@@ -101,6 +101,8 @@ configuration, the details are out of scope for this document.
 
 
 ## Install shadowsocks-manager
+
+It's better to install the project within a virtualenv.
 
 ### Get the code:
 
