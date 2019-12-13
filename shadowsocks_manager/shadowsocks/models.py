@@ -17,6 +17,7 @@ from retry import retry
 from singleton.models import SingletonModel
 from dynamicmethod.models import DynamicMethodModel
 from notification.models import Template, Notify
+from domain.models import Domain
 
 
 logger = logging.getLogger('django')
@@ -170,7 +171,7 @@ class Account(User, StatisticsMethod):
 
 class Node(StatisticsMethod):
     name = models.CharField(unique=True, max_length=32, help_text='Give the node a name.')
-    domain = models.CharField(max_length=64, null=True, blank=True,
+    domain = models.ForeignKey(Domain, null=True, blank=True, on_delete=models.SET_NULL, related_name='nodes',
         help_text='Domain name resolved to the node IP. Example: vpn.yourdomain.com.')
     public_ip = models.GenericIPAddressField('Public IP', protocol='both', unpack_ipv4=True,
         unique=True, null=True, blank=True, help_text='Public IP address for the node.')
@@ -231,7 +232,8 @@ class Node(StatisticsMethod):
     # test if dns records match the public IP
     @property
     def is_dns_record_correct(self):
-        return self.public_ip in self.get_dns_a_record(self.domain)
+        if self.domain:
+            return self.public_ip in self.get_dns_a_record(self.domain.name)
 
     def get_ip_by_interface(self, interface):
         if interface == InterfaceList.LOCALHOST:

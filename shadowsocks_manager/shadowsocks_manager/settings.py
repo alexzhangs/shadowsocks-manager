@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'shadowsocks',
     'statistics',
     'notification',
+    'domain',
 ]
 
 MIDDLEWARE = [

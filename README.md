@@ -1,7 +1,7 @@
 # shadowsocks-manager
 
 A Shadowsocks management tool for multi user and traffic statistics,
-support multi node, LDAP support is in future plan.
+support multi node, sync IPs to name.com, LDAP support is in future plan.
 Writen in Python, base on Django and SQLite.
 
 It relies on Shadowsocks Multi-User API, which is only
