@@ -23,4 +23,5 @@ urlpatterns = [
     url(r'^', include('notification.urls')),
     url(r'^', include('shadowsocks.urls')),
     url(r'^', include('statistics.urls')),
+    url(r'^', include('domain.urls')),
 ]
