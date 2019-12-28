@@ -30,6 +30,7 @@ class NodeViewSet(viewsets.ModelViewSet):
     """
     queryset = models.Node.objects.all()
     serializer_class = serializers.NodeSerializer
+    filter_fields = ['name']
 
 
 class NodeAccountViewSet(viewsets.ModelViewSet):

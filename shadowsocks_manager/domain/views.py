@@ -14,3 +14,4 @@ class DomainViewSet(viewsets.ModelViewSet):
     """
     queryset = models.Domain.objects.all()
     serializer_class = serializers.DomainSerializer
+    filter_fields = ['name']
