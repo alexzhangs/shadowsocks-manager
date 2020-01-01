@@ -73,7 +73,7 @@ class NameDomainManager(DomainManager):
 class Domain(models.Model):
 
     NAMESERVER = [
-        ('Name', 'Name.com')
+        ('name.com', 'Name.com')
     ]
 
     name = models.CharField(unique=True, max_length=64,
@@ -103,7 +103,7 @@ class Domain(models.Model):
 
         if self.nameserver:
             cls = globals().get(
-                '{prefix}DomainManager'.format(prefix=self.nameserver)
+                '{prefix}DomainManager'.format(prefix=self.nameserver.split(".")[0].title())
             )
         else:
             cls = None
