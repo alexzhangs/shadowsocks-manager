@@ -191,6 +191,7 @@ class Node(StatisticsMethod):
     def __init__(self, *args, **kwargs):
         super(Node, self).__init__(*args, **kwargs)
         self._original_is_active = self.is_active
+        self._original_public_ip = self.public_ip
 
     def __unicode__(self):
         return self.name
@@ -252,6 +253,11 @@ class Node(StatisticsMethod):
                 if na.is_active != new:
                     na.is_active = new
                     na.save()
+
+        if self._original_is_active != self.is_active or self._original_public_ip != self.public_ip:
+            domain = self.domain
+            if domain and domain.user and domain.credential:
+                domain.sync()
 
     def toggle_active(self):
         self.is_active = not self.is_active
