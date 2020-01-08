@@ -8,11 +8,14 @@ It relies on Shadowsocks Multi-User API, which is only
 supported by Shadowsocks libev and Python version by now.
 
 Related repo: [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn)
+
 aws-cfn-vpn is a set of AWS CloudFormation templates which let you
 deploy VPN services, including Shadowsocks (support cluster) and XL2TPD, with a single
 click. Also, this repo, shadowsocks-manager and all its dependencies
-are handled by aws-cfn-vpn. If you are choosing AWS along with
-Shadowsocks or XL2TPD, aws-cfn-vpn may save your time.
+are handled by aws-cfn-vpn.
+
+If you are choosing AWS along with Shadowsocks or XL2TPD,
+[aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn) may save your time.
 
 
 ## Requirements
