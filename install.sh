@@ -4,7 +4,7 @@
 set -o pipefail -e
 
 usage () {
-    printf "Usage: ${0##*/} [-n DOMAIN] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE]\n"
+    printf "Usage: ${0##*/} [-n DOMAIN] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE] [-o PORT_BEGIN] [-O PORT_END]\n"
     printf "Run this script under root on Linux.\n"
     printf "OPTIONS\n"
     printf "\t[-n DOMAIN]\n\n"
@@ -17,12 +17,16 @@ usage () {
     printf "\tEmail for shadowsocks-manager administrator.\n\n"
     printf "\t[-t TIMEZONE]\n\n"
     printf "\tDefault is 'UTC'.\n\n"
+    printf "\t[-r PORT_BEGIN]\n\n"
+    printf "\tPort range allowed for all Shadowsocks nodes.\n\n"
+    printf "\t[-R PORT_END]\n\n"
+    printf "\tPort range allowed for all Shadowsocks nodes.\n\n"
     printf "\t[-h]\n\n"
     printf "\tThis help.\n\n"
     exit 255
 }
 
-while getopts n:u:p:e:t:h opt; do
+while getopts n:u:p:e:t:r:R:h opt; do
     case $opt in
         n)
             DOMAIN=$OPTARG
@@ -38,6 +42,12 @@ while getopts n:u:p:e:t:h opt; do
             ;;
         t)
             TIMEZONE=$OPTARG
+            ;;
+        r)
+            PORT_BEGIN=$OPTARG
+            ;;
+        R)
+            PORT_END=$OPTARG
             ;;
         *|h)
             usage
@@ -114,6 +124,14 @@ printf "Creating super user...\n"
 echo "from django.contrib.auth.models import User;
 User.objects.filter(username='$USERNAME').delete();
 User.objects.create_superuser('$USERNAME', '$EMAIL', '$PASSWORD')" \
+    | su $RUN_AS -c "python manage.py shell"
+
+printf "Setting Shadowsocks port range...\n"
+echo "from shadowsocks.models import Config;
+config = Config.load();
+config.port_begin = '$PORT_BEGIN' or config.port_begin;
+config.port_end = '$PORT_END' or config.port_end;
+config.save()" \
     | su $RUN_AS -c "python manage.py shell"
 
 printf "Creating static dir: $STATIC_DIR...\n"
