@@ -1,11 +1,18 @@
 # shadowsocks-manager
 
 A Shadowsocks management tool for multi user and traffic statistics,
-support multi node, sync IPs to name.com, LDAP support is in future plan.
-Writen in Python, base on Django and SQLite.
+support multi node, sync IPs to name.com.
+Writen in Python, base on Django/DRF and SQLite.
 
 It relies on Shadowsocks Multi-User API, which is only
 supported by Shadowsocks libev and Python version by now.
+
+Related repo: [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn)
+aws-cfn-vpn is a set of AWS CloudFormation templates which let you
+deploy VPN services, including Shadowsocks (support cluster) and XL2TPD, with a single
+click. Also, this repo, shadowsocks-manager and all its dependencies
+are handled by aws-cfn-vpn. If you are choosing AWS along with
+Shadowsocks or XL2TPD, aws-cfn-vpn may save your time.
 
 
 ## Requirements
@@ -93,10 +100,11 @@ configuration, the details are out of scope for this document.
     `sendmail` is used to send account notification Email, it should
     be configured on the same server if you want this feature.
 
-    About how to configure AWS EC2 instance to use AWS SES refer to
-    repo [aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses).
+    About how to configure sendmail client to use AWS SES as SMTP
+    server on AWS EC2 instance, refer to repo
+    [aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses).
 
-    For macOS refer to repo
+    On macOS, refer to repo
     [macos-aws-ses](https://github.com/alexzhangs/macos-aws-ses).
 
 
@@ -115,7 +123,7 @@ git clone https://github.com/alexzhangs/shadowsocks-manager
 This script works only under Linux.
 
 ```
-bash shadowsocks-manager/install.sh
+bash shadowsocks-manager/install.sh -h
 ```
 
 ### Install it manually
@@ -304,9 +312,12 @@ following scripts.
 
 * This repo Do's:
 
-    * Manage users with admin.
     * Serve as a nonprofit business model.
-    * Be installed and run on a single master server.
+    * Have central user management for multi nodes.
+    * Collect traffic statistics which can be viewed by account, node
+    and period.
+    * Show the existence and accessibility of ports in the admin.
+    * Handle the DNS recorders if using Name.com as nameserver.
 
 * This repo Don'ts:
 
@@ -387,3 +398,9 @@ following scripts.
    ```
    ps -ef
    ```
+
+
+## TODO
+
+* Auto deactivate/activate nodes based on triffic usage and quota.
+* Support LDAP.
