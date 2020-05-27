@@ -280,7 +280,6 @@ class Node(StatisticsMethod):
             )
             topic = sns.Topic(self.sns_endpoint)
             return topic.publish(
-                TargetArn=self.sns_endpoint,
                 Message='change_ip'
             )
 
