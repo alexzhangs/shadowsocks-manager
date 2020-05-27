@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError
 from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
 from django_enumfield import enum
+import boto3
 
 from retry import retry
 from singleton.models import SingletonModel
@@ -181,6 +182,12 @@ class Node(StatisticsMethod):
         help_text='Geography location for the node, appears in the account notification '
             'Email if not blank, example: Hongkong.')
     is_active = models.BooleanField(default=True, help_text='Is this node ready to be online')
+    sns_endpoint = models.CharField(max_length=128, null=True, blank=True,
+        help_text='AWS SNS Arn which is used to send messages to manage this node.')
+    sns_access_key = models.CharField(max_length=128, null=True, blank=True,
+        help_text='AWS Access Key ID used to publish SNS messages.')
+    sns_secret_key = models.CharField(max_length=128, null=True, blank=True,
+        help_text='AWS Secret Access Key used to publish SNS messages.')
     statistics = GenericRelation('statistics.Statistics', related_query_name='node')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
@@ -262,6 +269,20 @@ class Node(StatisticsMethod):
     def toggle_active(self):
         self.is_active = not self.is_active
         self.save()
+
+    def change_ip(self):
+        if self.sns_endpoint:
+            sns = boto3.resource(
+                'sns',
+                region_name=self.sns_endpoint.split(':')[3],
+                aws_access_key_id=self.sns_access_key,
+                aws_secret_access_key=self.sns_secret_key
+            )
+            topic = sns.Topic(self.sns_endpoint)
+            return topic.publish(
+                TargetArn=self.sns_endpoint,
+                Message='change_ip'
+            )
 
 
 class NodeAccount(StatisticsMethod):

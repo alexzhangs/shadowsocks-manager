@@ -84,6 +84,7 @@ class SSManagerInline(admin.TabularInline):
 @admin.register(Node)
 class NodeAdmin(admin.ModelAdmin):
     fields = ('name', 'domain', 'public_ip', 'private_ip', 'is_active', 'location',
+                  'sns_endpoint', 'sns_access_key', 'sns_secret_key',
                   'transferred_totally', 'dt_collected',
                   'dt_created', 'dt_updated')
 
@@ -129,7 +130,22 @@ class NodeAdmin(admin.ModelAdmin):
 
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Nodes'
 
-    actions = (toggle_active,)
+    def change_ip(self, request, queryset):
+        for obj in queryset:
+            if not obj.sns_endpoint:
+                messages.error(request, '{cls} {obj}: The SNS topic endpoint was not configured for this node.'.format(
+                    cls=obj.__class__.__name__,
+                    obj=obj))
+                return
+
+            obj.change_ip()
+            messages.info(request, '{cls} {obj}: The message is sent to the SNS topic to request a new IP address.'.format(
+                cls=obj.__class__.__name__,
+                obj=obj))
+
+    change_ip.short_description = 'Replace the IP address with a new one for Selected Shadowsocks Nodes'
+
+    actions = (toggle_active, change_ip)
 
 
 class AccountResource(resources.ModelResource):
