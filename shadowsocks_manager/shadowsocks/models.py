@@ -283,6 +283,11 @@ class Node(StatisticsMethod):
                 Message='change_ip'
             )
 
+    @classmethod
+    def change_ips(cls):
+        for node in cls.objects.filter(is_active=True):
+            node.change_ip()
+
 
 class NodeAccount(StatisticsMethod):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='accounts_ref')
