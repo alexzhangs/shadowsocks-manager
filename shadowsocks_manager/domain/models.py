@@ -1,19 +1,26 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import requests, json
+import logging
+import socket, requests, json
+from collections import defaultdict
 from django.db import models
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+
+
+logger = logging.getLogger('django')
 
 
 # Create your models here.
 
-class DomainManager(object):
+class BaseNsApi(object):
 
     class Meta:
         abstract = True
 
     def __init__(self, user, credential, *args, **kwargs):
-        super(DomainManager, self).__init__(*args, **kwargs)
+        super(BaseNsApi, self).__init__(*args, **kwargs)
         self.user = user
         self.credential = credential
 
@@ -35,7 +42,7 @@ class DomainManager(object):
         pass
 
 
-class NameDomainManager(DomainManager):
+class NameNsApi(BaseNsApi):
 
     api_base_url = 'https://api.name.com/v4'
 
@@ -70,16 +77,15 @@ class NameDomainManager(DomainManager):
             return False
 
 
-class Domain(models.Model):
-
-    NAMESERVER = [
-        ('name.com', 'Name.com')
+class NameServer(models.Model):
+    API_CLASS_NAME = [
+        ('NameNsApi', 'NameNsApi')
     ]
 
     name = models.CharField(unique=True, max_length=64,
-        help_text='Domain name. Example: vpn.yourdomain.com.')
-    nameserver = models.CharField(max_length=32, choices=NAMESERVER, null=True, blank=True,
-        help_text='Select the Nameserver for the domain.')
+        help_text='The name for the Nameserver, name it as your wish. Example: name.com.')
+    api_cls_name = models.CharField('API Class', max_length=32, choices=API_CLASS_NAME,
+        help_text='Select the API class name for the Nameserver.')
     user = models.CharField(max_length=64, null=True, blank=True,
         help_text='User identity for the Nameserver API service.')
     credential = models.CharField(max_length=128, null=True, blank=True,
@@ -87,61 +93,114 @@ class Domain(models.Model):
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
-    class Meta:
-        verbose_name = 'Domain Name'
-
     def __unicode__(self):
         return self.name
 
     def __init__(self, *args, **kwargs):
-        super(Domain, self).__init__(*args, **kwargs)
+        super(NameServer, self).__init__(*args, **kwargs)
 
-        items = self.name.split(".")
-        bound = len(items) - 2
-        self.host = ".".join(items[0:bound])
-        self.second_level_domain = ".".join(items[bound:])
+        self.api_cls = globals().get(self.api_cls_name)
 
-        if self.nameserver:
-            cls = globals().get(
-                '{prefix}DomainManager'.format(prefix=self.nameserver.split(".")[0].title())
-            )
+        if self.api_cls and self.user and self.credential:
+            self.api = self.api_cls(self.user, self.credential)
         else:
-            cls = None
-
-        if cls and self.user and self.credential:
-            self.manager = cls(self.user, self.credential)
-        else:
-            self.manager = None
+            self.api = None
 
     @property
-    def is_manager_accessable(self):
-        if self.manager:
-            return self.manager.is_accessable
+    def is_api_accessable(self):
+        return self.api.is_accessable if self.api else None
+
+
+class Domain(models.Model):
+    name = models.CharField(unique=True, max_length=64,
+        help_text='Root domain name. Example: yourdomain.com.')
+    nameserver = models.ForeignKey(NameServer, null=True, blank=True)
+    dt_created = models.DateTimeField('Created', auto_now_add=True)
+    dt_updated = models.DateTimeField('Updated', auto_now=True)
+
+    def __unicode__(self):
+        return self.name
 
     @property
-    def active_dns_records(self):
-        if self.manager:
-            return ",".join([record.get('answer') for record in self.manager.list_records(self.second_level_domain, 'A', self.host)])
+    def ns_api(self):
+        return self.nameserver.api if self.nameserver else None
+
+
+class Record(models.Model):
+    TYPE = [
+        ('A', 'A'),
+        ('MX', 'MX'),
+        ('CNAME', 'CNAME'),
+        ('TXT', 'TXT'),
+        ('SRV', 'SRV'),
+        ('AAAA', 'AAAA'),
+        ('NS', 'NS'),
+        ('ANAME', 'ANAME'),
+    ]
+
+    host = models.CharField(unique=True, max_length=64,
+        help_text='Host name. Example: vpn.')
+    domain = models.ForeignKey(Domain)
+    type = models.CharField(max_length=8, null=True, blank=True, choices=TYPE)
+    answer = models.CharField(max_length=512, null=True, blank=True,
+        help_text='Answer for the host name, comma "," is the delimiter for multiple answers.')
+    dt_created = models.DateTimeField('Created', auto_now_add=True)
+    dt_updated = models.DateTimeField('Updated', auto_now=True)
+
+    def __unicode__(self):
+        return '.'.join([self.host, self.domain.name])
 
     @property
-    def active_nodes(self):
-        return ",".join([node.public_ip for node in self.nodes.all() if node.is_active and node.public_ip])
+    def answer_from_dns_api(self):
+        if self.domain.ns_api:
+            return [record.get('answer') for record in self.domain.ns_api.list_records(
+                self.domain.name, self.type, self.host)]
 
-    def sync(self):
-        ret = {
-            'deleted': [],
-            'created': []
-        }
-        if self.manager:
-            if self.active_dns_records == self.active_nodes:
+    @property
+    def answer_from_dns_query(self):
+        ips = []
+        try:
+            truename, alias, ips = socket.gethostbyname_ex('.'.join([self.host, self.domain.name]))
+        except Exception as e:
+            logger.error(e)
+        return ips
+
+    @property
+    def is_matching_dns_api(self):
+        answer = self.answer_from_dns_api
+        return set(self.answer.split(',')) == set(answer) if answer else None
+
+    @property
+    def is_matching_dns_query(self):
+        answer = self.answer_from_dns_query
+        return set(self.answer.split(',')) == set(answer) if answer else None
+
+    def sync_to_dns(self):
+        ret = defaultdict(list)
+        if self.domain.ns_api:
+            if self.is_matching_dns_api:
                 ret['message'] = 'No need to synchronize.'
                 return ret
 
-            ret['deleted'].extend(self.manager.delete_records(self.second_level_domain, 'A', self.host))
-            for node in self.nodes.all():
-                if node.is_active and node.public_ip:
-                    ret['created'].append(self.manager.create_record(self.second_level_domain, 'A', self.host, node.public_ip))
+            ret['deleted'] = self.delete_from_dns()
+            for answer in (self.answer or '').split(','):
+                ret['created'].append(
+                    self.domain.ns_api.create_record(self.domain.name, self.type, self.host, answer))
         else:
             ret['message'] = 'Please configure Nameserver and its User and Credential for the domain first.'
 
         return ret
+
+    def delete_from_dns(self):
+        if self.domain.ns_api:
+            return self.domain.ns_api.delete_records(self.domain.name, self.type, self.host)
+
+
+@receiver(post_save, sender=Record)
+def record_sync_to_dns(sender, instance, **kwargs):
+    instance.sync_to_dns()
+
+
+@receiver(post_delete, sender=Record)
+def record_delete_from_dns(sender, instance, **kwargs):
+    instance.delete_from_dns()

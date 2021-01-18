@@ -1,0 +1,1 @@
+[{"model": "domain.nameserver", "pk": 1, "fields": {"name": "name.com", "api_cls_name": "NameNsApi", "user": null, "credential": null, "dt_created": "2021-01-12T16:58:21.432Z", "dt_updated": "2021-01-14T12:25:28.865Z"}}]

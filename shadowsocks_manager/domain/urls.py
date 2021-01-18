@@ -5,7 +5,9 @@ import views
 
 
 router = routers.DefaultRouter()
-router.register(r'domain', views.DomainViewSet)
+router.register(r'domain/nameserver', views.NameServerViewSet)
+router.register(r'domain/domain', views.DomainViewSet)
+router.register(r'domain/record', views.RecordViewSet)
 
 urlpatterns = [
     url(r'^', include(router.urls)),

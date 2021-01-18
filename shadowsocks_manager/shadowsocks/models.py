@@ -18,7 +18,7 @@ from retry import retry
 from singleton.models import SingletonModel
 from dynamicmethod.models import DynamicMethodModel
 from notification.models import Template, Notify
-from domain.models import Domain
+from domain.models import Record
 
 
 logger = logging.getLogger('django')
@@ -172,8 +172,8 @@ class Account(User, StatisticsMethod):
 
 class Node(StatisticsMethod):
     name = models.CharField(unique=True, max_length=32, help_text='Give the node a name.')
-    domain = models.ForeignKey(Domain, null=True, blank=True, on_delete=models.SET_NULL, related_name='nodes',
-        help_text='Domain name resolved to the node IP. Example: vpn.yourdomain.com.')
+    record = models.ForeignKey(Record, null=True, blank=True, on_delete=models.SET_NULL, related_name='nodes',
+        help_text='Domain name resolved to the node public IP.')
     public_ip = models.GenericIPAddressField('Public IP', protocol='both', unpack_ipv4=True,
         unique=True, null=True, blank=True, help_text='Public IP address for the node.')
     private_ip = models.GenericIPAddressField('Private IP', protocol='both', unpack_ipv4=True,
@@ -204,8 +204,8 @@ class Node(StatisticsMethod):
         return self.name
 
     def clean(self):
-        if not (self.domain or self.public_ip):
-            raise ValidationError(_('%s: Require to input at least one field: domain and '
+        if not (self.record or self.public_ip):
+            raise ValidationError(_('%s: Require to input at least one field: record and '
                 'public_ip.' % self))
 
     @property
@@ -226,22 +226,11 @@ class Node(StatisticsMethod):
         except:
             return False
 
-    @classmethod
-    def get_dns_a_record(cls, domain):
-        ips = []
-
-        try:
-            truename, alias, ips = socket.gethostbyname_ex(domain)
-        except Exception as e:
-            logger.error(e)
-
-        return ips
-
     # test if dns records match the public IP
     @property
-    def is_dns_record_correct(self):
-        if self.domain:
-            return self.public_ip in self.get_dns_a_record(self.domain.name)
+    def is_matching_dns_query(self):
+        if self.record:
+            return self.public_ip in (self.record.answer_from_dns_query or [])
 
     def get_ip_by_interface(self, interface):
         if interface == InterfaceList.LOCALHOST:
@@ -262,9 +251,8 @@ class Node(StatisticsMethod):
                     na.save()
 
         if self._original_is_active != self.is_active or self._original_public_ip != self.public_ip:
-            domain = self.domain
-            if domain and domain.user and domain.credential:
-                domain.sync()
+            self.record.answer = ",".join([node.public_ip for node in self.record.nodes.all() if node.is_active and node.public_ip])
+            self.record.save()
 
     def toggle_active(self):
         self.is_active = not self.is_active

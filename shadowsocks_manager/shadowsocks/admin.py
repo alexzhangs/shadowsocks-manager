@@ -83,24 +83,24 @@ class SSManagerInline(admin.TabularInline):
 
 @admin.register(Node)
 class NodeAdmin(admin.ModelAdmin):
-    fields = ('name', 'domain', 'public_ip', 'private_ip', 'is_active', 'location',
+    fields = ('name', 'record', 'public_ip', 'private_ip', 'is_active', 'location',
                   'sns_endpoint', 'sns_access_key', 'sns_secret_key',
                   'transferred_totally', 'dt_collected',
                   'dt_created', 'dt_updated')
 
     readonly_fields = ('transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
 
-    list_display = ('name', 'domain', 'public_ip', 'private_ip',
-                        'is_active', 'is_dns_record_correct',
+    list_display = ('name', 'record', 'public_ip', 'private_ip',
+                        'is_active', 'is_matching_dns_query',
                         'location',
                         'transferred_totally', 'dt_collected',
                         'dt_created', 'dt_updated')
 
-    def is_dns_record_correct(self, obj):
-        return obj.is_dns_record_correct
+    def is_matching_dns_query(self, obj):
+        return obj.is_matching_dns_query
 
-    is_dns_record_correct.boolean = True
-    is_dns_record_correct.short_description = 'DNS'
+    is_matching_dns_query.boolean = True
+    is_matching_dns_query.short_description = 'DNS Query'
 
     def transferred_totally(self, obj):
         return filesizeformat(obj.transferred_totally)

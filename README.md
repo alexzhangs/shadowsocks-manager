@@ -201,7 +201,8 @@ bash shadowsocks-manager/install.sh -h
         django_celery_beat.intervalschedule.json \
         django_celery_beat.periodictask.json \
         config.json \
-        template.json
+        template.json \
+        nameserver.json
     ```
 
 1. Create an administrator user for the web admin:
@@ -408,6 +409,5 @@ following scripts.
 
 ## TODO
 
-* Normalize the domain app model: nameserver, domain, and records.
 * Auto deactivate/activate nodes based on traffic usage and quota.
 * Support LDAP.

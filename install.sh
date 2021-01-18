@@ -118,7 +118,8 @@ su $RUN_AS -c "python manage.py loaddata auth.group.json \
        django_celery_beat.intervalschedule.json \
        django_celery_beat.periodictask.json \
        config.json \
-       template.json"
+       template.json \
+       nameserver.json"
 
 printf "Creating super user...\n"
 echo "from django.contrib.auth.models import User;
