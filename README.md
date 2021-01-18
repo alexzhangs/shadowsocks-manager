@@ -408,5 +408,6 @@ following scripts.
 
 ## TODO
 
-* Auto deactivate/activate nodes based on triffic usage and quota.
+* Normalize the domain app model: nameserver, domain, and records.
+* Auto deactivate/activate nodes based on traffic usage and quota.
 * Support LDAP.
