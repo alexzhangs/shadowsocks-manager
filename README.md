@@ -29,7 +29,7 @@ This repo is tested under:
 
 ## Dependencies
 
-Following dependences need the addtional installation and
+Following dependencies need the additional installation and
 configuration, the details are out of scope for this document.
 
 1. Shadowsocks
@@ -55,14 +55,14 @@ configuration, the details are out of scope for this document.
 
     **macOS**
 
-    ```
+    ```sh
     brew install rabbitmq
     brew services start rabbitmq
     ```
 
     **Linux**
 
-    ```
+    ```sh
     yum install rabbitmq-server
     service rabbitmq-server start
     chkconfig --add rabbitmq-server
@@ -75,14 +75,14 @@ configuration, the details are out of scope for this document.
 
     **macOS**
 
-    ```
+    ```sh
     brew install memcached
     brew services start memcached
     ```
 
     **Linux**
 
-    ```
+    ```sh
     yum install memcached
     service memcached start
     chkconfig --add memcached
@@ -94,7 +94,7 @@ configuration, the details are out of scope for this document.
 
     ** Linux**
 
-    ```
+    ```sh
     yum install gcc
     ```
 
@@ -117,7 +117,7 @@ It's better to install the project within a virtualenv.
 
 ### Get the code:
 
-```
+```sh
 git clone https://github.com/alexzhangs/shadowsocks-manager
 ```
 
@@ -125,7 +125,7 @@ git clone https://github.com/alexzhangs/shadowsocks-manager
 
 This script works only under Linux.
 
-```
+```sh
 bash shadowsocks-manager/install.sh -h
 ```
 
@@ -133,7 +133,7 @@ bash shadowsocks-manager/install.sh -h
 
 1. Install Python dependencies:
 
-    ```
+    ```sh
     cd shadowsocks-manager
     pip install -r requirements.txt
     ```
@@ -143,7 +143,7 @@ bash shadowsocks-manager/install.sh -h
     **DEBUG**
 
     Change [DEBUG](https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-DEBUG)
-    from True to Fasle for production deployment.
+    from True to False for production deployment.
 
     ```
     DEBUG = False
@@ -155,7 +155,7 @@ bash shadowsocks-manager/install.sh -h
     application or the IP address if without a domain to
     [ALLOWED_HOSTS](https://docs.djangoproject.com/en/2.2/ref/settings/#allowed-hosts).
 
-    Also adding both domain and IP is just find.
+    Also adding both domain and IP is just fine.
 
     ```
     ALLOWED_HOSTS = ['your_server_ip',  'yourdomain.com']
@@ -182,9 +182,9 @@ bash shadowsocks-manager/install.sh -h
 
     **TIME_ZONE**
 
-     Optionally, set your prefered
+     Optionally, set your preferred
     [TIME_ZONE](https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-TIME_ZONE).
-    Statistics period also sences this setting. AWS billing is based on UTC.
+    Statistics period also senses this setting. AWS billing is based on UTC.
 
     ```
     TIME_ZONE = 'your_prefered_timezone'
@@ -192,7 +192,7 @@ bash shadowsocks-manager/install.sh -h
 
  1. Create database and load the fixtures:
 
-    ```
+    ```sh
     cd shadowsocks_manager
     python manage.py makemigrations
     python manage.py migrate
@@ -208,29 +208,29 @@ bash shadowsocks-manager/install.sh -h
 1. Create an administrator user for the web admin:
 
     This user would be used for logging into the web admin to manage
-    Shadowsocks. Laterly should avoid reuse it as Shadowsocks user, but
+    Shadowsocks. Lately should avoid reuse it as Shadowsocks user, but
     it's possible.
 
     Note: The admin that is logged in would be used as Email sender for
     account notification Email. Please properly set the Email and
-    laterly set the fullname in the web admin.
+    lately set the fullname in the web admin.
 
     Example commands:
 
-    ```
+    ```sh
     python manage.py createsuperuser --username admin --email \
         admin@vpn.yourdomain.com --noinput
     ```
 
     Set a password for the user:
 
-    ```
+    ```sh
     python manage.py changepassword admin
     ```
 
 1. Collect static files to `STATIC_ROOT`:
 
-    ```
+    ```sh
     python manage.py collectstatic
     ```
 
@@ -244,34 +244,34 @@ following scripts.
 
 1. Start shadowsocks-manager web application:
 
-    ```
+    ```sh
     sudo service shadowsocks-manager-web start
     ```
 
 1. Start shadowsocks-manager scheduled jobs:
 
-    ```
+    ```sh
     sudo service shadowsocks-manager-job start
     ```
 
 1. Set the services to start with OS boot:
 
-    ```
+    ```sh
     sudo chkconfig shadowsocks-manager-web on
     sudo chkconfig shadowsocks-manager-job on
     ```
 
-### Start  services manually
+### Start services manually
 
 1. Start web application
 
-    ```
+    ```sh
     python manage.py runserver <your_server_ip>:8000 --insecure
     ```
 
 1. Log on the web admin with the created superuser at:
 
-    ```
+    ```sh
     http://<your_server_ip>:8000/admin
     ```
 
@@ -279,14 +279,14 @@ following scripts.
 
     Start Worker and Beat:
 
-    ```
+    ```sh
     celery -A shadowsocks_manager worker -l info -B
     ```
 
     Start Worker and Beat with separate processes, this is recommended for production
     deployment:
 
-    ```
+    ```sh
     celery -A shadowsocks_manager worker -l info
     celery -A shadowsocks_manager beat -l info
     ```
@@ -305,7 +305,7 @@ following scripts.
 
 1. Web Server (Optional):
 
-    Serving static files from a dedicated server such as nginx is recommended for
+    Serving static files from a dedicated server such as Nginx is recommended for
     production deployment.
 
     Refer to the doc:
@@ -324,13 +324,13 @@ following scripts.
     * Collect traffic statistics which can be viewed by account, node
     and period.
     * Show the existence and accessibility of ports in the admin.
-    * Handle the DNS recorders if using Name.com as nameserver.
+    * Handle the DNS records if using Name.com as nameserver.
 
 * This repo Don'ts:
 
     * Handle self-serviced user registration.
     * Handle bill or payment.
-    * Run additional agent on each Shadowsocks server.
+    * Need to run additional agent on each Shadowsocks server.
 
 
 ## Known Issues
