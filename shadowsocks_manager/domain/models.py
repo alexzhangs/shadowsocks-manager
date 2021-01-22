@@ -138,7 +138,7 @@ class Record(models.Model):
         ('ANAME', 'ANAME'),
     ]
 
-    host = models.CharField(unique=True, max_length=64,
+    host = models.CharField(max_length=64,
         help_text='Host name. Example: vpn.')
     domain = models.ForeignKey(Domain)
     type = models.CharField(max_length=8, null=True, blank=True, choices=TYPE)
@@ -146,6 +146,9 @@ class Record(models.Model):
         help_text='Answer for the host name, comma "," is the delimiter for multiple answers.')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
+
+    class Meta:
+        unique_together = ('host', 'domain')
 
     def __unicode__(self):
         return '.'.join([self.host, self.domain.name])

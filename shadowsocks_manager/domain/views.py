@@ -23,7 +23,7 @@ class DomainViewSet(viewsets.ModelViewSet):
     """
     queryset = models.Domain.objects.all()
     serializer_class = serializers.DomainSerializer
-    filter_fields = ['name', 'nameserver']
+    filter_fields = ['name', 'nameserver', 'nameserver__name']
 
 
 class RecordViewSet(viewsets.ModelViewSet):
@@ -32,4 +32,4 @@ class RecordViewSet(viewsets.ModelViewSet):
     """
     queryset = models.Record.objects.all()
     serializer_class = serializers.RecordSerializer
-    filter_fields = ['host', 'domain', 'type', 'answer']
+    filter_fields = ['host', 'domain', 'domain__name', 'type', 'answer']
