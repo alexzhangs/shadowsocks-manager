@@ -18,7 +18,7 @@ class AccountSerializer(serializers.ModelSerializer):
 class NodeSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Node
-        fields = ('id', 'name', 'domain', 'public_ip', 'private_ip', 'location', 'is_active', 'sns_endpoint', 'sns_access_key', 'sns_secret_key', 'dt_created', 'dt_updated')
+        fields = ('id', 'name', 'record', 'public_ip', 'private_ip', 'location', 'is_active', 'sns_endpoint', 'sns_access_key', 'sns_secret_key', 'dt_created', 'dt_updated')
 
 
 class NodeAccountSerializer(serializers.ModelSerializer):
