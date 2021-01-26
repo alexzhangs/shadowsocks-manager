@@ -29,7 +29,7 @@ class ConfigAdmin(admin.ModelAdmin):
 class ReadonlyNodeAccountInline(admin.TabularInline):
     model = NodeAccount
     extra = 0
-    fields = ('node', 'account', 'is_created', 'is_accessable',
+    fields = ('node', 'account', 'is_created', 'is_accessible',
                   'transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
 
     readonly_fields = fields
@@ -38,10 +38,10 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
     def has_add_permission(self, request):
         return None
 
-    def is_accessable(self, obj):
-        return obj.is_accessable
+    def is_accessible(self, obj):
+        return obj.is_accessible
 
-    is_accessable.boolean = True
+    is_accessible.boolean = True
 
     def transferred_totally(self, obj):
         return filesizeformat(obj.transferred_totally)
@@ -71,14 +71,14 @@ class SSManagerInline(admin.TabularInline):
     can_delete = False
 
     fields = ('interface', 'port', ('encrypt', 'timeout', 'fastopen'),
-                  'is_accessable', 'dt_created', 'dt_updated')
+                  'is_accessible', 'dt_created', 'dt_updated')
 
-    readonly_fields = ('is_accessable', 'dt_created', 'dt_updated')
+    readonly_fields = ('is_accessible', 'dt_created', 'dt_updated')
 
-    def is_accessable(self, obj):
-        return obj.is_accessable
+    def is_accessible(self, obj):
+        return obj.is_accessible
 
-    is_accessable.boolean = True
+    is_accessible.boolean = True
 
 
 @admin.register(Node)

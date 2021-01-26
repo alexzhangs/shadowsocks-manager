@@ -69,7 +69,7 @@ class NameNsApi(BaseNsApi):
         return records
 
     @property
-    def is_accessable(self):
+    def is_accessible(self):
         try:
             url = "/".join([self.api_base_url, 'hello'])
             return self.call_api(url, method='get').get('username') == self.user
@@ -107,8 +107,8 @@ class NameServer(models.Model):
             self.api = None
 
     @property
-    def is_api_accessable(self):
-        return self.api.is_accessable if self.api else None
+    def is_api_accessible(self):
+        return self.api.is_accessible if self.api else None
 
 
 class Domain(models.Model):

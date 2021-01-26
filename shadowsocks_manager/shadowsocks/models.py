@@ -239,7 +239,7 @@ class Node(StatisticsMethod):
             return getattr(self, '{}_ip'.format(InterfaceList.name(interface).lower()))
 
     # test if a port is open
-    def is_port_accessable(self, port):
+    def is_port_accessible(self, port):
         return Node.is_port_open(self.public_ip, port)
 
     def on_update(self):
@@ -303,12 +303,12 @@ class NodeAccount(StatisticsMethod):
 
     # test if the port is connectable
     @property
-    def is_accessable(self):
-        return self.node.is_port_accessable(self.account.username)
+    def is_accessible(self):
+        return self.node.is_port_accessible(self.account.username)
 
     def on_update(self):
         if self.is_active:
-            if self.node.ssmanager.is_accessable:
+            if self.node.ssmanager.is_accessible:
                 self.node.ssmanager.add(port=self.account.username, password=self.account.password)
             else:
                 logger.error('%s: creation eror: ssmanager %s currently is not available.' \
@@ -322,7 +322,7 @@ class NodeAccount(StatisticsMethod):
         else:
             port = 'username'
 
-        if self.node.ssmanager.is_accessable:
+        if self.node.ssmanager.is_accessible:
             self.node.ssmanager.remove(port=getattr(self.account, port))
         else:
             logger.error('%s: deletion eror: ssmanager %s currently is not available.' % (self, \
@@ -500,7 +500,7 @@ class SSManager(models.Model):
 
     # test if the manager is in service
     @property
-    def is_accessable(self):
+    def is_accessible(self):
         return self.ping_ex() is not None
 
 

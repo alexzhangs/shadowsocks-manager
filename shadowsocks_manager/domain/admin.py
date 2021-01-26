@@ -16,14 +16,14 @@ class NameServerAdmin(admin.ModelAdmin):
 
     readonly_fields = ('dt_created', 'dt_updated')
 
-    list_display = ('name', 'api_cls_name', 'user', 'is_api_accessable',
+    list_display = ('name', 'api_cls_name', 'user', 'is_api_accessible',
                         'dt_created', 'dt_updated')
 
-    def is_api_accessable(self, obj):
-        return obj.is_api_accessable
+    def is_api_accessible(self, obj):
+        return obj.is_api_accessible
 
-    is_api_accessable.boolean = True
-    is_api_accessable.short_description = 'API'
+    is_api_accessible.boolean = True
+    is_api_accessible.short_description = 'API'
 
 
 @admin.register(Domain)
