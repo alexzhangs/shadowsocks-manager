@@ -16,9 +16,6 @@ logger = logging.getLogger('django')
 
 class BaseNsApi(object):
 
-    class Meta:
-        abstract = True
-
     def __init__(self, user, credential, *args, **kwargs):
         super(BaseNsApi, self).__init__(*args, **kwargs)
         self.user = user
