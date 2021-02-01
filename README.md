@@ -1,268 +1,217 @@
 # shadowsocks-manager
 
-A Shadowsocks management tool for multi user and traffic statistics,
-support multi node, sync IPs to name.com.
-Writen in Python, base on Django/DRF and SQLite.
+A web-based Shadowsocks management tool.
 
-It relies on Shadowsocks Multi-User API, which is only
-supported by Shadowsocks libev and Python version by now.
+Features:
 
-Related repo: [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn)
+* Central user management
+* Heartbeat on Shadowsocks ports(users)
+* Shadowsocks multi-user API
+* Shadowsocks node cluster
+* Statistics for network traffic usage
+* Scheduled jobs
+* name.com API
+* Auto-creating DNS records
+* Production deployment ready
 
-aws-cfn-vpn is a set of AWS CloudFormation templates which let you
-deploy VPN services, including Shadowsocks (support cluster) and XL2TPD, with a single
-click. Also, this repo, shadowsocks-manager and all its dependencies
-are handled by aws-cfn-vpn.
-
-If you are choosing AWS along with Shadowsocks or XL2TPD,
-[aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn) may save your time.
-
-
-## Requirements
-
-This repo is tested with:
-
-* Python 2.7 on
-  * macOS Big Sur
-  * AWS Amazon Linux AMI
-* Shadowsocks-libev 3.2.0 for Linux
+Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 
 
-## Dependencies
+## 1. Requirements
 
-Following dependencies need the additional installation and
-configuration, the details are out of scope for this document.
-
-1. Shadowsocks
-
-    Install Shadowsocks server on one or more server and start the
-    service, there should be a running process named `ss-manager`.
-
-    Write down following info of each server for later use:
-
-    * Public IP address
-    * IP address and port that `ss-manager` is listening on
-
-    About how to install and configure Shadowsocks server in AWS , refer
-    to repo
-    [aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev)
+* Python 2.7
+* macOS Big Sur (only the core python code tested, the installation scripts
+  work on Linux only)
+* AWS Amazon Linux AMI
+* AWS Amazon Linux 2 AMI
+* Shadowsocks-libev 3.2.0 for Linux (multi-user API is required)
 
 
-2. RabbitMQ
+## 2. Install with scripts
 
-    RabbitMQ is used as Celery broker to distribute scheduled jobs for
-    necessary maintenance, such as traffic statistics and port
-    heartbeat.
+NOTE: It's better to install the project within a virtualenv.
 
-    **macOS**
+Open a terminal on the server in which the shadowsocks-manager is going to run.
+
+1. Get the code:
 
     ```sh
-    brew install rabbitmq
-    brew services start rabbitmq
+    git clone https://github.com/alexzhangs/shadowsocks-manager
     ```
 
-    **Linux**
+1. Install
+
+    The installation scripts can WORK ONLY ON LINUX and be tested only with Amazon Linux AMI and Amazon Linux 2 AMI.
+
+    Run below commands under root, the order matters.
 
     ```sh
+    # required, installing rabbitmq-server, Memcached, pip.
+    bash shadowsocks-manager/install-dependency.sh
+
+    # optional but recommended, installing Nginx, gcc, uwsgi, supervisor.
+    bash shadowsocks-manager/install-extra.sh
+
+    # required, installing shadowsocks-manager itself.
+    bash shadowsocks-manager/install.sh
+    ```
+
+    If you want to customize the shadowsocks-manager installation, see: `bash shadowsocks-manager/install.sh -h`:
+
+    ```
+    Usage: install.sh [-n DOMAIN] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE] [-o PORT_BEGIN] [-O PORT_END]
+    Run this script under root on Linux.
+    OPTIONS
+        [-n DOMAIN]
+
+        Domain name resolved to the shadowsocks-manager web application.
+
+        [-u USERNAME]
+
+        Username for shadowsocks-manager administrator, default is 'admin'.
+
+        [-p PASSWORD]
+
+        Password for shadowsocks-manager administrator, default is 'passw0rd'.
+
+        [-e EMAIL]
+
+        Email for the shadowsocks-manager administrator.
+        Also, be used as the sender of the account notification Email.
+
+        [-t TIMEZONE]
+
+        Set Django's timezone, default is 'UTC'.
+        Statistics period also senses this setting. Note that AWS billing is based on UTC.
+
+        [-r PORT_BEGIN]
+
+        Port range allowed for all Shadowsocks nodes.
+
+        [-R PORT_END]
+
+        Port range allowed for all Shadowsocks nodes.
+
+        [-h]
+
+        This help.
+    ```
+
+1. Start and reload the services.
+
+    If goes with `install-extra.sh`, then reload the supervisor vendors and Nginx:
+
+    ```
+    supervisorctl reload
+    service nginx reload
+    ```
+
+    If goes without `install-extra.sh`, then jump to `4.3 Start services manually (without install-extra.sh)` to finish all steps, then come back and go on.
+
+1. Verify the installation
+
+    If all go smoothly, the shadowsocks-manager services should have been all started. Open the web admin console in a web browser, and log on with the admin user.
+
+    Use:
+    ```
+    http://<your_server_ip>/admin
+    ```
+    Or:
+    ```
+    http://<your_server_ip>:8000/admin
+    ```
+
+    If goes well, then congratulations! The installation has succeeded.
+
+
+## 3. Using shadowsocks-manager
+
+1. Shadowsocks server
+
+    First, you need to have a Shadowsocks server with the multi-user API
+enabled.
+
+    About how to install and configure Shadowsocks server in AWS, refer
+to the repo
+[aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev)
+
+    After the server is installed and started, there should be a
+running process named `ss-manager`. Write down the IP address and
+the port that the `ss-manager` is listening on, and also the public IP
+address of the server, the encryption method that Shadowsocks is using,
+they are going to be used in the next step.
+
+1. Add Shadowsocks server to shadowsocks-manager
+
+    Add the Shadowsocks server as a Node of shadowsocks-manager from
+web admin console: `Home › Shadowsocks › Shadowsocks Nodes`.
+
+1. Create users(ports) and assign Shadowsocks Node
+
+    Create users from web admin console: `Home › Shadowsocks ›
+Shadowsocks Accounts` and assign the existing nodes to them.
+
+    After a few seconds, the created user ports should be available to your
+Shadowsocks client.
+
+
+## 4. Install without scripts (manually)
+
+### 4.1 Dependency
+
+1. RabbitMQ
+
+    RabbitMQ is used as a Celery broker to distribute scheduled jobs for
+necessary maintenance, such as traffic statistics and port heartbeat.
+
+    ```sh
+    # on macOS
+    brew install rabbitmq
+    brew services start rabbitmq
+
+    # on Linux
     yum install rabbitmq-server
     service rabbitmq-server start
     chkconfig --add rabbitmq-server
     ```
 
-3. Memcached
+1. Memcached
 
-    Memcached is used as the Django cache backend. It's requied by
-    normal Django cache, singleton model and global exclusive lock.
-
-    **macOS**
+    Memcached is used as the Django cache backend. It's required by
+normal Django cache, singleton model, and global exclusive lock.
 
     ```sh
+    # on macOS
     brew install memcached
     brew services start memcached
-    ```
 
-    **Linux**
-
-    ```sh
+    # on Linux
     yum install memcached
     service memcached start
     chkconfig --add memcached
     ```
 
-4. gcc
-
-    gcc is required while installing uWSGI with pip.
-
-    ** Linux**
-
-    ```sh
-    yum install gcc
-    ```
-
-5. Sendmail (Optional)
+1. Sendmail (Optional)
 
     `sendmail` is used to send account notification Email, it should
-    be configured on the same server if you want this feature.
+be configured on the same server with shadowsocks-manager.
 
-    About how to configure sendmail client to use AWS SES as SMTP
-    server on AWS EC2 instance, refer to repo
-    [aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses).
+    About how to configure `sendmail` client to use AWS SES as SMTP server on AWS EC2 instance, refer to repo
+[aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses).
 
     On macOS, refer to repo
-    [macos-aws-ses](https://github.com/alexzhangs/macos-aws-ses).
+[macos-aws-ses](https://github.com/alexzhangs/macos-aws-ses).
 
+    NOTE: This dependency needs the manual setup anyway, it is not handled by any installation script.
 
-## Install shadowsocks-manager
+### 4.2 For the Production Deployment
 
-It's better to install the project within a virtualenv.
+For the production deployment, Nginx, uwsgi, supervisor are
+recommended. They are handled by the script `install-extra.sh`.
 
-### Get the code:
+If you proceed without the script, some of the commands mentioned in this document won't be available.
 
-```sh
-git clone https://github.com/alexzhangs/shadowsocks-manager
-```
-
-### Install it with script
-
-This script works only under Linux.
-
-```sh
-bash shadowsocks-manager/install.sh -h
-```
-
-### Install it manually
-
-1. Install Python dependencies:
-
-    ```sh
-    cd shadowsocks-manager
-    pip install --ignore-installed -r requirements.txt
-    ```
-
-1. Update Django settings
-
-    **DEBUG**
-
-    Change [DEBUG](https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-DEBUG)
-    from True to False for production deployment.
-
-    ```
-    DEBUG = False
-    ```
-
-    **ALLOWED_HOSTS**
-
-    Add your domain that is resolved to shadowsocks-manager web
-    application or the IP address if without a domain to
-    [ALLOWED_HOSTS](https://docs.djangoproject.com/en/2.2/ref/settings/#allowed-hosts).
-
-    Also adding both domain and IP is just fine.
-
-    ```
-    ALLOWED_HOSTS = ['your_server_ip',  'yourdomain.com']
-    ```
-
-    **STATIC_ROOT**
-
-    Set [STATIC_ROOT](https://docs.djangoproject.com/en/2.2/ref/settings/#static-root)
-    for Django's static files.
-
-    ```
-    STATIC_ROOT = '/path_to_your_static_dir/
-    ```
-
-    **SECRET_KEY**
-
-    Set your own
-    [SECRET_KEY](https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-SECRET_KEY)
-    other than the key from repo is strongly recommended.
-
-    ```
-    SECRET_KEY = 'your_own_secret_key'
-    ```
-
-    **TIME_ZONE**
-
-     Optionally, set your preferred
-    [TIME_ZONE](https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-TIME_ZONE).
-    Statistics period also senses this setting. AWS billing is based on UTC.
-
-    ```
-    TIME_ZONE = 'your_prefered_timezone'
-    ```
-
- 1. Create database and load the fixtures:
-
-    ```sh
-    cd shadowsocks_manager
-    python manage.py makemigrations
-    python manage.py migrate
-    python manage.py loaddata auth.group.json \
-        django_celery_beat.crontabschedule.json \
-        django_celery_beat.intervalschedule.json \
-        django_celery_beat.periodictask.json \
-        config.json \
-        template.json \
-        nameserver.json
-    ```
-
-1. Create an administrator user for the web admin:
-
-    This user would be used for logging into the web admin to manage
-    Shadowsocks. Lately should avoid reuse it as Shadowsocks user, but
-    it's possible.
-
-    Note: The admin that is logged in would be used as Email sender for
-    account notification Email. Please properly set the Email and
-    lately set the fullname in the web admin.
-
-    Example commands:
-
-    ```sh
-    python manage.py createsuperuser --username admin --email \
-        admin@vpn.yourdomain.com --noinput
-    ```
-
-    Set a password for the user:
-
-    ```sh
-    python manage.py changepassword admin
-    ```
-
-1. Collect static files to `STATIC_ROOT`:
-
-    ```sh
-    python manage.py collectstatic
-    ```
-
-
-## Start shadowsocks-manager
-
-### Start services with script
-
-If you were using manual installation, you won't be able to use
-following scripts.
-
-1. Start shadowsocks-manager web application:
-
-    ```sh
-    sudo service shadowsocks-manager-web start
-    ```
-
-1. Start shadowsocks-manager scheduled jobs:
-
-    ```sh
-    sudo service shadowsocks-manager-job start
-    ```
-
-1. Set the services to start with OS boot:
-
-    ```sh
-    sudo chkconfig shadowsocks-manager-web on
-    sudo chkconfig shadowsocks-manager-job on
-    ```
-
-### Start services manually
+### 4.3 Start services manually (without install-extra.sh)
 
 1. Start web application
 
@@ -270,22 +219,15 @@ following scripts.
     python manage.py runserver <your_server_ip>:8000 --insecure
     ```
 
-1. Log on the web admin with the created superuser at:
-
-    ```sh
-    http://<your_server_ip>:8000/admin
-    ```
-
 1. Start the scheduled jobs
 
-    Start Worker and Beat:
+    Start Worker and Beat together:
 
     ```sh
     celery -A shadowsocks_manager worker -l info -B
     ```
 
-    Start Worker and Beat with separate processes, this is recommended for production
-    deployment:
+    Start Worker and Beat with separate processes, this is recommended for production deployment:
 
     ```sh
     celery -A shadowsocks_manager worker -l info
@@ -293,131 +235,87 @@ following scripts.
     ```
 
 
-## Optional Production Deployment
+## 5. Can the installation be easier?
 
-1. Application Server (Optional)
+Yes, if you are deploying the services in the AWS.
 
-    Running Django application inside an application server such as uWSGI
-    instead of using Django built-in server named `runserver` is
-    recommended for production deployment.
-
-    Refer to the doc:
-    [How to use Django with uWSGI](https://docs.djangoproject.com/en/2.2/howto/deployment/wsgi/uwsgi/).
-
-1. Web Server (Optional):
-
-    Serving static files from a dedicated server such as Nginx is recommended for
-    production deployment.
-
-    Refer to the doc:
-    [Setting up Django and your web server with uWSGI and nginx](https://uwsgi.readthedocs.io/en/latest/tutorials/Django_and_nginx.html)
-
-1. HTTPS (Optional)
-
-    It is strongly recommended that you use the SSL certificates to secure the web server.
-
-1. Supervisor (Optional)
-
-    Supervise the processes of the application server and the
-    celery services.
-
-    To install supervisor on AWS EC2 instance, refer to the repo:
-    [aws-ec2-supervisor](https://github.com/alexzhangs/aws-ec2-supervisor).
+[aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn)
+is a set of AWS CloudFormation templates which let you
+deploy VPN services, including Shadowsocks (support cluster) and
+XL2TPD, with a single click. Also, this repo, shadowsocks-manager and
+all its dependencies are handled by `aws-cfn-vpn`.
 
 
-## Differences from the alternation: [shadowsocks/shadowsocks-manager](https://github.com/shadowsocks/shadowsocks-manager)
+## 6. Differences from the alternation: [shadowsocks/shadowsocks-manager](https://github.com/shadowsocks/shadowsocks-manager)
 
-* This repo Do's:
+**This repo Do's:**
 
-    * Serve as a nonprofit business model.
-    * Have central user management for multi nodes.
-    * Collect traffic statistics which can be viewed by account, node
-    and period.
-    * Show the existence and accessibility of ports in the admin.
-    * Handle the DNS records if using Name.com as nameserver.
+* Serve as a nonprofit business model.
+* Have central user management for multi nodes.
+* Collect traffic statistics that can be viewed by account, node, and period.
+* Show the existence and accessibility of ports in the admin.
+* Handle the DNS records if using Name.com as nameserver.
 
-* This repo Don'ts:
+**This repo Don'ts:**
 
-    * Handle self-serviced user registration.
-    * Handle bill or payment.
-    * Need to run additional agent on each Shadowsocks server.
+* Handle self-serviced user registration.
+* Handle bill or payment.
+* Need to run an additional agent on each Shadowsocks server.
 
 
-## Known Issues
+## 7. Known Issues
 
-1. DNS records matching for Node may not accurate on macOS.
-
+1. DNS records matching for Node may not be accurate on macOS.
     For unknown reason sometimes DNS query returns only one IP address
-    even multiple IPs were configured for the domain.
+while multiple IP addresses were configured for the domain.
 
 
-## Troubleshooting
+## 8. Troubleshooting
 
-1. Check Logs
+1. Check the logs (with install-extra.sh)
 
-   uWSGI:
+    ```
+    # supervisor
+    cat /tmp/supervisord.log
 
-   ```
-   cat /var/log/ssm-uwsgi.log
-   ```
+    # uWSGI
+    cat /var/log/ssm-uwsgi.log
 
-   Celery:
+    # Celery
+    cat /var/log/ssm-cerlery*
+    ```
 
-   ```
-   cat /var/log/ssm-cerlery*
-   ```
+1. Check the services (with install-extra.sh)
 
-   Supervisor
+    ```
+    # nginx
+    service nginx {status|start|stop|reload}
 
-   ```
-   cat /tmp/supervisord.log
-   ```
+    # supervisor
+    service supervisord {status|start|stop|restart}
+    supervisorctl reload
+    supervisorctl start all
 
-1. Check Services
+    # uWSGI
+    supervisorctl start ssm-uwsgi
 
-   Supervisor:
+    # Celery
+    supervisorctl start ssm-celery-worker
+    supervisorctl start ssm-celery-beat
+    ```
 
-   ```
-   service supervisord status
-   supervisorctl reload
-   supervisorctl start all
-   ```
+1. Check the listening ports (Linux)
 
-   uWSGI:
+    ```
+    # TCP
+    netstat -tan
 
-   ```
-   supervisorctl start ssm-uwsgi
-   ```
-
-   Celery:
-
-   ```
-   supervisorctl start ssm-celery-worker
-   supervisorctl start ssm-celery-beat
-   ```
-
-1. Check Ports
-
-   TCP:
-
-   ```
-   netstat -tan
-   ```
-
-   UDP:
-
-   ```
-   netstat -uan
-   ```
-
-1. Check Processes
-
-   ```
-   ps -ef
-   ```
+    # UDP
+    netstat -uan
+    ```
 
 
-## TODO
+## 9. TODO
 
 * Auto deactivate/activate nodes based on traffic usage and quota.
 * Support LDAP.
