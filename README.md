@@ -20,10 +20,11 @@ If you are choosing AWS along with Shadowsocks or XL2TPD,
 
 ## Requirements
 
-This repo is tested under:
+This repo is tested with:
 
-* AWS Amazon Linux (Not the Amazon Linux 2) and macOS High Sierra
-* Python 2.7
+* Python 2.7 on
+  * macOS Big Sur
+  * AWS Amazon Linux AMI
 * Shadowsocks-libev 3.2.0 for Linux
 
 
@@ -314,6 +315,15 @@ following scripts.
 1. HTTPS (Optional)
 
     It is strongly recommended that you use the SSL certificates to secure the web server.
+
+1. Supervisor (Optional)
+
+    Supervise the processes of the application server and the
+    celery services.
+
+    To install supervisor on AWS EC2 instance, refer to the repo:
+    [aws-ec2-supervisor](https://github.com/alexzhangs/aws-ec2-supervisor).
+
 
 ## Differences from the alternation: [shadowsocks/shadowsocks-manager](https://github.com/shadowsocks/shadowsocks-manager)
 

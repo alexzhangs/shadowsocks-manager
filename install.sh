@@ -84,11 +84,17 @@ cd "$INSTALL_DIR"
 printf "Installing python dependencies...\n"
 pip install -r requirements.txt
 
-printf "Copying nginx conf files...\n"
-cp -a nginx/* /etc/nginx/
+# if nginx is available
+if [[ -d /etc/nginx ]]; then
+    printf "Copying nginx conf files...\n"
+    cp -a nginx/* /etc/nginx/
+fi
 
-printf "Copying supervisor program conf files...\n"
-cp -a supervisor/* /etc/supervisor/conf.d/
+# if supervisor is available
+if [[ -d /etc/supervisor/conf.d ]]; then
+    printf "Copying supervisor program conf files...\n"
+    cp -a supervisor/* /etc/supervisor/conf.d/
+fi
 
 function guid () {
     od -vN "$(($1 / 2))" -An -tx1 /dev/urandom | tr -d ' \n'
