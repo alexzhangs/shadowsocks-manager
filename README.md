@@ -136,7 +136,7 @@ bash shadowsocks-manager/install.sh -h
 
     ```sh
     cd shadowsocks-manager
-    pip install -r requirements.txt
+    pip install --ignore-installed -r requirements.txt
     ```
 
 1. Update Django settings

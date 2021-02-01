@@ -82,7 +82,7 @@ printf "Changing to install directory...\n"
 cd "$INSTALL_DIR"
 
 printf "Installing python dependencies...\n"
-pip install -r requirements.txt
+pip install --ignore-installed -r requirements.txt
 
 # if nginx is available
 if [[ -d /etc/nginx ]]; then
