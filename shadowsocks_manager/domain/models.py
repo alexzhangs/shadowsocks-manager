@@ -168,12 +168,12 @@ class Record(models.Model):
     @property
     def is_matching_dns_api(self):
         answer = self.answer_from_dns_api
-        return set(self.answer.split(',')) == set(answer) if answer else None
+        return set(self.answer.split(',')) == set(answer) if answer is not None else None
 
     @property
     def is_matching_dns_query(self):
         answer = self.answer_from_dns_query
-        return set(self.answer.split(',')) == set(answer) if answer else None
+        return set(self.answer.split(',')) == set(answer) if answer is not None else None
 
     def sync_to_dns(self):
         ret = defaultdict(list)
