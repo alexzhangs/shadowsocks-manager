@@ -159,8 +159,12 @@ class Record(models.Model):
     @property
     def answer_from_dns_query(self):
         ips = []
+        fqdn = '.'.join([self.host, self.domain.name])
         try:
-            truename, alias, ips = socket.gethostbyname_ex('.'.join([self.host, self.domain.name]))
+            truename, alias, ips = socket.gethostbyname_ex(fqdn)
+        except socket.gaierror:
+            # not found the host
+            pass
         except Exception as e:
             logger.error(e)
         return ips
