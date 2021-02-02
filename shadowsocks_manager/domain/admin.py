@@ -69,7 +69,7 @@ class RecordAdmin(admin.ModelAdmin):
     def sync_to_dns(self, request, queryset):
         for obj in queryset:
             result = obj.sync_to_dns()
-            messages.info(request, '{0}: {1}'.format(obj.name, json.dumps(result)))
+            messages.info(request, '{0}: {1}'.format(obj.host, json.dumps(result)))
 
     sync_to_dns.short_description = 'Synchronize DNS records to DNS server for Selected Domain'
 
