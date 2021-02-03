@@ -19,6 +19,7 @@ fi
 # install pip if missing
 # Amazon Linux 2 AMI needs this
 if ! type pip >/dev/null 2>&1; then
+    echo 'installing pip ...'
     python_version=$(python --version 2>&1)
     python_version=${python_version:7:1}
 
@@ -34,18 +35,36 @@ if ! type pip >/dev/null 2>&1; then
     python get-pip.py
 fi
 
-# install yum repo: repl
-# Amazon Linux 2 AMI needs this
-if type amazon-linux-extras >/dev/null 2>&1; then
-    amazon-linux-extras install -y epel
-fi
+function if-yum-repo-exsit () {
+    # Usage: if-yum-repo-exist <repo>; echo $?
+    [[ "$(yum repolist "${1:?}" | awk 'END {print $NF}')" > 0 ]]
+}
 
-# rabbitmq-server
+function amazon-linux-extra-safe () {
+    repo=${1:?}
+    if type amazon-linux-extras >/dev/null 2>&1; then
+        if ! if-yum-repo-exist "$repo"; then
+            # Amazon Linux 2 AMI needs this
+            echo "installing repo: $repo ..."
+            amazon-linux-extras install -y "$repo"
+        else
+            echo "$repo: not found the repo, abort." >&2
+            exit 255
+        fi
+    else
+        echo 'amazon-linux-extra: not found the command, continue' >&2
+    fi
+}
+
+# epel
+amazon-linux-extra-safe epel
+
+echo 'installing rabbitmq-server ...'
 yum install -y rabbitmq-server --enablerepo=epel
 chkconfig rabbitmq-server on
 service rabbitmq-server start
 
-# memcached
+echo 'installing memecached ...'
 yum install -y memcached
 chkconfig memcached on
 service memcached start
