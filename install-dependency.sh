@@ -20,7 +20,7 @@ fi
 # Amazon Linux 2 AMI needs this
 if ! type pip >/dev/null 2>&1; then
     python_version=$(python --version 2>&1)
-    python_version=${version:7:1}
+    python_version=${python_version:7:1}
 
     if [[ $python_version -eq 2 ]]; then
         # We can't install the latest version of pip here but to a version < 21.
