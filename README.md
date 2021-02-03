@@ -22,9 +22,9 @@ Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 * Python 2.7
 * macOS Big Sur (only the core python code tested, the installation scripts
   work on Linux only)
-* AWS Amazon Linux AMI
-* AWS Amazon Linux 2 AMI
-* Shadowsocks-libev 3.2.0 for Linux (multi-user API is required)
+* [AWS Amazon Linux AMI](https://aws.amazon.com/amazon-linux-ami/)
+* [AWS Amazon Linux 2 AMI](https://aws.amazon.com/amazon-linux-2/)
+* [Shadowsocks-libev 3.2.0 for Linux (multi-user API is required)](https://github.com/shadowsocks/shadowsocks-libev)
 
 
 ## 2. Install with scripts
