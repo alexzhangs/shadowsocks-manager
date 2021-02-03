@@ -17,19 +17,21 @@ if [[ $(uname) != 'Linux' ]]; then
     exit 9
 fi
 
-# nginx
+echo 'installing nginx ...'
 yum install -y nginx
 chkconfig nginx on
 nginx -t && service nginx start
 
-# supervisor
+echo 'installing supervisor 4.0.3 ...'
 git clone --depth 1 https://github.com/alexzhangs/aws-ec2-supervisor
 bash aws-ec2-supervisor/aws-ec2-supervisor-install.sh -i -v 4.0.3
 chkconfig supervisord on
 service supervisord start
 
-# gcc and uwsgi
+echo 'installing gcc ...'
 yum install -y gcc
+
+echo 'installing uwsgi==2.0.18 ...'
 pip install uwsgi==2.0.18
 
 exit
