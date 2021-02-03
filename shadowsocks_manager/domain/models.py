@@ -172,7 +172,7 @@ class Record(models.Model):
     @property
     def is_matching_dns_api(self):
         answer = self.answer_from_dns_api
-        return set(self.answer.split(',')) == set(answer) if answer is not None else None
+        return set(self.answer.lower().split(',')) == set(answer) if answer is not None else None
 
     @property
     def is_matching_dns_query(self):
