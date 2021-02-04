@@ -35,7 +35,7 @@ if ! type pip >/dev/null 2>&1; then
     python get-pip.py
 fi
 
-function if-yum-repo-exsit () {
+function if-yum-repo-exist () {
     # Usage: if-yum-repo-exist <repo>; echo $?
     [[ "$(yum repolist "${1:?}" | awk 'END {print $NF}')" > 0 ]]
 }
@@ -47,9 +47,6 @@ function amazon-linux-extra-safe () {
             # Amazon Linux 2 AMI needs this
             echo "installing repo: $repo ..."
             amazon-linux-extras install -y "$repo"
-        else
-            echo "$repo: not found the repo, abort." >&2
-            exit 255
         fi
     else
         echo 'amazon-linux-extra: not found the command, continue' >&2
