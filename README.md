@@ -16,6 +16,8 @@ Features:
 
 Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 
+![Home › Shadowsocks › Shadowsocks Nodes](doc/shadowsocks-node-list.png)
+
 
 ## 1. Requirements
 
