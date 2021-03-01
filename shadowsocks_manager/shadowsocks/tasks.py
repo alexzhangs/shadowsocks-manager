@@ -12,3 +12,7 @@ def port_heartbeat():
 @shared_task
 def node_change_ips():
     return Node.change_ips()
+
+@shared_task
+def node_change_ips_softly():
+    return Node.change_ips_softly()

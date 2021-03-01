@@ -276,6 +276,16 @@ class Node(StatisticsMethod):
         for node in cls.objects.filter(is_active=True):
             node.change_ip()
 
+    @classmethod
+    def change_ips_softly(cls):
+        for node in cls.objects.filter(is_active=True):
+            node.toggle_active()
+            node.change_ip()
+            # it takes around 20 minutes to capture the change and let the
+            # updated DNS records take effect.
+            time.sleep(1200)
+            node.toggle_active()
+
 
 class NodeAccount(StatisticsMethod):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='accounts_ref')
