@@ -250,7 +250,7 @@ class Node(StatisticsMethod):
                     na.is_active = new
                     na.save()
 
-        if self._original_is_active != self.is_active or self._original_public_ip != self.public_ip:
+        if self.record and (self._original_is_active != self.is_active or self._original_public_ip != self.public_ip):
             self.record.answer = ",".join([node.public_ip for node in self.record.nodes.all() if node.is_active and node.public_ip])
             self.record.save()
 
