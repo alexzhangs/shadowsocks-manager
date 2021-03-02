@@ -149,7 +149,7 @@ class NodeAdmin(admin.ModelAdmin):
 
 
 class AccountResource(resources.ModelResource):
-    
+
     class Meta:
         model = Account
         fields = ('id', 'username', 'password', 'email', 'first_name', 'last_name', 'date_joined',)
@@ -206,5 +206,14 @@ class AccountAdmin(ImportExportModelAdmin):
 
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Accounts'
 
-    actions = (toggle_active, notify,)
+    def add_all_nodes(self, request, queryset):
+        for obj in queryset:
+            nodes = obj.add_all_nodes()
+            messages.info(request, 'Added to {obj}: {nodes}'.format(
+                obj=obj,
+                nodes=nodes))
+
+    add_all_nodes.short_description = 'Add All Nodes to Selected Shadowsocks Accounts'
+
+    actions = (toggle_active, notify, add_all_nodes,)
     resource_class = AccountResource

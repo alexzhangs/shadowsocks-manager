@@ -169,6 +169,15 @@ class Account(User, StatisticsMethod):
         self.is_active = not self.is_active
         self.save()
 
+    def add_all_nodes(self):
+        nodes = []
+        for node in Node.objects.all():
+            if NodeAccount.objects.filter(node=node, account=self).count() == 0:
+                na = NodeAccount(node=node, account=self, is_active=(self.is_active and node.is_active))
+                na.save()
+                nodes.append(node)
+        return nodes
+
 
 class Node(StatisticsMethod):
     name = models.CharField(unique=True, max_length=32, help_text='Give the node a name.')
