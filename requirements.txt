@@ -13,3 +13,4 @@ djangorestframework==3.9.2
 python-memcached==1.59
 pytz==2019.1
 requests==2.22.0
+uwsgi==2.0.18

@@ -29,7 +29,7 @@ Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 * [Shadowsocks-libev 3.2.0 for Linux (multi-user API is required)](https://github.com/shadowsocks/shadowsocks-libev)
 
 
-## 2. Install with scripts
+## 2. Install
 
 NOTE: It's better to install the project within a virtualenv.
 
@@ -45,70 +45,57 @@ Open a terminal on the server in which the shadowsocks-manager is going to run.
 
     The installation scripts can WORK ONLY ON LINUX and be tested only with Amazon Linux AMI and Amazon Linux 2 AMI.
 
-    Run below commands under root, the order matters.
+    Run below commands under root.
 
     ```sh
-    # required, installing rabbitmq-server, Memcached, pip.
-    bash shadowsocks-manager/install-dependency.sh
-
-    # optional but recommended, installing Nginx, gcc, uwsgi, supervisor.
-    bash shadowsocks-manager/install-extra.sh
-
-    # required, installing shadowsocks-manager itself.
-    bash shadowsocks-manager/install.sh
+    bash shadowsocks-manager/one-click-deploy.sh
     ```
 
-    If you want to customize the shadowsocks-manager installation, see: `bash shadowsocks-manager/install.sh -h`:
+    If you want to customize the shadowsocks-manager installation, see: `bash shadowsocks-manager/one-click-deploy.sh -h`:
 
     ```
-    Usage: install.sh [-n DOMAIN] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE] [-o PORT_BEGIN] [-O PORT_END]
-    Run this script under root on Linux.
-    OPTIONS
-        [-n DOMAIN]
-
-        Domain name resolved to the shadowsocks-manager web application.
-
-        [-u USERNAME]
-
-        Username for shadowsocks-manager administrator, default is 'admin'.
-
-        [-p PASSWORD]
-
-        Password for shadowsocks-manager administrator, default is 'passw0rd'.
-
-        [-e EMAIL]
-
-        Email for the shadowsocks-manager administrator.
-        Also, be used as the sender of the account notification Email.
-
-        [-t TIMEZONE]
-
-        Set Django's timezone, default is 'UTC'.
-        Statistics period also senses this setting. Note that AWS billing is based on UTC.
-
-        [-r PORT_BEGIN]
-
-        Port range allowed for all Shadowsocks nodes.
-
-        [-R PORT_END]
-
-        Port range allowed for all Shadowsocks nodes.
-
-        [-h]
-
-        This help.
+    Description:
+      Deploy shadowsocks-manager with one single command.
+      Run this script under root on Linux.
+    
+    Usage:
+      one-click-deploy.sh [-n DOMAIN] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE] [-o PORT_BEGIN] [-O PORT_END] [-h]
+    
+    Options:
+      [-n DOMAIN]
+    
+      Domain name resolved to the shadowsocks-manager web application.
+    
+      [-u USERNAME]
+    
+      Username for shadowsocks-manager administrator, default is 'admin'.
+    
+      [-p PASSWORD]
+    
+      Password for shadowsocks-manager administrator, default is 'passw0rd'.
+    
+      [-e EMAIL]
+    
+      Email for the shadowsocks-manager administrator.
+      Also, be used as the sender of the account notification Email.
+    
+      [-t TIMEZONE]
+    
+      Set Django's timezone, default is 'UTC'.
+      Statistics period also senses this setting. Note that AWS billing is based on UTC.
+    
+      [-r PORT_BEGIN]
+    
+      Port range allowed for all Shadowsocks nodes.
+    
+      [-R PORT_END]
+    
+      Port range allowed for all Shadowsocks nodes.
+    
+      [-h]
+    
+      This help.
     ```
-
-1. Start and reload the services.
-
-    If goes with `install-extra.sh`, then reload the supervisor vendors and Nginx:
-
-    ```
-    supervisorctl reload
-    service nginx reload
-    ```
-
-    If goes without `install-extra.sh`, then jump to `4.3 Start services manually (without install-extra.sh)` to finish all steps, then come back and go on.
 
 1. Verify the installation
 
@@ -117,10 +104,6 @@ Open a terminal on the server in which the shadowsocks-manager is going to run.
     Use:
     ```
     http://<your_server_ip>/admin
-    ```
-    Or:
-    ```
-    http://<your_server_ip>:8000/admin
     ```
 
     If goes well, then congratulations! The installation has succeeded.
@@ -157,84 +140,18 @@ Shadowsocks Accounts` and assign the existing nodes to them.
 Shadowsocks client.
 
 
-## 4. Install without scripts (manually)
+## 4. Sendmail (Optional)
 
-### 4.1 Dependency
-
-1. RabbitMQ
-
-    RabbitMQ is used as a Celery broker to distribute scheduled jobs for
-necessary maintenance, such as traffic statistics and port heartbeat.
-
-    ```sh
-    # on macOS
-    brew install rabbitmq
-    brew services start rabbitmq
-
-    # on Linux
-    yum install rabbitmq-server
-    service rabbitmq-server start
-    chkconfig --add rabbitmq-server
-    ```
-
-1. Memcached
-
-    Memcached is used as the Django cache backend. It's required by
-normal Django cache, singleton model, and global exclusive lock.
-
-    ```sh
-    # on macOS
-    brew install memcached
-    brew services start memcached
-
-    # on Linux
-    yum install memcached
-    service memcached start
-    chkconfig --add memcached
-    ```
-
-1. Sendmail (Optional)
-
-    `sendmail` is used to send account notification Email, it should
+`sendmail` is used to send account notification Email, it should
 be configured on the same server with shadowsocks-manager.
 
-    About how to configure `sendmail` client to use AWS SES as SMTP server on AWS EC2 instance, refer to repo
+About how to configure `sendmail` client to use AWS SES as SMTP server on AWS EC2 instance, refer to repo
 [aws-ec2-ses](https://github.com/alexzhangs/aws-ec2-ses).
 
-    On macOS, refer to repo
+On macOS, refer to repo
 [macos-aws-ses](https://github.com/alexzhangs/macos-aws-ses).
 
-    NOTE: This dependency needs the manual setup anyway, it is not handled by any installation script.
-
-### 4.2 For the Production Deployment
-
-For the production deployment, Nginx, uwsgi, supervisor are
-recommended. They are handled by the script `install-extra.sh`.
-
-If you proceed without the script, some of the commands mentioned in this document won't be available.
-
-### 4.3 Start services manually (without install-extra.sh)
-
-1. Start web application
-
-    ```sh
-    python manage.py runserver <your_server_ip>:8000 --insecure
-    ```
-
-1. Start the scheduled jobs
-
-    Start Worker and Beat together:
-
-    ```sh
-    celery -A shadowsocks_manager worker -l info -B
-    ```
-
-    Start Worker and Beat with separate processes, this is recommended for production deployment:
-
-    ```sh
-    celery -A shadowsocks_manager worker -l info
-    celery -A shadowsocks_manager beat -l info
-    ```
+NOTE: This dependency needs the manual setup anyway, it is not handled by any installation script.
 
 
 ## 5. Can the installation be easier?
@@ -274,7 +191,7 @@ while multiple IP addresses were configured for the domain.
 
 ## 8. Troubleshooting
 
-1. Check the logs (with install-extra.sh)
+1. Check the logs
 
     ```
     # supervisor
@@ -287,7 +204,7 @@ while multiple IP addresses were configured for the domain.
     cat /var/log/ssm-cerlery*
     ```
 
-1. Check the services (with install-extra.sh)
+1. Check the services
 
     ```
     # nginx
