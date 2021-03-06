@@ -1,0 +1,19 @@
+language: python
+python:
+  - "2.7"
+env:
+  global:
+    - $SSM_USER=$USER
+    - DJANGO_STATIC_DIR=/var/local/www/$USER/static/
+services:
+  - memcached
+before_install:
+  - sudo apt-get update
+  - sudo apt-get -y install rabbitmq-server
+  - sudo service rabbitmq-server start
+install:
+  - sudo mkdir -p "$DJANGO_STATIC_DIR"
+  - sudo chown $SSM_USER:$SSM_USER "$DJANGO_STATIC_DIR"
+  - bash setup.sh
+script:
+  - bash start-testserver.sh
