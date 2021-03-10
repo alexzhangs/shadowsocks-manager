@@ -21,15 +21,19 @@ function check-os () {
 }
 
 function install-xsh () {
+    if [[ -f ~/.xshrc ]]; then
+        . ~/.xshrc
+    fi
     # install xsh if missing
     if ! type xsh >/dev/null 2>&1; then
         git clone https://github.com/alexzhangs/xsh
         bash xsh/install.sh
-    fi
+        . ~/.xshrc
 
-    # load xsh libs
-    xsh load xsh-lib/core
-    xsh load xsh-lib/aws
+        # load xsh libs
+        xsh load xsh-lib/core
+        xsh load xsh-lib/aws
+    fi
 }
 
 check-os
