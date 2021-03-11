@@ -4,9 +4,11 @@
 # exit on any error
 set -e -o pipefail
 
-declare SSM_USER=ssm
+if [[ -z $SSM_USER ]]; then
+    declare SSM_USER=ssm
+fi
 declare INSTALL_DIR=/home/$SSM_USER/shadowsocks-manager
-declare DJANGO_STATIC_DIR=/var/local/www/$USER/static/
+declare DJANGO_STATIC_DIR=/var/local/www/$SSM_USER/static/
 
 function usage () {
     awk '/^#\?/ {sub("^[ ]*#\\?[ ]?", ""); print}' "$0" \

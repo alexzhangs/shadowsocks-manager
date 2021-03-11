@@ -3,8 +3,8 @@ python:
   - "2.7"
 env:
   global:
-    - $SSM_USER=$USER
-    - DJANGO_STATIC_DIR=/var/local/www/$USER/static/
+    - $SSM_USER=$(whoami)
+    - DJANGO_STATIC_DIR=/var/local/www/$SSM_USER/static/
 services:
   - memcached
 before_install:
