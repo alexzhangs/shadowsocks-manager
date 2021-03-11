@@ -24,6 +24,7 @@ function main () {
     printf "Changing to Django directory...\n"
     cd "$WORK_DIR/shadowsocks_manager"
 
+    # don't quote the variable $listen, leave it this way on purpose
     python manage.py runserver $listen --insecure &
     celery -A shadowsocks_manager worker -l info -B &
 }

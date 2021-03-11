@@ -34,9 +34,18 @@ function install-nginx-conf () {
 
 function install-supervisor-conf () {
     # if supervisor is available
-    if [[ -d /etc/supervisor/conf.d ]]; then
-        printf "Copying supervisor program conf files...\n"
-        cp -a "$WORK_DIR"/supervisor/* /etc/supervisor/conf.d/
+    if type -t supervisord >/dev/null; then
+        if [[ ! -e /etc/default ]]; then
+            mkdir -p /etc/default
+        fi
+        printf "Copying supervisor profile...\n"
+        cp -av "$WORK_DIR"/supervisor/profile/* /etc/default/
+
+        if [[ ! -e /etc/ssupervisorupervisor/conf.d ]]; then
+            mkdir -p /etc/supervisor/conf.d
+        fi
+        printf "Copying supervisor vendors...\n"
+        cp -av "$WORK_DIR"/supervisor/vendors/*.ini /etc/supervisor/conf.d/
     fi
 }
 
