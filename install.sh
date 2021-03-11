@@ -46,6 +46,9 @@ function install-supervisor-conf () {
         fi
         printf "Copying supervisor vendors...\n"
         cp -av "$WORK_DIR"/supervisor/vendors/*.ini /etc/supervisor/conf.d/
+
+        # updating /etc/default/supervisor requires to restart supervisord
+        service supervisord restart
     fi
 }
 
