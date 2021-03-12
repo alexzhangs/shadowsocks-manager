@@ -91,7 +91,10 @@ function main () {
     # required, setup shadowsocks-manager
     sudo -u "$SSM_USER" bash "$INSTALL_DIR/setup.sh" "$@"
 
-    supervisorctl reload
+
+    # restart supervisord to load /etc/default/supervisor and vendors
+    service supervisord restart
+    # reload nginx config
     service nginx reload
 }
 

@@ -47,8 +47,8 @@ function install-supervisor-conf () {
         printf "Copying supervisor vendors...\n"
         cp -av "$WORK_DIR"/supervisor/vendors/*.ini /etc/supervisor/conf.d/
 
-        # updating /etc/default/supervisor requires to restart supervisord
-        service supervisord restart
+        # don't restart supervisord or reload the vendors, the app server is
+        # not ready yet.
     fi
 }
 
