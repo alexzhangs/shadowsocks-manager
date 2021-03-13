@@ -21,7 +21,7 @@ class ConfigAdmin(admin.ModelAdmin):
     readonly_fields = ('dt_created', 'dt_updated')
     list_display = ('port_begin', 'port_end', 'timeout', 'dt_created', 'dt_updated')
 
-    def has_add_permission(self, request):
+    def has_add_permission(self, request, obj=None):
         return None
 
     def has_delete_permission(self, request, obj=None):
@@ -37,7 +37,7 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
     readonly_fields = fields
     fields = fields + ('is_active',)
 
-    def has_add_permission(self, request):
+    def has_add_permission(self, request, obj=None):
         return None
 
     def is_accessible(self, obj):
@@ -62,7 +62,7 @@ class NodeAccountInline(admin.TabularInline):
     can_delete = False
     fields = ('node', 'account', 'is_active')
 
-    def has_change_permission(self, request):
+    def has_change_permission(self, request, obj=None):
         return None
 
 

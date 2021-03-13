@@ -113,7 +113,7 @@ class NameServer(models.Model):
 class Domain(models.Model):
     name = models.CharField(unique=True, max_length=64,
         help_text='Root domain name. Example: yourdomain.com.')
-    nameserver = models.ForeignKey(NameServer, null=True, blank=True)
+    nameserver = models.ForeignKey(NameServer, null=True, blank=True, on_delete=models.SET_NULL)
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -139,7 +139,7 @@ class Record(models.Model):
 
     host = models.CharField(max_length=64,
         help_text='Host name. Example: vpn.')
-    domain = models.ForeignKey(Domain)
+    domain = models.ForeignKey(Domain, on_delete=models.PROTECT)
     type = models.CharField(max_length=8, null=True, blank=True, choices=TYPE)
     answer = models.CharField(max_length=512, null=True, blank=True,
         help_text='Answer for the host name, comma "," is the delimiter for multiple answers.')

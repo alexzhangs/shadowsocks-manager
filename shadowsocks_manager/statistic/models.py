@@ -48,7 +48,7 @@ class Period(models.Model):
 
 
 class Statistic(models.Model):
-    period = models.ForeignKey(Period, on_delete=models.RESTRICT)
+    period = models.ForeignKey(Period, on_delete=models.PROTECT)
     content_type = models.ForeignKey(ContentType, null=True, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField(null=True)
     content_object = GenericForeignKey('content_type', 'object_id')
