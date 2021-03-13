@@ -5,7 +5,11 @@ from __future__ import unicode_literals
 import six
 
 import types, importlib
+import logging
 from django.db import models
+
+
+logger = logging.getLogger('django')
 
 
 # Create your models here.
