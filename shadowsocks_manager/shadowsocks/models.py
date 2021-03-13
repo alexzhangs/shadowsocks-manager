@@ -49,7 +49,7 @@ class Config(SingletonModel):
         verbose_name = 'Shadowsocks Configuration'
 
 
-class StatisticsMethod(models.Model, DynamicMethodModel):
+class StatisticMethod(models.Model, DynamicMethodModel):
 
     ## each '%s' within <template> will be replaced with the value of <variables> ##
     dynamic_methods = [{
@@ -90,8 +90,8 @@ def dynamic_method_template(self):
         abstract = True
 
 
-class Account(User, StatisticsMethod):
-    statistics = GenericRelation('statistic.Statistic', related_query_name='account')
+class Account(User, StatisticMethod):
+    statistic = GenericRelation('statistic.Statistic', related_query_name='account')
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
     class Meta:
@@ -185,7 +185,7 @@ class Account(User, StatisticsMethod):
         return nodes
 
 
-class Node(StatisticsMethod):
+class Node(StatisticMethod):
     name = models.CharField(unique=True, max_length=32, help_text='Give the node a name.')
     record = models.ForeignKey(Record, null=True, blank=True, on_delete=models.SET_NULL, related_name='nodes',
         help_text='Domain name resolved to the node public IP.')
@@ -203,7 +203,7 @@ class Node(StatisticsMethod):
         help_text='AWS Access Key ID used to publish SNS messages.')
     sns_secret_key = models.CharField(max_length=128, null=True, blank=True,
         help_text='AWS Secret Access Key used to publish SNS messages.')
-    statistics = GenericRelation('statistic.Statistic', related_query_name='node')
+    statistic = GenericRelation('statistic.Statistic', related_query_name='node')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -302,10 +302,10 @@ class Node(StatisticsMethod):
             node.toggle_active()
 
 
-class NodeAccount(StatisticsMethod):
+class NodeAccount(StatisticMethod):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='accounts_ref')
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='nodes_ref')
-    statistics = GenericRelation('statistic.Statistic', related_query_name='nodeaccount')
+    statistic = GenericRelation('statistic.Statistic', related_query_name='nodeaccount')
     is_active = models.BooleanField(default=True, help_text='Creating account on this node?')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)

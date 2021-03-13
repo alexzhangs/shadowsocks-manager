@@ -9,8 +9,8 @@ from .models import Statistic
 
 
 @shared_task
-def statistics():
-    return Statistic.statistics()
+def statistic():
+    return Statistic.statistic()
 
 @shared_task
 def reset():

@@ -8,7 +8,7 @@ from . import views
 
 
 router = routers.DefaultRouter()
-router.register(r'statistic', views.StatisticsViewSet)
+router.register(r'statistic', views.StatisticViewSet)
 router.register(r'statistic/period', views.PeriodViewSet)
 
 urlpatterns = [

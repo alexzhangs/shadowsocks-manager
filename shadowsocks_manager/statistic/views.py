@@ -18,9 +18,9 @@ class PeriodViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.PeriodSerializer
 
 
-class StatisticsViewSet(viewsets.ModelViewSet):
+class StatisticViewSet(viewsets.ModelViewSet):
     """
     This viewset automatically provides `list` and `detail` actions.
     """
     queryset = models.Statistic.objects.all()
-    serializer_class = serializers.StatisticsSerializer
+    serializer_class = serializers.StatisticSerializer

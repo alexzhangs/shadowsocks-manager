@@ -12,7 +12,7 @@ class PeriodSerializer(serializers.ModelSerializer):
         fields = ('id', 'year', 'month', 'dt_created', 'dt_updated')
 
 
-class StatisticsSerializer(serializers.ModelSerializer):
+class StatisticSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Statistic
         fields = ('id', 'period', 'content_type', 'object_id', 'transferred_past',

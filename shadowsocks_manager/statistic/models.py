@@ -256,7 +256,7 @@ class Statistic(models.Model):
 
     @classmethod
     @lock('statistic.statistic', blocking=False)
-    def statistics(cls):
+    def statistic(cls):
         cls.collect()
 
         ts = timezone.now()

@@ -18,7 +18,7 @@ Features:
 * Heartbeat on Shadowsocks ports(users)
 * Shadowsocks multi-user API
 * Shadowsocks node cluster
-* Statistics for network traffic usage
+* Statistic for network traffic usage
 * Scheduled jobs
 * name.com API
 * Auto-creating DNS records
@@ -92,7 +92,7 @@ Open a terminal on the server in which the shadowsocks-manager is going to run.
       [-t TIMEZONE]
     
       Set Django's timezone, default is 'UTC'.
-      Statistics period also senses this setting. Note that AWS billing is based on UTC.
+      Statistic period also senses this setting. Note that AWS billing is based on UTC.
     
       [-r PORT_BEGIN]
     
@@ -181,7 +181,7 @@ all its dependencies are handled by `aws-cfn-vpn`.
 
 * Serve as a nonprofit business model.
 * Have central user management for multi nodes.
-* Collect traffic statistics that can be viewed by account, node, and period.
+* Collect traffic statistic that can be viewed by account, node, and period.
 * Show the existence and accessibility of ports in the admin.
 * Handle the DNS records if using Name.com as nameserver.
 

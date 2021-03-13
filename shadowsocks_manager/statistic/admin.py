@@ -61,7 +61,7 @@ class ContentTypeListFilter(admin.SimpleListFilter):
 
 
 @admin.register(Statistic)
-class StatisticsAdmin(admin.ModelAdmin):
+class StatisticAdmin(admin.ModelAdmin):
     list_display = ('period', 'term', 'content_object', 'content_type', 'transferred', 'dt_collected', )
     list_filter = (TermListFilter, 'period', ContentTypeListFilter,)
     fields = list_display + ('transferred_past', 'transferred_live', 'dt_created', 'dt_updated')
