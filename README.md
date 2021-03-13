@@ -31,7 +31,8 @@ Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 
 ## 1. Requirements
 
-* Python 2.7
+* Python 2.7, Python 3.x
+* Django 1.11.x, Django 3.x
 * macOS Big Sur (only the core python code tested, the installation scripts
   work on Linux only)
 * [AWS Amazon Linux AMI](https://aws.amazon.com/amazon-linux-ami/)
