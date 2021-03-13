@@ -33,7 +33,7 @@ class Template(models.Model):
     def template(self):
         return engines['django'].from_string(self.content)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.type
 
     def render(self, kwargs):

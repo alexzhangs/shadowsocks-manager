@@ -92,7 +92,7 @@ class NameServer(models.Model):
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def __init__(self, *args, **kwargs):
@@ -117,7 +117,7 @@ class Domain(models.Model):
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     @property
@@ -149,7 +149,7 @@ class Record(models.Model):
     class Meta:
         unique_together = ('host', 'domain')
 
-    def __unicode__(self):
+    def __str__(self):
         return '.'.join([self.host, self.domain.name])
 
     @property

@@ -30,7 +30,7 @@ class Period(models.Model):
         verbose_name = 'Period'
         unique_together = ('year', 'month')
 
-    def __unicode__(self):
+    def __str__(self):
         return str(self.year) + ('-' + str(self.month) if self.month else '') if self.year else ''
 
     valid_term = ['Monthly', 'Yearly', 'All']
@@ -63,7 +63,7 @@ class Statistic(models.Model):
         verbose_name_plural = verbose_name
         unique_together = ('period', 'content_type', 'object_id')
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s %s %s' % (self.content_object, self.transferred, self.period)
 
     @property

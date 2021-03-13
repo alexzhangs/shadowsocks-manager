@@ -103,7 +103,7 @@ class Account(User, StatisticMethod):
         self._original_password = self.password
         self._original_is_active = self.is_active
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s (%s)' % (self.get_username(), self.get_full_name())
 
     def clean(self):
@@ -215,7 +215,7 @@ class Node(StatisticMethod):
         self._original_is_active = self.is_active
         self._original_public_ip = self.public_ip
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def clean(self):
@@ -314,7 +314,7 @@ class NodeAccount(StatisticMethod):
         verbose_name = 'Shadowsocks Node to Account'
         unique_together = ('node', 'account')
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s on %s' % (self.account, self.node)
 
     # test with Manager API ping
@@ -393,7 +393,7 @@ class SSManager(models.Model):
     class Meta:
         verbose_name = 'Shadowsocks Manager'
 
-    def __unicode__(self):
+    def __str__(self):
         return '%s:%s' % (self._ip, self.port)
 
     def clean(self):
