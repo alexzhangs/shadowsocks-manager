@@ -2,6 +2,7 @@
 
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
+from builtins import map
 
 from django.contrib import admin, messages
 from django.utils.translation import ugettext_lazy as _

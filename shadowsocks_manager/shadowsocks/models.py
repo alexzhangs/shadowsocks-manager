@@ -2,6 +2,10 @@
 
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
+from builtins import bytes
+from builtins import str
+from builtins import range
+import six
 
 import socket, time, json
 import logging
@@ -104,7 +108,7 @@ class Account(User, StatisticsMethod):
 
     def clean(self):
         config = Config.load()
-        if int(self.username) not in range(config.port_begin, config.port_end + 1):
+        if int(self.username) not in list(range(config.port_begin, config.port_end + 1)):
             raise ValidationError(_('Port number must be in the range of Config: '
                 'port_begin(%s) and port_end(%s)' % (config.port_begin, config.port_end)))
 
@@ -409,10 +413,12 @@ class SSManager(models.Model):
 
     def call(self, command, read=False):
         ret = None
+        if isinstance(command, six.text_type):
+            command = bytes(command, 'utf-8')
 
         self.connect()
         try:
-            self.socket.send(bytes(command))
+            self.socket.send(command)
             if read:
                 self.socket.settimeout(Config.load().timeout)
                 ret = self.socket.recv(4096)

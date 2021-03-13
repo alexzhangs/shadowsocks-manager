@@ -2,6 +2,7 @@
 
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
+import six
 
 import types, importlib
 from django.db import models
@@ -58,7 +59,7 @@ class DynamicMethodModel(object):
             template = dm['template']
             method = dm['method']
 
-            for key in method.keys():
+            for key in list(method.keys()):
                 m = method[key]
                 variables = m.get('variables', None)
                 prop = m.get('property', None)
@@ -70,7 +71,7 @@ class DynamicMethodModel(object):
                 )
 
     def create_method(self, data, name, decorator=None):
-        if isinstance(data, (str, unicode)):
+        if isinstance(data, six.text_type):
             try:
                 code = compile(data, '<stdin>', 'exec')
             except SyntaxError as e:

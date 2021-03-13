@@ -1,5 +1,7 @@
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
+from builtins import range
+from builtins import object
 from functools import reduce
 
 
@@ -22,7 +24,7 @@ class Formatter(object):
         if self.kwargs:
             formatter = ['{}={}' for count in range(len(self.kwargs))]
             return ', '.join(formatter).format(
-                *reduce((lambda x, y: x + y), [list(item) for item in self.kwargs.items()]))
+                *reduce((lambda x, y: x + y), [list(item) for item in list(self.kwargs.items())]))
 
     def to_string(self):
         items = [self.args_to_string(), self.kwargs_to_string()]

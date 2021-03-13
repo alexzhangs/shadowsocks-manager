@@ -1,5 +1,7 @@
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
+from builtins import range
+from builtins import object
 
 import time
 from functools import wraps
