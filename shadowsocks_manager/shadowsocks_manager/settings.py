@@ -10,6 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
+# py2.7 and py3 compatibility imports
+from __future__ import unicode_literals
+
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)

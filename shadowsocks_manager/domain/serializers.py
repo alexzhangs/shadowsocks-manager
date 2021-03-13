@@ -1,6 +1,10 @@
+# py2.7 and py3 compatibility imports
+from __future__ import absolute_import
+from __future__ import unicode_literals
+
 from rest_framework import serializers
 
-import models
+from . import models
 
 
 class NameServerSerializer(serializers.ModelSerializer):

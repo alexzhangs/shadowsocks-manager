@@ -7,6 +7,9 @@ For more information on this file, see
 https://docs.djangoproject.com/en/1.11/howto/deployment/wsgi/
 """
 
+# py2.7 and py3 compatibility imports
+from __future__ import unicode_literals
+
 import os
 
 from django.core.wsgi import get_wsgi_application

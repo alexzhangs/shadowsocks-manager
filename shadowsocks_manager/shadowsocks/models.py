@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+
+# py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
 
 import socket, time, json
@@ -487,7 +489,7 @@ class SSManager(models.Model):
         cache 60 seconds
         """
         key, value = ('{0}-{1}'.format(self, 'ping'), None)
-        if from_cache and cache.has_key(key):
+        if from_cache and key in cache:
             value = cache.get(key)
         else:
             value = self.ping()
@@ -500,7 +502,7 @@ class SSManager(models.Model):
         cache 60 seconds
         """
         key, value = ('{0}-{1}'.format(self, 'list'), None)
-        if from_cache and cache.has_key(key):
+        if from_cache and key in cache:
             value = cache.get(key)
         else:
             value = self.list()

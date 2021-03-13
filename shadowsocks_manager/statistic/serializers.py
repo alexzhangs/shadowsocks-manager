@@ -1,3 +1,6 @@
+# py2.7 and py3 compatibility imports
+from __future__ import unicode_literals
+
 from rest_framework import serializers
 
 from . import models

@@ -1,3 +1,4 @@
+# py2.7 and py3 compatibility imports
 from __future__ import absolute_import, unicode_literals
 
 # This will make sure the app is always imported when

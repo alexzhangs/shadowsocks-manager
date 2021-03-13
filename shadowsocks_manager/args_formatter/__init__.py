@@ -1,3 +1,8 @@
+# py2.7 and py3 compatibility imports
+from __future__ import unicode_literals
+from functools import reduce
+
+
 class Formatter(object):
     """
     Formatter('foo', 'bar', x=1, y=2).to_string()
