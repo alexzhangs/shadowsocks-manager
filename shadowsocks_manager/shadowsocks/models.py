@@ -364,7 +364,7 @@ class InterfaceList(enum.Enum):
     PRIVATE = 2
     PUBLIC = 3
 
-    labels = {
+    __labels__ = {
         LOCALHOST: "Localhost",
         PRIVATE: "Private",
         PUBLIC: "Public"
@@ -422,6 +422,7 @@ class SSManager(models.Model):
             if read:
                 self.socket.settimeout(Config.load().timeout)
                 ret = self.socket.recv(4096)
+                ret = str(ret, 'utf-8')
         except socket.timeout:
             logger.error('%s: timed out on calling command: %s' % (self, command))
         except Exception as e:

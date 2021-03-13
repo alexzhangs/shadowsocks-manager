@@ -2,7 +2,6 @@
 
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
-from builtins import map
 
 from django.contrib import admin, messages
 from django.utils.translation import ugettext_lazy as _
@@ -23,8 +22,7 @@ class TermListFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         valid_term = Period.valid_term
-        return map(
-            None,
+        return zip(
             valid_term,
             [_(item) for item in valid_term]
         )
@@ -47,8 +45,7 @@ class ContentTypeListFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         valid_cls = Statistic.valid_cls
-        return map(
-            None,
+        return zip(
             [item.__name__.lower() for item in valid_cls],
             [item._meta.verbose_name for item in valid_cls]
         )

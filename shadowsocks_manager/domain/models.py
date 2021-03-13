@@ -29,7 +29,7 @@ class BaseNsApi(object):
             auth=(self.user, self.credential),
             json=data
         )
-        return json.loads(response.text) or response
+        return response.json()
 
     def create_record(self, *args, **kwargs):
         pass
