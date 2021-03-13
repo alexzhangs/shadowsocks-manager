@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-import models
+from . import models
 
 
 class PeriodSerializer(serializers.ModelSerializer):
@@ -11,6 +11,6 @@ class PeriodSerializer(serializers.ModelSerializer):
 
 class StatisticsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.Statistics
+        model = models.Statistic
         fields = ('id', 'period', 'content_type', 'object_id', 'transferred_past',
             'transferred_live', 'dt_collected', 'dt_created', 'dt_updated')

@@ -1,12 +1,12 @@
 from django.conf.urls import url, include
 from rest_framework import routers
 
-import views
+from . import views
 
 
 router = routers.DefaultRouter()
-router.register(r'statistics', views.StatisticsViewSet)
-router.register(r'statistics/period', views.PeriodViewSet)
+router.register(r'statistic', views.StatisticsViewSet)
+router.register(r'statistic/period', views.PeriodViewSet)
 
 urlpatterns = [
     url(r'^', include(router.urls)),

@@ -44,8 +44,8 @@ class Period(models.Model):
             raise Exception('Invalid combination of year: %s and month: %s' % (self.year, self.month))
 
 
-class Statistics(models.Model):
-    period = models.ForeignKey(Period)
+class Statistic(models.Model):
+    period = models.ForeignKey(Period, on_delete=models.RESTRICT)
     content_type = models.ForeignKey(ContentType, null=True, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField(null=True)
     content_object = GenericForeignKey('content_type', 'object_id')
@@ -56,7 +56,7 @@ class Statistics(models.Model):
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
     class Meta:
-        verbose_name = 'Statistics'
+        verbose_name = 'Statistic'
         verbose_name_plural = verbose_name
         unique_together = ('period', 'content_type', 'object_id')
 
@@ -73,10 +73,10 @@ class Statistics(models.Model):
     def object_type(self):
         if self.content_type:
             cls = self.content_type.model_class()
-            if cls in Statistics.valid_cls:
+            if cls in Statistic.valid_cls:
                 return cls.__name__
             else:
-                raise Exception('%s: invalid class: %s, valid classes are: %s' % (self, cls, Statistics.valid_cls))
+                raise Exception('%s: invalid class: %s, valid classes are: %s' % (self, cls, Statistic.valid_cls))
         else:
             return 'None'
 
@@ -155,7 +155,7 @@ class Statistics(models.Model):
 
     @property
     def depend(self):
-        obj = Statistics.depends.get(self.period.term)
+        obj = Statistic.depends.get(self.period.term)
         ret = obj.get(self.object_type) if obj else None
         if ret:
             return ret
@@ -219,9 +219,9 @@ class Statistics(models.Model):
         self.save()
 
     @classmethod
-    @lock('statistics.collect', blocking=False)
+    @lock('statistic.collect', blocking=False)
     def collect(cls):
-        # Collect the base statistics data depended by all other statistics
+        # Collect the base statistic data depended by all other statistic
         for node in Node.objects.filter(is_active=True):
             ts = timezone.now()
             ss_stat = node.ssmanager.ping_ex()
@@ -232,14 +232,14 @@ class Statistics(models.Model):
                         year=ts.year,
                         month=ts.month)
 
-                    (stat, created) = Statistics.objects.get_or_create(
+                    (stat, created) = Statistic.objects.get_or_create(
                         period=period,
                         content_type=ContentType.objects.get_for_model(na),
                         object_id=na.pk)
 
                     transferred_live = ss_stat.get(stat.content_object.account.username, 0)
                     if transferred_live < stat.transferred_live:
-                        # changing active/inactive status or restarting server clears the statistics
+                        # changing active/inactive status or restarting server clears the statistic
                         stat.transferred_past += stat.transferred_live
                     else:
                         pass
@@ -252,12 +252,12 @@ class Statistics(models.Model):
                 pass
 
     @classmethod
-    @lock('statistics.statistics', blocking=False)
+    @lock('statistic.statistic', blocking=False)
     def statistics(cls):
         cls.collect()
 
         ts = timezone.now()
-        for step in Statistics.steps:
+        for step in Statistic.steps:
             kwargs = {}
             step_cls = step.get('cls')
 
@@ -289,14 +289,14 @@ class Statistics(models.Model):
                 if objs:
                     for obj in objs:
                         kwargs['object_id'] = obj.pk
-                        (stat, created) = Statistics.objects.get_or_create(**kwargs)
+                        (stat, created) = Statistic.objects.get_or_create(**kwargs)
                         stat.consolidate()
                 else:
-                    (stat, created) = Statistics.objects.get_or_create(**kwargs)
+                    (stat, created) = Statistic.objects.get_or_create(**kwargs)
                     stat.consolidate()
 
     @classmethod
-    @lock('statistics.collect', blocking=300) # wait for 5 minutes
+    @lock('statistic.collect', blocking=300) # wait for 5 minutes
     def reset(cls):
         # recreate all active ports
         nas = NodeAccount.objects.filter(is_active=True)

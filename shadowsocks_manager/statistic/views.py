@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from rest_framework import viewsets
 
-import models, serializers
+from . import models, serializers
 
 
 # Create your views here.
@@ -20,5 +20,5 @@ class StatisticsViewSet(viewsets.ModelViewSet):
     """
     This viewset automatically provides `list` and `detail` actions.
     """
-    queryset = models.Statistics.objects.all()
+    queryset = models.Statistic.objects.all()
     serializer_class = serializers.StatisticsSerializer

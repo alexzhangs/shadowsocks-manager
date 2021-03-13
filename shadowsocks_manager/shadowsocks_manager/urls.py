@@ -22,6 +22,6 @@ urlpatterns = [
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     url(r'^', include('notification.urls')),
     url(r'^', include('shadowsocks.urls')),
-    url(r'^', include('statistics.urls')),
+    url(r'^', include('statistic.urls')),
     url(r'^', include('domain.urls')),
 ]

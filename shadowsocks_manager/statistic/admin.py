@@ -5,7 +5,7 @@ from django.contrib import admin, messages
 from django.utils.translation import ugettext_lazy as _
 from django.template.defaultfilters import filesizeformat
 
-from .models import Period, Statistics
+from .models import Period, Statistic
 
 
 # Register your models here.
@@ -43,7 +43,7 @@ class ContentTypeListFilter(admin.SimpleListFilter):
     parameter_name = 'contenttype'
 
     def lookups(self, request, model_admin):
-        valid_cls = Statistics.valid_cls
+        valid_cls = Statistic.valid_cls
         return map(
             None,
             [item.__name__.lower() for item in valid_cls],
@@ -57,7 +57,7 @@ class ContentTypeListFilter(admin.SimpleListFilter):
             return queryset
 
 
-@admin.register(Statistics)
+@admin.register(Statistic)
 class StatisticsAdmin(admin.ModelAdmin):
     list_display = ('period', 'term', 'content_object', 'content_type', 'transferred', 'dt_collected', )
     list_filter = (TermListFilter, 'period', ContentTypeListFilter,)

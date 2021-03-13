@@ -30,7 +30,7 @@
 #?   [-t TIMEZONE]
 #?
 #?   Set Django's timezone, default is 'UTC'.
-#?   Statistics period also senses this setting. Note that AWS billing is based on UTC.
+#?   Statistic period also senses this setting. Note that AWS billing is based on UTC.
 #?
 #?   [-r PORT_BEGIN]
 #?

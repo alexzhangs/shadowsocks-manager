@@ -50,13 +50,13 @@ class StatisticsMethod(models.Model, DynamicMethodModel):
         'template': '''
 
 def dynamic_method_template(self):
-    from statistics.models import Statistics, Period
+    from statistic.models import Statistic, Period
     period = Period.objects.get(year=None, month=None)
     kwargs = {
         self.__class__.__name__.lower(): self,
         "period": period
     }
-    return Statistics.objects.get(**kwargs).%s
+    return Statistic.objects.get(**kwargs).%s
 
 ''',
 
@@ -85,7 +85,7 @@ def dynamic_method_template(self):
 
 
 class Account(User, StatisticsMethod):
-    statistics = GenericRelation('statistics.Statistics', related_query_name='account')
+    statistics = GenericRelation('statistic.Statistic', related_query_name='account')
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
     class Meta:
@@ -197,7 +197,7 @@ class Node(StatisticsMethod):
         help_text='AWS Access Key ID used to publish SNS messages.')
     sns_secret_key = models.CharField(max_length=128, null=True, blank=True,
         help_text='AWS Secret Access Key used to publish SNS messages.')
-    statistics = GenericRelation('statistics.Statistics', related_query_name='node')
+    statistics = GenericRelation('statistic.Statistic', related_query_name='node')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -299,7 +299,7 @@ class Node(StatisticsMethod):
 class NodeAccount(StatisticsMethod):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='accounts_ref')
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='nodes_ref')
-    statistics = GenericRelation('statistics.Statistics', related_query_name='nodeaccount')
+    statistics = GenericRelation('statistic.Statistic', related_query_name='nodeaccount')
     is_active = models.BooleanField(default=True, help_text='Creating account on this node?')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
