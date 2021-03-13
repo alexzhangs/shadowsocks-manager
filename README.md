@@ -12,7 +12,7 @@
 |-------------------|-------------------|-------------------|-------------------|-------------------|-------------------|
 | [![Build1][1]][0] | [![Build2][2]][0] | [![Build3][3]][0] | [![Build4][4]][0] | [![Build5][5]][0] | [![Build6][6]][0] |
 
-[0]: https://travis-ci.org/bjfish/grails-ci-build-matrix-example
+[0]: https://travis-ci.org/alexzhangs/xsh
 [1]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/1?use_travis_com=true
 [2]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/2?use_travis_com=true
 [3]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/3?use_travis_com=true
