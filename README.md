@@ -8,17 +8,16 @@
 [![GitHub issues](https://img.shields.io/github/issues/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
 
-| Python:2.7        | Python:3.6        | Python:3.7        | Python:3.8        | Python:3.9        | Python:nightly    |
-|-------------------|-------------------|-------------------|-------------------|-------------------|-------------------|
-| [![Build1][1]][0] | [![Build2][2]][0] | [![Build3][3]][0] | [![Build4][4]][0] | [![Build5][5]][0] | [![Build6][6]][0] |
+| Python:2.7        | Python:3.6        | Python:3.7        | Python:3.8        | Python:3.9        |
+|-------------------|-------------------|-------------------|-------------------|-------------------|
+| [![Build1][1]][0] | [![Build2][2]][0] | [![Build3][3]][0] | [![Build4][4]][0] | [![Build5][5]][0] |
 
-[0]: https://travis-ci.org/alexzhangs/xsh
+[0]: https://travis-ci.org/alexzhangs/shadowsocks-manager
 [1]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/1?use_travis_com=true
 [2]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/2?use_travis_com=true
 [3]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/3?use_travis_com=true
 [4]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/4?use_travis_com=true
 [5]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/5?use_travis_com=true
-[6]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/6?use_travis_com=true
 
 # shadowsocks-manager
 
