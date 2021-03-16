@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
 from builtins import range
@@ -48,18 +50,25 @@ class Retry(object):
             self.logger(msg)
 
     def log_params(self, *args, **kwargs):
-        if self.logger and (args or kwargs):
+        if self.logger:
             msg = 'params: {}'.format(Formatter(*args, **kwargs).to_string())
             self.logger(msg)
 
 
 def retry(count=5, delay=0, logger=None, level='info'):
     """
-    :param count:  max retry times, count=0 means no retry.
-    :param delay:  delay <N> seconds between retries.
-    :param logger: log retries and final failure if a logger is given.
-    :param level:  log the message to this level.
+    A decorator to enable automatically retry on the failure call of a function or method.
 
+    The failure is evaluated by the return value of the function as it is falscy: `bool(RETURN_VALUE) == False`.
+    >>> if not foo():  # retry is involved
+
+    Option:
+        * count:  max retry times, count=0 means no retry.
+        * delay:  delay <N> seconds between retries.
+        * logger: log retries and final failure if a logger is given.
+        * level:  log the message to this level.
+
+    Example:
         from retry import retry
 
         @retry(count=3, delay=1, logger=mylogger, level='warning')
@@ -67,5 +76,4 @@ def retry(count=5, delay=0, logger=None, level='info'):
           return None
     """
 
-    return Retry(
-        count=count, delay=delay, logger=logger, level=level)
+    return Retry(count=count, delay=delay, logger=logger, level=level)
