@@ -22,3 +22,4 @@ install:
   - bash setup.sh
 script:
   - bash start-testserver.sh
+  - python shadowsocks_manager/manage.py test
