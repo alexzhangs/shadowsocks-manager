@@ -3,6 +3,7 @@
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
 from __future__ import absolute_import
+from builtins import str
 
 from unittest import TestCase
 
@@ -37,3 +38,5 @@ class FormatterTestCase(TestCase):
         self.assertEqual(
             Formatter('foo', 1, y=2, x='bar').to_string(),
             '{}, 1, y=2, x={}'.format(repr('foo'), repr('bar')))
+        # __str__()
+        self.assertEqual(str(Formatter(None)), 'None')
