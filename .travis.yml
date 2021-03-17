@@ -20,10 +20,9 @@ install:
   - sudo chown $SSM_USER:$SSM_USER "$DJANGO_STATIC_DIR"
   - bash setup.sh
 script:
-  - pip install coverage
   - bash start-testserver.sh
-  # - python shadowsocks_manager/manage.py test
-  - coverage run --source='.' shadowsocks_manager/manage.py test
-  - coverage xml --omit='*/migrations/*'
+  - pip install coverage
+  - (cd shadowsocks_manager; coverage run --branch --source '.' manage.py test --noinput -v 2)
+  - (cd shadowsocks_manager; coverage xml --skip-empty -o coverage-$TRAVIS_PYTHON_VERSION.xml)
 after_success:
   - bash <(curl -s https://codecov.io/bash)
