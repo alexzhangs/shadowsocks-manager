@@ -22,7 +22,8 @@ install:
 script:
   - bash start-testserver.sh
   - pip install coverage
-  - cd shadowsocks_manager && coverage run manage.py test --noinput -v 2
-  - cd shadowsocks_manager && coverage xml -o coverage-$TRAVIS_PYTHON_VERSION.xml
+  - cd shadowsocks_manager
+  - coverage run manage.py test --noinput -v 2
+  - coverage xml -o coverage-$TRAVIS_PYTHON_VERSION.xml
 after_success:
   - bash <(curl -s https://codecov.io/bash)
