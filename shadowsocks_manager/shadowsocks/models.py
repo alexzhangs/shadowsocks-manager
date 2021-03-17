@@ -450,7 +450,7 @@ class SSManager(models.Model):
         command = 'list'
         return self.call(command, read=True)
 
-    @retry(count=5, delay=1, logger=logger, level='warning')
+    @retry(count=5, delay=1, logger=logger)
     def add(self, port, password):
         exists = self.is_port_created(port)
         if not exists:
@@ -459,7 +459,7 @@ class SSManager(models.Model):
             exists = self.is_port_created(port)
         return exists
 
-    @retry(count=5, delay=1, logger=logger, level='warning')
+    @retry(count=5, delay=1, logger=logger)
     def remove(self, port):
         exists = self.is_port_created(port)
         if exists:

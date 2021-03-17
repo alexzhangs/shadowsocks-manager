@@ -7,17 +7,20 @@ from builtins import object
 
 import time
 from functools import wraps
+import logging
 
 from args_formatter import Formatter
 
 
 class Retry(object):
 
-    def __init__(self, count, delay, logger, level, *args, **kwargs):
+    def __init__(self, count, delay, logger, *args, **kwargs):
         super(Retry, self).__init__(*args, **kwargs)
         self.count = count
         self.delay = delay
-        self.logger = getattr(logger, level) if logger else None
+        if logger:
+            assert isinstance(logger, logging.Logger)
+        self.logger = logger or logging.getLogger(__name__)
 
     def __call__(self, func):
 
@@ -28,34 +31,21 @@ class Retry(object):
                 ret = func(*args, **kwargs)
 
                 if ret:
+                    self.logger.debug('{func}: Succeeded.'.format(func=func))
                     return ret
                 elif attempts < self.count:
-                    self.log_retry(func, attempts + 1)
-                    self.log_params(*args, **kwargs)
+                    msg = '{func}: Retrying {attempts} of {count} in {delay} second(s)...'.format(
+                        func=func, attempts=attempts, count=self.count, delay=self.delay)
+                    self.logger.warning(msg)
                     time.sleep(self.delay)
                 else:
-                    self.log_failure(func)
-                    self.log_params(*args, **kwargs)
+                    self.logger.error('{func}: Failed.'.format(func=func))
+                    self.logger.debug('params: {}'.format(Formatter(*args, **kwargs).to_string()))
+
         return _retry
 
-    def log_retry(self, func, attempts):
-        if self.logger:
-            msg = '{func}: Retrying {attempts} of {count} in {delay} second(s)...'.format(
-                func=func, attempts=attempts, count=self.count, delay=self.delay)
-            self.logger(msg)
 
-    def log_failure(self, func):
-        if self.logger:
-            msg = '{func}: Failed.'.format(func=func)
-            self.logger(msg)
-
-    def log_params(self, *args, **kwargs):
-        if self.logger:
-            msg = 'params: {}'.format(Formatter(*args, **kwargs).to_string())
-            self.logger(msg)
-
-
-def retry(count=5, delay=0, logger=None, level='info'):
+def retry(count=5, delay=0, logger=None):
     """
     A decorator to enable automatically retry on the failure call of a function or method.
 
@@ -66,14 +56,13 @@ def retry(count=5, delay=0, logger=None, level='info'):
         * count:  max retry times, count=0 means no retry.
         * delay:  delay <N> seconds between retries.
         * logger: log retries and final failure if a logger is given.
-        * level:  log the message to this level.
 
     Example:
         from retry import retry
 
-        @retry(count=3, delay=1, logger=mylogger, level='warning')
+        @retry(count=3, delay=1, logger=mylogger)
         def foo():
           return None
     """
 
-    return Retry(count=count, delay=delay, logger=logger, level=level)
+    return Retry(count=count, delay=delay, logger=logger)
