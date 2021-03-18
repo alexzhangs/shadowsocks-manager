@@ -100,10 +100,10 @@ class NameServer(models.Model):
 
         self.api_cls = globals().get(self.api_cls_name)
 
+    @property
+    def api(self):
         if self.api_cls and self.user and self.credential:
-            self.api = self.api_cls(self.user, self.credential)
-        else:
-            self.api = None
+            return self.api_cls(self.user, self.credential)
 
     @property
     def is_api_accessible(self):
