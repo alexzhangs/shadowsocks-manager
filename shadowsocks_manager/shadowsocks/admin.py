@@ -4,7 +4,6 @@
 from __future__ import unicode_literals
 
 from django.contrib import admin, messages
-from django.contrib.auth.models import User, Group
 from django.template.defaultfilters import filesizeformat
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
@@ -125,25 +124,20 @@ class NodeAdmin(admin.ModelAdmin):
     def toggle_active(self, request, queryset):
         for obj in queryset:
             obj.toggle_active()
-            messages.info(request, '{cls} {obj} now is {status}'.format(
-                cls=obj.__class__.__name__,
-                obj=obj,
-                status=('Active' if obj.is_active else 'Inactive')))
+            messages.info(request, '{}: now is {}'.format(obj, 'Active' if obj.is_active else 'Inactive'))
 
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Nodes'
 
     def change_ip(self, request, queryset):
         for obj in queryset:
-            if not obj.sns_endpoint:
-                messages.error(request, '{cls} {obj}: The SNS topic endpoint was not configured for this node.'.format(
-                    cls=obj.__class__.__name__,
-                    obj=obj))
+            try:
+                obj.change_ip()
+            except Exception as e:
+                messages.error(request, '{}: {}'.format(obj, e))
                 return
 
-            obj.change_ip()
-            messages.info(request, '{cls} {obj}: The message is sent to the SNS topic to request a new IP address.'.format(
-                cls=obj.__class__.__name__,
-                obj=obj))
+            message = 'The message is sent to the SNS topic to request a new IP address.'
+            messages.info(request, '{}: {}'.format(obj, message))
 
     change_ip.short_description = 'Replace the IP address with a new one for Selected Shadowsocks Nodes'
 
@@ -187,33 +181,28 @@ class AccountAdmin(ImportExportModelAdmin):
 
     def notify(self, request, queryset):
         for obj in queryset:
-            to = '{}<{}>'.format(obj.get_full_name(), obj.email)
             try:
+                to = '{}<{}>'.format(obj.get_full_name(), obj.email)
                 if obj.notify(sender=request.user):
-                    messages.info(request, 'Message queued for {}'.format(to))
+                    messages.info(request, '{}: Message queued for {}.'.format(obj, to))
                 else:
-                    messages.error(request, 'Message not queued for {}'.format(to))
+                    messages.error(request, '{}: Message not queued for {}.'.format(obj, to))
             except Exception as e:
-                messages.error(request, e)
+                messages.error(request, '{}: {}'.format(obj, e))
 
     notify.short_description = 'Send Notification Email to Selected Shadowsocks Accounts'
 
     def toggle_active(self, request, queryset):
         for obj in queryset:
             obj.toggle_active()
-            messages.info(request, '{cls} {obj} now is {status}'.format(
-                cls=obj.__class__.__name__,
-                obj=obj,
-                status=('Active' if obj.is_active else 'Inactive')))
+            messages.info(request, '{}: now is {}'.format(obj, 'Active' if obj.is_active else 'Inactive'))
 
     toggle_active.short_description = 'Toggle Active/Inactive for Selected Shadowsocks Accounts'
 
     def add_all_nodes(self, request, queryset):
         for obj in queryset:
             nodes = obj.add_all_nodes()
-            messages.info(request, 'Added to {obj}: {nodes}'.format(
-                obj=obj,
-                nodes=nodes))
+            messages.info(request, '{}: Added {}'.format(obj, nodes))
 
     add_all_nodes.short_description = 'Add All Nodes to Selected Shadowsocks Accounts'
 

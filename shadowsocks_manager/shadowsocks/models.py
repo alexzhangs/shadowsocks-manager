@@ -123,20 +123,20 @@ class Account(User, StatisticMethod):
         return ret
 
     def notify(self, sender=None):
+        """
+        Send account owner the account information by email.
+        """
         if not self.email:
-            logger.error("There's no Email address configured for %s." % self.get_full_name())
-            return False
+            raise ValidationError({'email': ["There's no Email address configured for %s." % self.get_full_name()]})
 
         if not self.is_active:
-            logger.warning("Skipped sending account Email to %s(%s), beacause the user is "
-                "inactive." % (self.email, self.get_full_name))
-            return False
+            raise ValidationError({'is_active': ["Skipped sending account Email to %s(%s), beacause the user is "
+                "inactive." % (self.email, self.get_full_name)]})
 
         nas = self.nodes_ref.filter(is_active=True)
         if not nas:
-            logger.warning("Skipped sending account Email to %s(%s), there's no active node "
+            raise ValidationError("Skipped sending account Email to %s(%s), there's no active node "
                 "assigned." % (self.email, self.get_full_name()))
-            return False
 
         template = Template.objects.get(type='account_created')
 
@@ -198,7 +198,7 @@ class Node(StatisticMethod):
             'Email if not blank, example: Hongkong.')
     is_active = models.BooleanField(default=True, help_text='Is this node ready to be online')
     sns_endpoint = models.CharField(max_length=128, null=True, blank=True,
-        help_text='AWS SNS Arn which is used to send messages to manage this node.')
+        help_text='AWS SNS Arn which is used to send messages to manage this node(the feature of aws-cfn-vpn).')
     sns_access_key = models.CharField(max_length=128, null=True, blank=True,
         help_text='AWS Access Key ID used to publish SNS messages.')
     sns_secret_key = models.CharField(max_length=128, null=True, blank=True,
@@ -224,13 +224,26 @@ class Node(StatisticMethod):
                 'public_ip.' % self))
 
     @property
+    def sns_endpoint_region(self):
+        """
+        Return the region in the SNS topic endpoint.
+        """
+        try:
+            return self.sns_endpoint.split(':')[3]
+        except AttributeError:
+            raise ValidationError({'sns_endpoint': [_('The SNS topic endpoint was not configured.')]})
+        except IndexError:
+            raise ValidationError({'sns_endpoint': [_('The SNS topic endpoint is not a valid ARN.')]})
+
+    @property
     def ssmanager(self):
-        ssmanagers = self.ssmanagers.all()
-        if ssmanagers:
-            return ssmanagers[0]
+        return self.ssmanagers.first()
 
     @classmethod
     def is_port_open(cls, ip, port):
+        """
+        Test if a TCP port is listening on the IP.
+        """
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # TCP
 
         try:
@@ -241,20 +254,51 @@ class Node(StatisticMethod):
         except:
             return False
 
-    # test if dns records match the public IP
     @property
     def is_matching_dns_query(self):
+        """
+        Test if the the node.public_ip matches the DNS query.
+        """
         if self.record:
-            return self.public_ip in (self.record.answer_from_dns_query or [])
+            return self.public_ip in self.record.answer_from_dns_query
+
+    @property
+    def is_matching_record(self):
+        """
+        Test if the the node.related_public_ips matches the node.record.answser.
+        """
+        if self.record:
+            return self.related_public_ips() == self.record.answers
+
+    def update_record(self):
+        """
+        Update the node.record's answer to be the node's related_public_ips.
+        """
+        if self.record:
+            self.record.answer = ",".join(self.related_public_ips())
+            self.record.save()
+
+    def related_public_ips(self, is_active=True):
+        """
+        Return a set of public IP addresses on nodes(including this node) that share the same record
+        with this node.
+        """
+        nodes = self.record.nodes.all() if self.record else [self]
+        return set([node.public_ip for node in nodes if node.is_active == is_active and node.public_ip])
 
     def get_ip_by_interface(self, interface):
+        """
+        Return the node's IP address for a network interface.
+        """
         if interface == InterfaceList.LOCALHOST:
             return '127.0.0.1'
         else:
             return getattr(self, '{}_ip'.format(InterfaceList.name(interface).lower()))
 
-    # test if a port is open
     def is_port_accessible(self, port):
+        """
+        Test if a TCP port is listening on the IP.
+        """
         return Node.is_port_open(self.public_ip, port)
 
     def on_update(self):
@@ -265,41 +309,56 @@ class Node(StatisticMethod):
                     na.is_active = new
                     na.save()
 
-        if self.record and (self._original_is_active != self.is_active or self._original_public_ip != self.public_ip):
-            self.record.answer = ",".join([node.public_ip for node in self.record.nodes.all() if node.is_active and node.public_ip])
-            self.record.save()
+        if not self.is_matching_record:
+            self.update_record()
 
     def toggle_active(self):
         self.is_active = not self.is_active
         self.save()
 
     def change_ip(self):
-        if self.sns_endpoint:
-            sns = boto3.resource(
-                'sns',
-                region_name=self.sns_endpoint.split(':')[3],
-                aws_access_key_id=self.sns_access_key,
-                aws_secret_access_key=self.sns_secret_key
-            )
-            topic = sns.Topic(self.sns_endpoint)
-            return topic.publish(
-                Message='change_ip'
-            )
+        """
+        Send a SNS message to trigger the replacement of the node IP in remote AWS.
+        This is a feature of [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn).
+        """
+        sns = boto3.resource(
+            'sns',
+            region_name=self.sns_endpoint_region,
+            aws_access_key_id=self.sns_access_key,
+            aws_secret_access_key=self.sns_secret_key
+        )
+        topic = sns.Topic(self.sns_endpoint)
+        return topic.publish(Message='change_ip')
 
     @classmethod
     def change_ips(cls):
+        """
+        Replace the IPs of all the active nodes in remote AWS.
+        This is a feature of [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn).
+        """
         for node in cls.objects.filter(is_active=True):
             node.change_ip()
 
     @classmethod
     def change_ips_softly(cls):
+        """
+        Softly replace the IPs of all the active nodes in remote AWS.
+        The following steps are taken for the nodes one by one, to avoid the service outage for clients:
+          1. Inactivate the node to remove the node IP from the DNS record list.
+          2. Sleep 5 minutes to wait for the DNS record take effect.
+          3. Send a message to trigger the IP replacement.
+          4. Sleep another 20 minutes to wait for the AWS config to capture the new IP, and send it back to django.
+          5. Activate the node to add the new node IP to the DNS record list.
+        The whole process takes around 30 minutes to take effect for clients.
+        Updating DNS record on the fly is depends on the NameServer API which you have to set first in the domain app.
+        This is a feature of [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn).
+        """
         for node in cls.objects.filter(is_active=True):
-            node.toggle_active()
+            node.toggle_active()  # make the node inactive
+            time.sleep(300)  # assuming your DNS record TTL is 300 seconds
             node.change_ip()
-            # it takes around 20 minutes to capture the change and let the
-            # updated DNS records take effect.
-            time.sleep(1200)
-            node.toggle_active()
+            time.sleep(1200)  # AWS config capture takes time
+            node.toggle_active()  # make the node active again
 
 
 class NodeAccount(StatisticMethod):
@@ -317,8 +376,13 @@ class NodeAccount(StatisticMethod):
     def __str__(self):
         return '%s on %s' % (self.account, self.node)
 
-    # test with Manager API ping
     def is_created(self, original=False):
+        """
+        Test if the port is created on the node using Manager API: ping.
+        """
+        if not self.node.ssmanager:
+            return
+
         if original:
             return self.node.ssmanager.is_port_created(self.account._original_username)
         else:
@@ -326,12 +390,17 @@ class NodeAccount(StatisticMethod):
 
     is_created.boolean = True
 
-    # test if the port is connectable
     @property
     def is_accessible(self):
+        """
+        Test if the TCP port is listening on the public IP of the node.
+        """
         return self.node.is_port_accessible(self.account.username)
 
     def on_update(self):
+        if not self.node.ssmanager:
+            return
+
         if self.is_active:
             if self.node.ssmanager.is_accessible:
                 self.node.ssmanager.add(port=self.account.username, password=self.account.password)
@@ -342,6 +411,9 @@ class NodeAccount(StatisticMethod):
             self.on_delete()
 
     def on_delete(self, original=False):
+        if not self.node.ssmanager:
+            return
+
         if original:
             port = '_original_username'
         else:
@@ -355,7 +427,12 @@ class NodeAccount(StatisticMethod):
 
     @classmethod
     def heartbeat(cls):
-        for na in cls.objects.filter(is_active=True):
+        """
+        Heartbeat once on all the nodeaccounts.
+        Create the active ones and delete the inactive ones on the corresponding nodes.
+        This method usually is used to run as the scheduled job.
+        """
+        for na in cls.objects.all():
             na.on_update()
 
 
@@ -402,16 +479,28 @@ class SSManager(models.Model):
 
     @property
     def _ip(self):
+        """
+        Return the node's IP address on the network interface that the Manager API is listening on.
+        """
         return self.node.get_ip_by_interface(self.interface)
 
     def connect(self):
+        """
+        Open a connection to the Manager API by UDP.
+        """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         self.socket.connect((self._ip, self.port))
 
     def close(self):
+        """
+        Close the connection to the Manager API.
+        """
         self.socket.close()
 
     def call(self, command, read=False):
+        """
+        Make a command call to the Manager API.
+        """
         ret = None
         if isinstance(command, six.text_type):
             command = bytes(command, 'utf-8')
@@ -433,25 +522,45 @@ class SSManager(models.Model):
         return ret
 
     def _add(self, port, password):
+        """
+        Manager API command: `add: {"server_port": <port>, "password": <password>}`.
+        Add a user with password.
+        """
         command = 'add: { "server_port": %s, "password": "%s" }' % (port, password)
         self.call(command)
 
     def _remove(self, port):
+        """
+        Manager API command: `remove: {"server_port": <port>}`.
+        Remove a user.
+        """
         command = 'remove: { "server_port": %s }' % port
         self.call(command)
 
     def _ping(self):
+        """
+        Manager API command: `ping`.
+        List all users.
+        """
         command = "ping"
         return self.call(command, read=True)
 
-    # Undocumented Shadowsocks Manager Command, but works
-    # List all users with password
     def _list(self):
+        """
+        Manager API command: `list`.
+        List all users with password.
+        This is an undocumented Shadowsocks Manager Command, but works.
+        """
         command = 'list'
         return self.call(command, read=True)
 
     @retry(count=5, delay=1, logger=logger)
     def add(self, port, password):
+        """
+        Add a user with password, return the final user existence status in Boolean.
+        Skip if the user already exists.
+        Auto-retry enabled.
+        """
         exists = self.is_port_created(port)
         if not exists:
             self._add(port, password)
@@ -461,6 +570,11 @@ class SSManager(models.Model):
 
     @retry(count=5, delay=1, logger=logger)
     def remove(self, port):
+        """
+        Remove a user, return the final user existence status in Boolean.
+        Skip if the user doesn't exist.
+        Auto-retry enabled.
+        """
         exists = self.is_port_created(port)
         if exists:
             self._remove(port)
@@ -469,6 +583,9 @@ class SSManager(models.Model):
         return not exists
 
     def ping(self):
+        """
+        List all users, return in JSON.
+        """
         stat = self._ping()
         if stat:
             return json.loads(stat.lstrip('stat: '))
@@ -476,6 +593,9 @@ class SSManager(models.Model):
             return None
 
     def list(self):
+        """
+        List all users with password, return in JSON.
+        """
         ports = self._list()
         if ports:
             try:
@@ -486,6 +606,9 @@ class SSManager(models.Model):
             return None
 
     def clear_cache(self):
+        """
+        Clear the cache made by ping_ex() and list_ex().
+        """
         keys = []
         for str in ['ping', 'list']:
             keys.append('{0}-{1}'.format(self, str))
@@ -493,7 +616,8 @@ class SSManager(models.Model):
 
     def ping_ex(self, from_cache=True):
         """
-        cache 60 seconds
+        The same as ping(), but with cache enabled.
+        The cache lives for 60 seconds.
         """
         key, value = ('{0}-{1}'.format(self, 'ping'), None)
         if from_cache and key in cache:
@@ -506,7 +630,8 @@ class SSManager(models.Model):
 
     def list_ex(self, from_cache=True):
         """
-        cache 60 seconds
+        The same as list(), but with cache enabled.
+        The cache lives for 60 seconds.
         """
         key, value = ('{0}-{1}'.format(self, 'list'), None)
         if from_cache and key in cache:
@@ -517,8 +642,11 @@ class SSManager(models.Model):
 
         return value
 
-    # test if a port is created with Manager API
     def is_port_created(self, port):
+        """
+        Test if a port is created with Manager API.
+        Internally using list_ex().
+        """
         items = self.list_ex()
         if items:
             for item in items:
@@ -526,9 +654,12 @@ class SSManager(models.Model):
                     return True
         return False
 
-    # test if the manager is in service
     @property
     def is_accessible(self):
+        """
+        Test if the manager is in service.
+        Internally using ping_ex().
+        """
         return self.ping_ex() is not None
 
 
