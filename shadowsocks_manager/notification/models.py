@@ -2,15 +2,14 @@
 
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
+from builtins import bytes
+import six
 
 import logging
 import subprocess
 from subprocess import PIPE
 from django.db import models
-from django.template import engines, TemplateSyntaxError
-from django.template.loader import render_to_string
-
-from singleton.models import SingletonModel
+from django.template import engines
 
 
 logger = logging.getLogger('django')
@@ -51,6 +50,9 @@ class Notify(models.Model):
                        "-F", sender,
                        "-f", email,
                        "-t"]
+
+        if isinstance(message, six.text_type):
+            message = bytes(message, 'utf-8')
 
         proc = subprocess.Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         (stdout, stderr) = proc.communicate(message)
