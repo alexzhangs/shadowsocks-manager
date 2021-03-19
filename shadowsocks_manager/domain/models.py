@@ -153,13 +153,26 @@ class Record(models.Model):
         return '.'.join([self.host, self.domain.name])
 
     @property
+    def answers(self):
+        """
+        Return the record.answer in lowercase and split as Set.
+        """
+        return set([item.lower() for item in (self.answer.split(',') if self.answer else [])])
+
+    @property
     def answer_from_dns_api(self):
+        """
+        Return the answers from DNS API, in lowercase and as Set.
+        """
         if self.domain.ns_api:
-            return [record.get('answer') for record in self.domain.ns_api.list_records(
-                self.domain.name, self.type, self.host)]
+            return set([record.get('answer').lower() for record in self.domain.ns_api.list_records(
+                self.domain.name, self.type, self.host)])
 
     @property
     def answer_from_dns_query(self):
+        """
+        Return the answers from DNS query, in lowercase and as Set.
+        """
         ips = []
         fqdn = '.'.join([self.host, self.domain.name])
         try:
@@ -169,19 +182,26 @@ class Record(models.Model):
             pass
         except Exception as e:
             logger.error(e)
-        return ips
+        return set([item.lower() for item in ips])
 
     @property
     def is_matching_dns_api(self):
-        answer = self.answer_from_dns_api
-        return set(self.answer.lower().split(',')) == set(answer) if answer is not None else None
+        """
+        Test if the record.answer matches the DNS API query.
+        """
+        return self.answers == self.answer_from_dns_api
 
     @property
     def is_matching_dns_query(self):
-        answer = self.answer_from_dns_query
-        return set(self.answer.split(',')) == set(answer) if answer is not None else None
+        """
+        Test if the record.answer matches the DNS query.
+        """
+        return self.answers == self.answer_from_dns_query
 
     def sync_to_dns(self):
+        """
+        Sync the record to DNS server through DNS API.
+        """
         ret = defaultdict(list)
         if self.domain.ns_api:
             if self.is_matching_dns_api:
@@ -198,6 +218,9 @@ class Record(models.Model):
         return ret
 
     def delete_from_dns(self):
+        """
+        Delete the record from DNS server through DNS API.
+        """
         if self.domain.ns_api:
             return self.domain.ns_api.delete_records(self.domain.name, self.type, self.host)
 

@@ -2,40 +2,61 @@
 
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 from django.test import TestCase
 
-from domain.models import NameServer, Domain, Record
+from . import models
+
+class TestData:
+    fixtures = ['nameserver.json']
+
+    @classmethod
+    def all(cls):
+        cls.nameserver()
+        cls.domain()
+        cls.record()
+
+    @classmethod
+    def nameserver(cls):
+        for obj in models.NameServer.objects.all():
+            if not obj.user:
+                obj.user = 'mock-user'
+            if not obj.credential:
+                obj.credential = 'mock-credential'
+            obj.save()
+
+    @classmethod
+    def domain(cls):
+        for ns in models.NameServer.objects.all():
+            obj = models.Domain(name='mock-example-{}.com'.format(ns.pk), nameserver=ns)
+            obj.save()
+
+    @classmethod
+    def record(cls):
+        for domain in models.Domain.objects.all():
+            obj = models.Record(host='ss', domain=domain, type='A', answer='1.1.1.1')
+            obj.save()
+
 
 class DomainTestCase(TestCase):
     fixtures = ['nameserver.json']
 
-    def setUp(self):
-        for ns in NameServer.objects.all():
-            if not ns.user:
-                ns.user = 'mockuser'
-            if not ns.credential:
-                ns.credential = 'mockcredential'
-            ns.save()
+    @classmethod
+    def setUpTestData(cls):
+        TestData.all()
 
-            # generate domain
-            d = Domain(name='example-{}.com'.format(ns.pk), nameserver=ns)
-            d.save()
+    def test_nameserver(self):
+        for obj in models.NameServer.objects.all():
+            self.assertTrue(str(obj))
+            self.assertFalse(obj.is_api_accessible)
 
-            # generate record
-            r = Record(host='www', domain=d, type='A', answer='1.1.1.1')
-            r.save()
+    def test_domain(self):
+        for obj in models.Domain.objects.all():
+            self.assertTrue(str(obj))
 
-    def test(self):
-        for r in Record.objects.all():
-            # nameserver
-            self.assertTrue(str(r.domain.nameserver))
-            self.assertFalse(r.domain.nameserver.is_api_accessible)
-
-            # domain
-            self.assertTrue(str(r.domain))
-
-            # record
-            self.assertTrue(str(r))
-            self.assertFalse(r.is_matching_dns_query)
-            r.delete()
+    def test_record(self):
+        for obj in models.Record.objects.all():
+            self.assertTrue(str(obj))
+            self.assertFalse(obj.is_matching_dns_query)
+            obj.delete()
