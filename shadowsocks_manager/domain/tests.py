@@ -8,6 +8,8 @@ from django.test import TestCase
 
 from . import models
 
+
+# Create your tests here.
 class TestData:
     fixtures = ['nameserver.json']
 
@@ -40,7 +42,7 @@ class TestData:
 
 
 class DomainTestCase(TestCase):
-    fixtures = ['nameserver.json']
+    fixtures = TestData.fixtures
 
     @classmethod
     def setUpTestData(cls):

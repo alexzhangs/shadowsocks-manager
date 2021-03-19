@@ -11,11 +11,15 @@ from botocore.exceptions import ClientError
 
 from domain.models import Record
 from domain.tests import TestData as DomainTestData
+from notification.tests import TestData as NotificationTestData
 from . import models
 
 
+# Create your tests here.
 class TestData:
-    fixtures = ['config.json', 'auth.group.json', 'template.json', 'nameserver.json']
+    fixtures = ['config.json', 'auth.group.json']
+    fixtures.extend(DomainTestData.fixtures)
+    fixtures.extend(NotificationTestData.fixtures)
 
     @classmethod
     def all(cls):
@@ -84,7 +88,6 @@ class TestData:
             account.add_all_nodes()
 
 
-# Create your tests here.
 class ConfigTestCase(TestCase):
     fixtures = TestData.fixtures
 
@@ -93,6 +96,7 @@ class ConfigTestCase(TestCase):
 
     def test(self):
         self.assertEqual(models.Config.load(), models.Config.objects.first())
+
 
 class AccountTestCase(TestCase):
     fixtures = TestData.fixtures
@@ -304,6 +308,7 @@ class NodeAccountTestCase(TestCase):
             self.assertFalse(obj.is_created())
             self.assertFalse(obj.is_accessible)
             obj.delete()
+
 
 class SSManagerTestCase(TestCase):
     fixtures = TestData.fixtures
