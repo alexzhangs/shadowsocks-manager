@@ -15,7 +15,7 @@ class TestData:
 
     @classmethod
     def all(cls):
-        pass
+        cls.template()
 
     @classmethod
     def template(cls):

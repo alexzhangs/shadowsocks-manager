@@ -6,7 +6,6 @@ from __future__ import absolute_import
 
 from django.test import TestCase
 from django.core.exceptions import ValidationError
-from django.db.models import Max
 from botocore.exceptions import ClientError
 
 from domain.models import Record

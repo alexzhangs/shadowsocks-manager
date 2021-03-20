@@ -4,7 +4,6 @@
 from __future__ import unicode_literals
 from builtins import str
 
-import json
 import logging
 from django.db import models
 from django.contrib.contenttypes.fields import GenericForeignKey
