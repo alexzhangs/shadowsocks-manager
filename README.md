@@ -205,14 +205,29 @@ all its dependencies are handled by `aws-cfn-vpn`.
 * Need to run an additional agent on each Shadowsocks server.
 
 
-## 7. Known Issues
+## 7. Some differences between the Shadowsocks Python version and libev version
+
+Although the [Shadowsocks Python version](https://github.com/shadowsocks/shadowsocks/tree/master)
+supports the multi-user API, but it doesn't fit this project, here's why:
+
+* The python version code and doc seem to be out of maintenance due to some reason. If you really need this you probably need to folk and make your own.
+* They are having different service process names and CLI interfaces which introduces the complexity of installation.
+* The Python version doesn't allow the empty `port_password: {}` object in config. An empty config is making sense to load the manager with no port created.
+* The Python version lacks the `list` commands. A pull request was opened years ago but never merged.
+* The Python version's `stat` command has a very different way to use, I didn't figure the usage syntax out by looking into the code.
+* The Python version's `ping` command has to be sent as the syntax: `ping:{}` in order to work.
+* The Python version's `ping` command returns a simple string `pong` rather than a list of ports.
+
+So either you get some change on your own or stick with the libev version.
+
+## 8. Known Issues
 
 1. DNS records matching for Node may not be accurate on macOS.
     For unknown reason sometimes DNS query returns only one IP address
 while multiple IP addresses were configured for the domain.
 
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 1. Check the logs
 
