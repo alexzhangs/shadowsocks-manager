@@ -29,15 +29,10 @@ class ConfigAdmin(admin.ModelAdmin):
 
 class ReadonlyNodeAccountInline(admin.TabularInline):
     model = NodeAccount
-    extra = 0
-    fields = ('node', 'account', 'is_created', 'is_accessible_ex',
-                  'transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
-
-    readonly_fields = fields
-    fields = fields + ('is_active',)
-
-    def has_add_permission(self, request, obj=None):
-        return None
+    extra = 1
+    readonly_fields = ('is_created', 'is_accessible_ex', 'transferred_totally',
+                       'dt_collected', 'dt_created', 'dt_updated')
+    fields = ('node', 'account',) + readonly_fields + ('is_active',)
 
     def is_accessible_ex(self, obj):
         return obj.is_accessible_ex()
@@ -56,21 +51,10 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
     dt_collected.short_description = 'Collected'
 
 
-class NodeAccountInline(admin.TabularInline):
-    model = NodeAccount
-    extra = 1
-    can_delete = False
-    fields = ('node', 'account', 'is_active')
-
-    def has_change_permission(self, request, obj=None):
-        return None
-
-
 class SSManagerInline(admin.TabularInline):
     model = SSManager
     extra = 1
     max_num = 1
-    can_delete = False
 
     fields = ('interface', 'port', ('encrypt', 'timeout', 'fastopen'),
                   'is_accessible', 'dt_created', 'dt_updated')
@@ -117,7 +101,6 @@ class NodeAdmin(admin.ModelAdmin):
     inlines = [
         SSManagerInline,
         ReadonlyNodeAccountInline,
-        NodeAccountInline,
     ]
 
     exclude = ('node',)
@@ -175,7 +158,6 @@ class AccountAdmin(ImportExportModelAdmin):
 
     inlines = [
         ReadonlyNodeAccountInline,
-        NodeAccountInline,
     ]
 
     exclude = ('account',)

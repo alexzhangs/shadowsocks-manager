@@ -63,12 +63,15 @@ class StatisticMethod(models.Model, DynamicMethodModel):
 
 def dynamic_method_template(self):
     from statistic.models import Statistic, Period
-    period = Period.objects.get(year=None, month=None)
+    period = Period.objects.filter(year=None, month=None).first()
     kwargs = {
         self.__class__.__name__.lower(): self,
         "period": period
     }
-    return Statistic.objects.get(**kwargs).%s
+    try:
+        return Statistic.objects.get(**kwargs).%s
+    except Statistic.DoesNotExist: pass
+    except Statistic.MultipleObjectsReturned: pass
 
 ''',
 
