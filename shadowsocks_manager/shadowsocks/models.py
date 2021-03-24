@@ -308,7 +308,7 @@ class Node(StatisticMethod):
 
     def is_port_accessible(self, port):
         """
-        Test if a TCP port is listening on the IP.
+        Test if a TCP port is listening on the public IP address of this node.
         """
         return Node.is_port_open(self.public_ip, port)
 
@@ -553,9 +553,9 @@ class SSManager(models.Model):
                 ret = self.socket.recv(4096)
                 ret = str(ret, 'utf-8')
         except socket.timeout:
-            logger.error('%s: timed out on calling command: %s' % (self, command))
+            logger.error('%s: %s: timed out in %s seconds' % (self, command, self.socket.gettimeout()))
         except Exception as e:
-            logger.error('%s: unexpected error: %s' % (self, e))
+            logger.error('%s: %s: unexpected error: %s' % (self, command, e))
         finally:
             self.close()
 
@@ -596,7 +596,7 @@ class SSManager(models.Model):
         command = 'list'
         return self.call(command, read=True)
 
-    @retry(count=5, delay=1, logger=logger)
+    @retry(count=3, delay=1, logger=logger)
     def add(self, port, password):
         """
         Add a user with password, return the final user existence status in Boolean.
@@ -611,7 +611,7 @@ class SSManager(models.Model):
             exists = self.is_port_created_or_accessible(port)
         return exists
 
-    @retry(count=5, delay=1, logger=logger)
+    @retry(count=3, delay=1, logger=logger)
     def remove(self, port):
         """
         Remove a user, return the final user non-existence status in Boolean.
@@ -665,6 +665,7 @@ class SSManager(models.Model):
         keys = []
         for str in ['ping', 'list']:
             keys.append('{0}-{1}'.format(self, str))
+        logger.debug('clearing cache: %s' % keys)
         cache.delete_many(keys)
 
     def ping_ex(self, from_cache=True):
@@ -674,6 +675,7 @@ class SSManager(models.Model):
         """
         key, value = ('{0}-{1}'.format(self, 'ping'), None)
         if from_cache and key in cache:
+            logger.debug('hitting cache: %s' % key)
             value = cache.get(key)
         else:
             value = self.ping()
@@ -688,6 +690,7 @@ class SSManager(models.Model):
         """
         key, value = ('{0}-{1}'.format(self, 'list'), None)
         if from_cache and key in cache:
+            logger.debug('hitting cache: %s' % key)
             value = cache.get(key)
         else:
             value = self.list()
