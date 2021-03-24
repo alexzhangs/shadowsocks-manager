@@ -18,7 +18,7 @@ class ConfigAdmin(admin.ModelAdmin):
     actions = None
     fields = ('port_begin', 'port_end', 'timeout_remote', 'timeout_local', 'cache_timeout', 'dt_created', 'dt_updated')
     readonly_fields = ('dt_created', 'dt_updated')
-    list_display = ('port_begin', 'port_end', 'timeout_remote', 'timeout_local', 'cache_timeout', 'dt_created', 'dt_updated')
+    list_display = fields
 
     def has_add_permission(self, request, obj=None):
         return None
@@ -56,10 +56,8 @@ class SSManagerInline(admin.TabularInline):
     extra = 1
     max_num = 1
 
-    fields = ('interface', 'port', ('encrypt', 'timeout', 'fastopen'),
-                  'is_accessible', 'dt_created', 'dt_updated')
-
     readonly_fields = ('is_accessible', 'dt_created', 'dt_updated')
+    fields = ('interface', 'port', ('encrypt', 'timeout', 'fastopen'),) + readonly_fields
 
     def is_accessible(self, obj):
         return obj.is_accessible
@@ -69,18 +67,10 @@ class SSManagerInline(admin.TabularInline):
 
 @admin.register(Node)
 class NodeAdmin(admin.ModelAdmin):
-    fields = ('name', 'record', 'public_ip', 'private_ip', 'is_active', 'location',
-                  'sns_endpoint', 'sns_access_key', 'sns_secret_key',
-                  'transferred_totally', 'dt_collected',
-                  'dt_created', 'dt_updated')
-
     readonly_fields = ('transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
-
-    list_display = ('name', 'record', 'public_ip', 'private_ip',
-                        'is_active', 'is_matching_dns_query',
-                        'location',
-                        'transferred_totally', 'dt_collected',
-                        'dt_created', 'dt_updated')
+    fields = ('name', 'record', 'public_ip', 'private_ip', 'is_active', 'location',)
+    list_display = fields + ('is_matching_dns_query',) + readonly_fields
+    fields = fields + ('sns_endpoint', 'sns_access_key', 'sns_secret_key',) + readonly_fields
 
     def is_matching_dns_query(self, obj):
         return obj.is_matching_dns_query
@@ -138,13 +128,11 @@ class AccountResource(resources.ModelResource):
 
 @admin.register(Account)
 class AccountAdmin(ImportExportModelAdmin):
-    fields = ('username', 'password', 'first_name', 'last_name', 'email', 'is_active',
-                  'groups', 'transferred_totally', 'dt_collected', 'date_joined', 'dt_updated')
-
-    readonly_fields = ('groups', 'transferred_totally', 'dt_collected', 'date_joined', 'dt_updated')
-
-    list_display = ('username', 'first_name', 'last_name', 'email', 'is_active',
-                        'transferred_totally', 'dt_collected', 'date_joined', 'dt_updated')
+    readonly_fields = ('transferred_totally', 'dt_collected', 'date_joined', 'dt_updated')
+    fields = ('first_name', 'last_name', 'email', 'is_active',) + readonly_fields
+    list_display = ('username',) + fields + readonly_fields
+    fields = ('username', 'password',) + fields
+    readonly_fields = ('groups',) + readonly_fields
 
     def transferred_totally(self, obj):
         return filesizeformat(obj.transferred_totally)
