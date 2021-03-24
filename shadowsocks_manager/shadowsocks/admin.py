@@ -30,7 +30,7 @@ class ConfigAdmin(admin.ModelAdmin):
 class ReadonlyNodeAccountInline(admin.TabularInline):
     model = NodeAccount
     extra = 0
-    fields = ('node', 'account', 'is_created', 'is_accessible',
+    fields = ('node', 'account', 'is_created', 'is_accessible_ex',
                   'transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
 
     readonly_fields = fields
@@ -39,10 +39,11 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
     def has_add_permission(self, request, obj=None):
         return None
 
-    def is_accessible(self, obj):
-        return obj.is_accessible
+    def is_accessible_ex(self, obj):
+        return obj.is_accessible_ex()
 
-    is_accessible.boolean = True
+    is_accessible_ex.boolean = True
+    is_accessible_ex.short_description = 'Is Accessible'
 
     def transferred_totally(self, obj):
         return filesizeformat(obj.transferred_totally)

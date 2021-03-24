@@ -406,6 +406,29 @@ class NodeAccount(StatisticMethod):
         """
         return self.node.is_port_accessible(self.account.username)
 
+    def is_accessible_ex(self, from_cache=True):
+        """
+        The same as is_accessible, but with cache enabled.
+        The cache lives for 60 seconds.
+        """
+        key, value = ('{0}:{1}'.format(self.node.public_ip, self.account.username), None)
+        if from_cache and key in cache:
+            logger.debug('hitting cache: %s' % key)
+            value = cache.get(key)
+        else:
+            value = self.is_accessible
+            cache.set(key, '' if value is None else value, timeout=Config.load().cache_timeout)
+
+        return value
+
+    def clear_cache(self):
+        """
+        Clear the cache made by is_accessible_ex().
+        """
+        key = '{0}:{1}'.format(self.node.public_ip, self.account.username)
+        logger.debug('clearing cache: %s' % key)
+        cache.delete(key)
+
     def on_update(self):
         if not self.node.ssmanager:
             return
@@ -413,6 +436,7 @@ class NodeAccount(StatisticMethod):
         if self.is_active:
             if self.node.ssmanager.is_accessible:
                 self.node.ssmanager.add(port=self.account.username, password=self.account.password)
+                self.clear_cache()
             else:
                 logger.error('%s: creation eror: ssmanager %s currently is not available.' \
                     % (self, self.node.ssmanager))
@@ -430,6 +454,7 @@ class NodeAccount(StatisticMethod):
 
         if self.node.ssmanager.is_accessible:
             self.node.ssmanager.remove(port=getattr(self.account, port))
+            self.clear_cache()
         else:
             logger.error('%s: deletion eror: ssmanager %s currently is not available.' % (self, \
                 self.node.ssmanager))
