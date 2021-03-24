@@ -258,10 +258,12 @@ class Node(StatisticMethod):
             else:
                 s.settimeout(Config.load().timeout_remote) # seconds
             s.connect((ip, int(port)))
-            s.shutdown(socket.SHUT_RDWR)
             return True
         except:
             return False
+        finally:
+            s.shutdown(socket.SHUT_RDWR)
+            s.close()
 
     @property
     def is_matching_dns_query(self):
@@ -533,6 +535,7 @@ class SSManager(models.Model):
         """
         Close the connection to the Manager API.
         """
+        self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()
 
     def call(self, command, read=False):
