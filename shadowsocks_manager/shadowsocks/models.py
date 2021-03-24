@@ -9,6 +9,7 @@ import six
 
 import socket, time, json
 import logging
+from ipaddress import ip_address
 from django.db import models
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
@@ -39,9 +40,14 @@ class Config(SingletonModel):
     port_end = models.PositiveIntegerField('End port', default=8480,
         help_text='Port range allowed for all Shadowsocks nodes, make sure they are opened '
             'on both network firewall and host firewall.')
-    timeout = models.PositiveIntegerField('Network Timeout', default=5,
+    timeout_remote = models.FloatField('Global Network Timeout', default=3,
         help_text='Time out setting used by the manager internally, for communicating with '
-            'SS nodes.')
+            'remote SS nodes.')
+    timeout_local = models.FloatField('Local Network Timeout', default=0.5,
+        help_text='Time out setting used by the manager internally, for communicating with '
+            'local SS nodes.')
+    cache_timeout = models.IntegerField('Cache Timeout', default=300,
+        help_text='Timeout for the cache of the manger API and the Shadowsocks port accessibility.')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -247,7 +253,10 @@ class Node(StatisticMethod):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # TCP
 
         try:
-            s.settimeout(Config.load().timeout) # seconds
+            if ip_address(ip).is_private:
+                s.settimeout(Config.load().timeout_local) # seconds
+            else:
+                s.settimeout(Config.load().timeout_remote) # seconds
             s.connect((ip, int(port)))
             s.shutdown(socket.SHUT_RDWR)
             return True
@@ -490,6 +499,10 @@ class SSManager(models.Model):
         """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
         self.socket.connect((self._ip, self.port))
+        if ip_address(self._ip).is_private:
+            self.socket.settimeout(Config.load().timeout_local) # seconds
+        else:
+            self.socket.settimeout(Config.load().timeout_remote) # seconds
 
     def close(self):
         """
@@ -509,7 +522,6 @@ class SSManager(models.Model):
         try:
             self.socket.send(command)
             if read:
-                self.socket.settimeout(Config.load().timeout)
                 ret = self.socket.recv(4096)
                 ret = str(ret, 'utf-8')
         except socket.timeout:
@@ -624,7 +636,7 @@ class SSManager(models.Model):
             value = cache.get(key)
         else:
             value = self.ping()
-            cache.set(key, value, timeout=60)
+            cache.set(key, '' if value is None else value, timeout=Config.load().cache_timeout)
 
         return value
 
@@ -638,7 +650,7 @@ class SSManager(models.Model):
             value = cache.get(key)
         else:
             value = self.list()
-            cache.set(key, value, timeout=60)
+            cache.set(key, '' if value is None else value, timeout=Config.load().cache_timeout)
 
         return value
 

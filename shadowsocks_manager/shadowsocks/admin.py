@@ -16,9 +16,9 @@ from .models import Config, Node, Account, NodeAccount, SSManager
 @admin.register(Config)
 class ConfigAdmin(admin.ModelAdmin):
     actions = None
-    fields = ('port_begin', 'port_end', 'timeout', 'dt_created', 'dt_updated')
+    fields = ('port_begin', 'port_end', 'timeout_remote', 'timeout_local', 'cache_timeout', 'dt_created', 'dt_updated')
     readonly_fields = ('dt_created', 'dt_updated')
-    list_display = ('port_begin', 'port_end', 'timeout', 'dt_created', 'dt_updated')
+    list_display = ('port_begin', 'port_end', 'timeout_remote', 'timeout_local', 'cache_timeout', 'dt_created', 'dt_updated')
 
     def has_add_permission(self, request, obj=None):
         return None
