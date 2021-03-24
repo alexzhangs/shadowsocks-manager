@@ -38,6 +38,8 @@ Features:
 
 Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 
+The development status can be found at: [project home](https://github.com/alexzhangs/shadowsocks-manager/projects/1).
+
 ![Home › Shadowsocks › Shadowsocks Nodes](doc/shadowsocks-node-list.png)
 
 
@@ -270,9 +272,3 @@ while multiple IP addresses were configured for the domain.
     # UDP
     netstat -uan
     ```
-
-
-## 9. TODO
-
-* Auto deactivate/activate nodes based on traffic usage and quota.
-* Support LDAP.
