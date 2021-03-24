@@ -577,15 +577,17 @@ class SSManager(models.Model):
     def _ping(self):
         """
         Manager API command: `ping`.
-        List all users.
+        * For Shadowsocks libev version: returns all users: 'stat: {...}'.
+        * For Shadowsocks python version: returns simple string: 'pong'.
         """
-        command = "ping"
+        command = 'ping'
         return self.call(command, read=True)
 
     def _list(self):
         """
         Manager API command: `list`.
         List all users with password.
+        Works only for libev version.
         This is an undocumented Shadowsocks Manager Command, but works.
         """
         command = 'list'
@@ -598,40 +600,51 @@ class SSManager(models.Model):
         Skip if the user already exists.
         Auto-retry enabled.
         """
-        exists = self.is_port_created(port)
+        exists = self.is_port_created_or_accessible(port)
         if not exists:
             self._add(port, password)
             self.clear_cache()
-            exists = self.is_port_created(port)
+            self.get_nodeaccount(port).clear_cache()
+            exists = self.is_port_created_or_accessible(port)
         return exists
 
     @retry(count=5, delay=1, logger=logger)
     def remove(self, port):
         """
-        Remove a user, return the final user existence status in Boolean.
+        Remove a user, return the final user non-existence status in Boolean.
         Skip if the user doesn't exist.
         Auto-retry enabled.
         """
-        exists = self.is_port_created(port)
+        exists = self.is_port_created_or_accessible(port)
         if exists:
             self._remove(port)
             self.clear_cache()
-            exists = self.is_port_created(port)
+            self.get_nodeaccount(port).clear_cache()
+            exists = self.is_port_created_or_accessible(port)
         return not exists
 
     def ping(self):
         """
-        List all users, return in JSON.
+        Send ping.
+        * for Shadowsocks libev version: list all users, return in JSON.
+        * for Shadowsocks python version: return a emtpy dict: {}.
         """
-        stat = self._ping()
-        if stat:
-            return json.loads(stat.lstrip('stat: '))
+        data = self._ping()
+        if data:
+            parts = data.split(':', 1)
+            if len(parts) == 2:
+                # libev version
+                return json.loads(parts[1])
+            else:
+                # python version
+                return {}
         else:
             return None
 
     def list(self):
         """
         List all users with password, return in JSON.
+        Works only for libev version.
         """
         ports = self._list()
         if ports:
@@ -685,11 +698,25 @@ class SSManager(models.Model):
         Internally using list_ex().
         """
         items = self.list_ex()
-        if items:
+        if isinstance(items, list):
             for item in items:
                 if item['server_port'] == str(port):
                     return True
-        return False
+            return False
+        else:
+            return None
+
+    def is_port_created_or_accessible(self, port):
+        """
+        Test if a port is created with Manager API.
+        Internally using list_ex().
+        If the Manager API is not available or not accessible, then test the port accessibility directly.
+        """
+        ret = self.is_port_created(port)
+        return self.get_nodeaccount(port).is_accessible_ex() if ret is None else ret
+
+    def get_nodeaccount(self, port):
+        return self.node.accounts_ref.filter(account__username=port).first()
 
     @property
     def is_accessible(self):

@@ -215,7 +215,7 @@ supports the multi-user API, but it doesn't fit this project, here's why:
 * The Python version doesn't allow the empty `port_password: {}` object in config. An empty config is making sense to load the manager with no port created.
 * The Python version lacks the `list` commands. A pull request was opened years ago but never merged.
 * The Python version's `stat` command has a very different way to use, I didn't figure the usage syntax out by looking into the code.
-* The Python version's `ping` command has to be sent as the syntax: `ping:{}` in order to work.
+* The Python version's `ping` command has to be sent as the syntax: `ping:{}` in order to work if tested with `nc`. It caused by the tailing newline: `ping\n`.
 * The Python version's `ping` command returns a simple string `pong` rather than a list of ports.
 
 So either you get some change on your own or stick with the libev version.
