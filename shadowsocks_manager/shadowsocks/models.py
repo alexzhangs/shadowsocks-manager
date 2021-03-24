@@ -607,7 +607,7 @@ class SSManager(models.Model):
         if not exists:
             self._add(port, password)
             self.clear_cache()
-            self.get_nodeaccount(port).clear_cache()
+            self.get_nodeaccount(port, create=True).clear_cache()
             exists = self.is_port_created_or_accessible(port)
         return exists
 
@@ -622,7 +622,7 @@ class SSManager(models.Model):
         if exists:
             self._remove(port)
             self.clear_cache()
-            self.get_nodeaccount(port).clear_cache()
+            self.get_nodeaccount(port, create=True).clear_cache()
             exists = self.is_port_created_or_accessible(port)
         return not exists
 
@@ -719,10 +719,16 @@ class SSManager(models.Model):
         If the Manager API is not available or not accessible, then test the port accessibility directly.
         """
         ret = self.is_port_created(port)
-        return self.get_nodeaccount(port).is_accessible_ex() if ret is None else ret
+        return self.get_nodeaccount(port, create=True).is_accessible_ex() if ret is None else ret
 
-    def get_nodeaccount(self, port):
-        return self.node.accounts_ref.filter(account__username=port).first()
+    def get_nodeaccount(self, port, create=False):
+        try:
+            return self.node.accounts_ref.get(account__username=port)
+        except NodeAccount.DoesNotExist:
+            if create:
+                return NodeAccount(node=self.node, account=Account(username=port))
+            else:
+                raise
 
     @property
     def is_accessible(self):
