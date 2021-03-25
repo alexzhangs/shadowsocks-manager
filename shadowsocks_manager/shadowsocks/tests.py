@@ -31,7 +31,7 @@ class TestData:
     @classmethod
     def config(cls):
         obj = models.Config.load()
-        obj.timeout=0.1  # minimal the waiting time
+        obj.timeout_remote=0.1  # minimal the waiting time
         obj.save()
 
     @classmethod
