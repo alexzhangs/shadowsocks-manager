@@ -9,8 +9,8 @@ from django.core.exceptions import ValidationError
 from botocore.exceptions import ClientError
 
 from domain.models import Record
-from domain.tests import TestData as DomainTestData
-from notification.tests import TestData as NotificationTestData
+from domain.tests import DomainTestCase
+from notification.tests import NotificationTestCase
 from . import models
 
 
@@ -30,29 +30,49 @@ ip = get_ip()
 
 
 # Create your tests here.
-class TestData:
+class AllData:
     fixtures = ['config.json', 'auth.group.json']
-    fixtures.extend(DomainTestData.fixtures)
-    fixtures.extend(NotificationTestData.fixtures)
+    fixtures.extend(DomainTestCase.fixtures)
+    fixtures.extend(NotificationTestCase.fixtures)
+    testcases = ['ConfigTestCase', 'AccountTestCase', 'NodeTestCase', 'SSManagerTestCase', 'NodeAccountTestCase']
 
     @classmethod
-    def all(cls):
-        cls.config()
-        cls.account()
-        cls.node()
-        cls.ssmanager()
-        cls.nodeaccount()
+    def up(cls):
+        for testcase in [globals().get(name) for name in cls.testcases]:
+            method = getattr(testcase or {}, 'up', None)
+            if method: method()
 
     @classmethod
-    def config(cls):
+    def down(cls):
+        for testcase in [globals().get(name) for name in cls.testcases]:
+            method = getattr(testcase or {}, 'down', None)
+            if method: method()
+
+
+class ConfigTestCase(TestCase):
+    fixtures = ['config.json']
+
+    @classmethod
+    def up(cls):
         print('Config: loading data ...')
         obj = models.Config.load()
         obj.timeout_local=0.3
         obj.timeout_remote=1  # minimal the waiting time with mock public ip address
         obj.save()
 
+    def setUp(self):
+        self.up()
+
+    def test(self):
+        print('testing Config load() ...')
+        self.assertEqual(models.Config.load(), models.Config.objects.first())
+
+
+class AccountTestCase(TestCase):
+    fixtures = AllData.fixtures
+
     @classmethod
-    def account(cls):
+    def up(cls):
         print('Account: loading data ...')
         config = models.Config.load()
 
@@ -68,92 +88,12 @@ class TestData:
             )
             obj.save()
 
-    @classmethod
-    def node(cls):
-        print('Node: loading data ...')
-        DomainTestData.all()
-        record = Record.objects.first()
-
-        # generate one localhost node
-        obj = models.Node(
-            name='localhost',
-            record=None,
-            public_ip=ip,
-            private_ip=ip,
-            location='Local',
-            sns_endpoint=None,
-            sns_access_key=None,
-            sns_secret_key=None,
-            is_active=True,
-        )
-        obj.save()
-
-        # generate 2 mock nodes
-        for i in list(range(1, 3)):
-            obj = models.Node(
-                name='mock-node-{}'.format(i),
-                record=record,
-                public_ip='.'.join([str(i) for j in list(range(4))]), # mock ip address here
-                private_ip=ip,
-                location='mock-locaction-{}'.format(i),
-                sns_endpoint='arn:aws:sns:ap-northeast-1:{}:topic'.format(i), # mock sns endpoint
-                sns_access_key='mock-sns_access_key-{}'.format(i),
-                sns_secret_key='mock-sns_secret_key-{}'.format(i),
-                is_active=True,
-            )
-            obj.save()
-
-    @classmethod
-    def ssmanager(cls):
-        print('SSManager: loading data ...')
-        # add a ssmanager to localhost node, using python edition, auto install&start
-        obj = models.SSManager(
-            node=models.Node.objects.get(name='localhost'),
-            interface=models.InterfaceList.LOCALHOST,
-            port=6001,
-            fastopen=False,
-            encrypt='aes-256-cfb',
-            server_edition = models.ServerEditionList.PYTHON,
-            is_server_enabled = True,
-        )
-        obj.save()
-
-        # add a ssmanager to each mock node, using libev edition
-        for node in models.Node.objects.exclude(name='localhost'):
-            obj = models.SSManager(
-                node=node,
-                interface=node.pk % 2 + 2,  # limit the interface within: [2, 3]
-                port=6001,
-                fastopen=False,
-                encrypt='aes-256-cfb',
-                server_edition = models.ServerEditionList.LIBEV,
-            )
-            obj.save()
-
-    @classmethod
-    def nodeaccount(cls):
-        print('NodeAccount: loading data ...')
-        # add all nodes to all accounts
-        for account in models.Account.objects.all():
-            account.add_all_nodes()
-
-
-class ConfigTestCase(TestCase):
-    fixtures = TestData.fixtures
-
     def setUp(self):
-        TestData.config()
+        AllData.up()
 
-    def test(self):
-        print('testing Config load() ...')
-        self.assertEqual(models.Config.load(), models.Config.objects.first())
-
-
-class AccountTestCase(TestCase):
-    fixtures = TestData.fixtures
-
-    def setUp(self):
-        TestData.all()
+    def tearDown(self):
+        AllData.down()
+        super(AccountTestCase, self).tearDown()
 
     def test(self):
         print('testing Account clean() ...')
@@ -239,11 +179,51 @@ class AccountTestCase(TestCase):
 
 
 class NodeTestCase(TestCase):
-    fixtures = TestData.fixtures
+    fixtures = AllData.fixtures
+
+    @classmethod
+    def up(cls):
+        print('Node: loading data ...')
+        DomainTestCase.up()
+        record = Record.objects.first()
+
+        # generate one localhost node
+        obj = models.Node(
+            name='localhost',
+            record=None,
+            public_ip=ip,
+            private_ip=ip,
+            location='Local',
+            sns_endpoint=None,
+            sns_access_key=None,
+            sns_secret_key=None,
+            is_active=True,
+        )
+        obj.save()
+
+        # generate 2 mock nodes
+        for i in list(range(1, 3)):
+            obj = models.Node(
+                name='mock-node-{}'.format(i),
+                record=record,
+                public_ip='.'.join([str(i) for j in list(range(4))]), # mock ip address here
+                private_ip=ip,
+                location='mock-locaction-{}'.format(i),
+                sns_endpoint='arn:aws:sns:ap-northeast-1:{}:topic'.format(i), # mock sns endpoint
+                sns_access_key='mock-sns_access_key-{}'.format(i),
+                sns_secret_key='mock-sns_secret_key-{}'.format(i),
+                is_active=True,
+            )
+            obj.save()
 
     @classmethod
     def setUpTestData(cls):
-        TestData.all()
+        AllData.up()
+
+    @classmethod
+    def tearDownClass(cls):
+        AllData.down()
+        super(NodeTestCase, cls).tearDownClass()
 
     def test_is_matching_record(self):
         print('testing Node is_matching_record() ...')
@@ -345,10 +325,21 @@ class NodeTestCase(TestCase):
 
 
 class NodeAccountTestCase(TestCase):
-    fixtures = TestData.fixtures
+    fixtures = AllData.fixtures
+
+    @classmethod
+    def up(cls):
+        print('NodeAccount: loading data ...')
+        # add all nodes to all accounts
+        for account in models.Account.objects.all():
+            account.add_all_nodes()
 
     def setUp(self):
-        TestData.all()
+        AllData.up()
+
+    def tearDown(self):
+        AllData.down()
+        super(NodeAccountTestCase, self).tearDown()
 
     def test(self):
         print('testing Node heartbeat() ...')
@@ -369,11 +360,50 @@ class NodeAccountTestCase(TestCase):
 
 
 class SSManagerTestCase(TestCase):
-    fixtures = TestData.fixtures
+    fixtures = AllData.fixtures
+
+    @classmethod
+    def up(cls):
+        print('SSManager: loading data ...')
+        # add a ssmanager to localhost node, using python edition, auto install&start
+        obj = models.SSManager(
+            node=models.Node.objects.get(name='localhost'),
+            interface=models.InterfaceList.LOCALHOST,
+            port=6001,
+            fastopen=False,
+            encrypt='aes-256-cfb',
+            server_edition = models.ServerEditionList.PYTHON,
+            is_server_enabled = True,
+        )
+        obj.save()
+
+        # add a ssmanager to each mock node, using libev edition
+        for node in models.Node.objects.exclude(name='localhost'):
+            obj = models.SSManager(
+                node=node,
+                interface=node.pk % 2 + 2,  # limit the interface within: [2, 3]
+                port=6001,
+                fastopen=False,
+                encrypt='aes-256-cfb',
+                server_edition = models.ServerEditionList.LIBEV,
+            )
+            obj.save()
+
+    @classmethod
+    def down(cls):
+        print('SSManager: tearing down ...')
+        obj = models.SSManager.objects.filter(interface=models.InterfaceList.LOCALHOST).first()
+        # explicitly delete the manager, so the server with a listening port is gone too.
+        if obj: obj.delete()
 
     @classmethod
     def setUpTestData(cls):
-        TestData.all()
+        AllData.up()
+
+    @classmethod
+    def tearDownClass(cls):
+        AllData.down()
+        super(SSManagerTestCase, cls).tearDownClass()
 
     def test(self):
         print('testing SSManager ...')
@@ -395,8 +425,6 @@ class SSManagerTestCase(TestCase):
         obj.remove(port)
         self.assertFalse(obj.is_port_created(port))
         self.assertFalse(obj.is_port_created_or_accessible(port))
-
-        obj.delete()
 
     def test_clean(self):
         print('testing SSManager clean() ...')

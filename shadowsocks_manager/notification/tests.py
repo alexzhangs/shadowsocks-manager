@@ -10,24 +10,8 @@ from . import models
 
 
 # Create your tests here.
-class TestData:
-    fixtures = ['template.json']
-
-    @classmethod
-    def all(cls):
-        cls.template()
-
-    @classmethod
-    def template(cls):
-        pass
-
-
 class NotificationTestCase(TestCase):
-    fixtures = TestData.fixtures
-
-    @classmethod
-    def setUpTestData(cls):
-        TestData.all()
+    fixtures = ['template.json']
 
     def test_template(self):
         for obj in models.Template.objects.all():

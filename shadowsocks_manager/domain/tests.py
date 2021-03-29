@@ -10,17 +10,12 @@ from . import models
 
 
 # Create your tests here.
-class TestData:
+class DomainTestCase(TestCase):
     fixtures = ['nameserver.json']
 
     @classmethod
-    def all(cls):
-        cls.nameserver()
-        cls.domain()
-        cls.record()
-
-    @classmethod
-    def nameserver(cls):
+    def up(cls):
+        print('Domain.NameServer: loading data ...')
         for obj in models.NameServer.objects.all():
             if not obj.user:
                 obj.user = 'mock-user'
@@ -28,25 +23,24 @@ class TestData:
                 obj.credential = 'mock-credential'
             obj.save()
 
-    @classmethod
-    def domain(cls):
+        print('Domain.Domain: loading data ...')
         for ns in models.NameServer.objects.all():
             obj = models.Domain(name='mock-example-{}.com'.format(ns.pk), nameserver=ns)
             obj.save()
 
-    @classmethod
-    def record(cls):
+        print('Domain.Record: loading data ...')
         for domain in models.Domain.objects.all():
             obj = models.Record(host='ss', domain=domain, type='A', answer='1.1.1.1')
             obj.save()
 
-
-class DomainTestCase(TestCase):
-    fixtures = TestData.fixtures
+    @classmethod
+    def down(cls):
+        print('Domain: tearing down ...')
+        pass
 
     @classmethod
     def setUpTestData(cls):
-        TestData.all()
+        cls.up()
 
     def test_nameserver(self):
         for obj in models.NameServer.objects.all():
