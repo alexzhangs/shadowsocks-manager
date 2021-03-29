@@ -2,6 +2,7 @@
 
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
+from __future__ import absolute_import
 from builtins import bytes
 from builtins import str
 from builtins import range
