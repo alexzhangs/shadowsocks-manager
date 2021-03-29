@@ -171,8 +171,10 @@ class Account(User, StatisticMethod):
         for na in self.nodes_ref.all():
             if self._original_username != self.username: # port is changed
                 na.on_delete(original=True)
+                na.on_update()
             elif self._original_password != self.password: # password is changed
                 na.on_delete()
+                na.on_update()
             else:
                 pass
 
@@ -263,11 +265,11 @@ class Node(StatisticMethod):
             else:
                 s.settimeout(Config.load().timeout_remote) # seconds
             s.connect((ip, int(port)))
+            s.shutdown(socket.SHUT_RDWR)
             return True
         except:
             return False
         finally:
-            s.shutdown(socket.SHUT_RDWR)
             s.close()
 
     @property
@@ -362,7 +364,12 @@ class Node(StatisticMethod):
         Replace the IPs of all the active nodes in remote AWS.
         This is a feature of [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn).
         """
-        for node in cls.objects.filter(is_active=True):
+        for node in cls.objects.filter(
+            is_active=True,
+            sns_endpoint__isnull=False,
+            sns_access_key__isnull=False,
+            sns_secret_key__isnull=False,
+        ):
             node.change_ip()
 
     @classmethod
@@ -585,11 +592,11 @@ class SSManager(models.Model):
         Open a connection to the Manager API by UDP.
         """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
-        self.socket.connect((self._ip, self.port))
         if ip_address(self._ip).is_private:
             self.socket.settimeout(Config.load().timeout_local) # seconds
         else:
             self.socket.settimeout(Config.load().timeout_remote) # seconds
+        self.socket.connect((self._ip, self.port))
 
     def close(self):
         """
@@ -657,7 +664,7 @@ class SSManager(models.Model):
             command = 'list'
             return self.call(command, read=True)
 
-    @retry(count=3, delay=1, logger=logger)
+    @retry(count=1, delay=1, logger=logger)
     def add(self, port, password):
         """
         Add a user with password, return the final user existence status in Boolean.
@@ -672,7 +679,7 @@ class SSManager(models.Model):
             exists = self.is_port_created_or_accessible(port)
         return exists
 
-    @retry(count=3, delay=1, logger=logger)
+    @retry(count=1, delay=1, logger=logger)
     def remove(self, port):
         """
         Remove a user, return the final user non-existence status in Boolean.
