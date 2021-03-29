@@ -867,7 +867,7 @@ class SSServer(object):
             sys.path.append(p)
 
         # due with PYTHONPATH, for subprocess
-        pythonpath = os.getenv('PYTHONPATH').split(':')
+        pythonpath = (os.getenv('PYTHONPATH') or '').split(':')
         flag = None
         while pythonpath.count(p) > 0:
             pythonpath.remove(p)
