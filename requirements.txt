@@ -20,7 +20,9 @@ django-import-export
 djangorestframework
 # ipaddress is available since Python 3.3
 ipaddress; python_version < '3.3'
+psutil
 python-memcached
 pytz
 requests
+shadowsocks
 uWSGI

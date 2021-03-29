@@ -7,8 +7,10 @@ from builtins import str
 from builtins import range
 import six
 
-import socket, time, json
+import sys, os, socket, time, json
 import logging
+import subprocess, psutil
+from subprocess import PIPE
 from ipaddress import ip_address
 from django.db import models
 from django.db.models.signals import post_save, post_delete
@@ -300,6 +302,9 @@ class Node(StatisticMethod):
         nodes = self.record.nodes.all() if self.record else [self]
         return set([node.public_ip for node in nodes if node.is_active == is_active and node.public_ip])
 
+    def get_ip_field_by_interface(self, interface):
+        return '{}_ip'.format(InterfaceList.name(interface).lower())
+
     def get_ip_by_interface(self, interface):
         """
         Return the node's IP address for a network interface.
@@ -307,7 +312,7 @@ class Node(StatisticMethod):
         if interface == InterfaceList.LOCALHOST:
             return '127.0.0.1'
         else:
-            return getattr(self, '{}_ip'.format(InterfaceList.name(interface).lower()))
+            return getattr(self, self.get_ip_field_by_interface(interface))
 
     def is_port_accessible(self, port):
         """
@@ -315,7 +320,14 @@ class Node(StatisticMethod):
         """
         return Node.is_port_open(self.public_ip, port)
 
+    def clear_cache(self):
+        pass
+
     def on_update(self):
+        # changes on public_ip or private_ip need to restart ssmanager
+        if self.ssmanager:
+            self.ssmanager.on_update()
+
         for na in self.accounts_ref.all():
             if self._original_is_active != self.is_active: # activity is changed
                 new = (self.is_active and na.account.is_active)
@@ -428,11 +440,26 @@ class NodeAccount(StatisticMethod):
 
     def clear_cache(self):
         """
-        Clear the cache made by is_accessible_ex().
+        Clear all the cache made by this instance:
+        * is_accessible_ex()
         """
         key = '{0}:{1}'.format(self.node.public_ip, self.account.username)
         logger.debug('clearing cache: %s' % key)
         cache.delete(key)
+
+    @classmethod
+    def clear_caches(cls, node=None, account=None):
+        """
+        Clear all the cache made by this class by filters:
+        * node
+        * account
+        """
+        objs = cls.objects.all()
+        if node: objs = objs.filter(node=node)
+        if account: objs = objs.filter(account=account)
+        keys = ['{0}:{1}'.format(obj.node.public_ip, obj.account.username) for obj in objs]
+        logger.debug('clearing caches: %s' % keys)
+        cache.delete_many(keys)
 
     def on_update(self):
         if not self.node.ssmanager:
@@ -487,6 +514,16 @@ class InterfaceList(enum.Enum):
     }
 
 
+class ServerEditionList(enum.Enum):
+    LIBEV = 1
+    PYTHON = 2
+
+    __labels__ = {
+        LIBEV: "libev",
+        PYTHON: "python",
+    }
+
+
 class SSManager(models.Model):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='ssmanagers')
     interface = enum.EnumField(InterfaceList, default=InterfaceList.LOCALHOST,
@@ -503,6 +540,11 @@ class SSManager(models.Model):
         help_text='Socket timeout in seconds for Shadowsocks client.')
     fastopen = models.BooleanField('Fast Open', default=False,
         help_text='Enable TCP fast open, with Linux kernel > 3.7.0.')
+    server_edition = enum.EnumField(ServerEditionList, default=ServerEditionList.LIBEV,
+        help_text='The Shadowsocks server edition. The libev edition is recommended.')
+    is_server_enabled = models.BooleanField(default=False,
+        help_text='Take the Shadowsocks server startup or shutdown. Only enable this with the localhost '
+            'node and the Shadowsocks python edition.')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -512,9 +554,24 @@ class SSManager(models.Model):
     def __str__(self):
         return '%s:%s' % (self._ip, self.port)
 
+    def __init__(self, *args, **kwargs):
+        super(SSManager, self).__init__(*args, **kwargs)
+        self._original_port = self.port
+        self._original_server_edition = self.server_edition
+
     def clean(self):
         if not self._ip:
-            raise ValidationError(_('There is no IP address set for selected interface on the node.'))
+            raise ValidationError({
+                self.node.get_ip_field_by_interface(self.interface):
+                [_('There is no IP address set for selected interface on the node.')]})
+        if self.is_server_enabled and self.server_edition != ServerEditionList.PYTHON:
+            raise ValidationError({
+                'is_server_enabled':
+                [_('is_server_enabled was set without Shadowsocks python edition.')]})
+
+    @property
+    def server(self):
+        return SSServer(self)
 
     @property
     def _ip(self):
@@ -596,8 +653,9 @@ class SSManager(models.Model):
         Works only for libev version.
         This is an undocumented Shadowsocks Manager Command, but works.
         """
-        command = 'list'
-        return self.call(command, read=True)
+        if self.server_edition == ServerEditionList.LIBEV:
+            command = 'list'
+            return self.call(command, read=True)
 
     @retry(count=3, delay=1, logger=logger)
     def add(self, port, password):
@@ -663,7 +721,9 @@ class SSManager(models.Model):
 
     def clear_cache(self):
         """
-        Clear the cache made by ping_ex() and list_ex().
+        Clear all the cache made by this instance:
+        * ping_ex()
+        * list_ex()
         """
         keys = []
         for str in ['ping', 'list']:
@@ -726,8 +786,9 @@ class SSManager(models.Model):
 
     def get_nodeaccount(self, port, create=False):
         try:
-            return self.node.accounts_ref.get(account__username=port)
-        except NodeAccount.DoesNotExist:
+            account = Account.objects.get(username=port)
+            return NodeAccount.objects.get(node=self.node, account=account)
+        except (Account.DoesNotExist, NodeAccount.DoesNotExist):
             if create:
                 return NodeAccount(node=self.node, account=Account(username=port))
             else:
@@ -740,6 +801,192 @@ class SSManager(models.Model):
         Internally using ping_ex().
         """
         return self.ping_ex() is not None
+
+    def on_update(self):
+        if self.server_edition != self._original_server_edition and self._original_server_edition == ServerEditionList.PYTHON:
+            self.server.stop()
+            self.clear_cache()
+            NodeAccount.clear_caches(node=self.node)
+        if self.server_edition == ServerEditionList.PYTHON:
+            if self.is_server_enabled:
+                self.server.restart()
+            else:
+                self.server.stop()
+            self.clear_cache()
+            NodeAccount.clear_caches(node=self.node)
+
+    def on_delete(self):
+        self.server.stop()
+        self.clear_cache()
+        NodeAccount.clear_caches(node=self.node)
+
+
+class SSServer(object):
+
+    def __init__(self, manager, *args, **kwargs):
+        super(SSServer, self).__init__(*args, **kwargs)
+        self.manager = manager
+        self.lift_pip_shadowsocks()
+
+    def pidfile(self, original=False):
+        return '/tmp/shadowsocks-{}.pid'.format(self.manager._original_port if original else self.manager.port)
+
+    def logfile(self, original=False):
+        return '/tmp/shadowsocks-{}.log'.format(self.manager._original_port if original else self.manager.port)
+
+    @classmethod
+    def lift_pip_shadowsocks(cls):
+        """
+        Workaround for the package naming conflict between the Django app `shadowsocks` and the pip package `shadowsocks`.
+        Lower the searching priority of the Django project app home dir in sys.path.
+        """
+        import shadowsocks
+        # get the package's path
+        p = shadowsocks.__path__[0]
+        if not p.endswith('/shadowsocks_manager/shadowsocks'):
+            # shadowsocks is not referring to the Django app, nothing to do
+            return
+
+        # remove last item from path
+        p = '/'.join(p.split('/')[0:-1])
+
+        # due with sys.path, for current environment
+        flag = None
+        while sys.path.count(p) > 0:
+            sys.path.remove(p)
+            flag = True
+        if flag:
+            # add the Django project app home dir back to the end
+            sys.path.append(p)
+
+        # due with PYTHONPATH, for subprocess
+        pythonpath = os.getenv('PYTHONPATH').split(':')
+        flag = None
+        while pythonpath.count(p) > 0:
+            pythonpath.remove(p)
+            flag = True
+
+        if flag:
+            # add the Django project app home dir back to the end
+            os.putenv('PYTHONPATH', ':'.join(pythonpath + sys.path + [p]))
+
+        # unimport the package
+        del sys.modules['shadowsocks']
+
+    def call(self, command, *args, **kwargs):
+        """
+        Call Shadowsocks server command by subprocess.Popen().
+        Return (exit_code, stdout, stderr)
+        """
+        proc = subprocess.Popen(command, *args, stdout=PIPE, stderr=PIPE,
+                                **kwargs)
+        (stdout, stderr) = proc.communicate()
+        rc = proc.wait()
+        return (rc, str(stdout, 'utf-8'), str(stderr, 'utf-8'))
+
+    @property
+    def version(self):
+        """
+        Return the installed Shadowsocks version.
+        """
+        if self.manager.server_edition == ServerEditionList.LIBEV:
+            command = ['ss-manager', '-h']
+        elif self.manager.server_edition == ServerEditionList.PYTHON:
+            command = ['ssserver', '--version']
+
+        try:
+            (rc, stdout, stderr) = self.call(command)
+            if rc == 0:
+                return stdout.split(' ')[1].strip('\n')
+        except OSError:
+            pass
+
+    @property
+    def status(self):
+        """
+        Return the Shadowsocks process's pid and status.
+        """
+        try:
+            with open(self.pidfile(), 'r') as f:
+                pid = int(f.read())
+            p = psutil.Process(pid=pid).as_dict(['pid', 'status'])
+            return '{status}({pid})'.format(**p)
+        except:
+            pass
+
+    '''
+    def install(self):
+        """
+        Install Shadowsocks python version.
+        Skip if already installed.
+        """
+        if not self.version:
+            command = ['pip', 'install', 'shadowsocks']
+            (rc, stdout, stderr) = trace_call(command)
+            if rc != 0:
+                raise Exception(stderr)
+
+    def uninstall(self):
+        """
+        Uninstall Shadowsocks python version.
+        Skip if not installed.
+        """
+        if self.version:
+            command = ['pip', 'uninstall', '-y', 'shadowsocks']
+            (rc, stdout, stderr) = trace_call(command)
+            if rc != 0:
+                raise Exception(stderr)
+    '''
+
+    def start(self):
+        """
+        Start the Shadowsocks server with manager.
+        """
+        command = [
+            'ssserver',
+            '--pid-file', self.pidfile(),
+            '--log-file', self.logfile(),
+            '-d', 'start',
+            '--manager-address', '{}:{}'.format(self.manager._ip, self.manager.port),  # the options order matters
+            '-p', str(Config.load().port_begin),
+            '-k', 'password',
+            '-m', self.manager.encrypt,
+            '-t', str(self.manager.timeout),
+            '--fast-open', str(self.manager.fastopen),
+        ]
+        """
+        * close_fds=True: For Python 2.7, should not inherit the parent process's fds. The inherit fds won't be released
+                          after the parent process was exited but the child process remains.
+                          Here's the Django server's process that's bound with a port.
+        """
+        (rc, stdout, stderr) = self.call(command, close_fds=True)
+        if rc == 0:
+            logger.debug(stdout)
+        else:
+            logger.error('stderr: %s\nstdout: %s' % (stderr, stdout))
+
+    def stop(self):
+        """
+        Stop the Shadowsocks server.
+        """
+        command = [
+            'ssserver',
+            '--pid-file', self.pidfile(original=True),
+            '--log-file', self.logfile(original=True),
+            '-d', 'stop',
+        ]
+        (rc, stdout, stderr) = self.call(command)
+        if rc == 0:
+            logger.debug(stdout)
+        else:
+            logger.error('stderr: %s\nstdout: %s' % (stderr, stdout))
+
+    def restart(self):
+        """
+        Restart the Shadowsocks server.
+        """
+        self.stop()
+        self.start()
 
 
 @receiver(post_save, sender=NodeAccount)
@@ -760,3 +1007,13 @@ def update_by_account(sender, instance, **kwargs):
 @receiver(post_save, sender=Node)
 def update_by_node(sender, instance, **kwargs):
     instance.on_update()
+
+
+@receiver(post_save, sender=SSManager)
+def update_ssmanager(sender, instance, **kwargs):
+    instance.on_update()
+
+
+@receiver(post_delete, sender=SSManager)
+def delete_ssmanager(sender, instance, **kwargs):
+    instance.on_delete()
