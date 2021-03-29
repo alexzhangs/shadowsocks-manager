@@ -35,12 +35,24 @@ Features:
 * name.com API
 * Auto-creating DNS records
 * Production deployment ready
+* How's the Shadowsocks supported:
+    * libev version:
+        * Full functional.
+        * No builtin service manager, you need to install it and start the service by yourself.
+    * python version:
+        * Lacks the collection of traffic statistics.
+        * Lacks the ability to test user port creation status.
+        * Pre-installed, and have a builtin service manager.
 
 Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 
 The development status can be found at: [project home](https://github.com/alexzhangs/shadowsocks-manager/projects/1).
 
+Node List:
 ![Home › Shadowsocks › Shadowsocks Nodes](doc/shadowsocks-node-list.png)
+
+Node's Shadowsocks Manager:
+![Home › Shadowsocks › Shadowsocks Nodes](doc/shadowsocks-node-ssmanager.png)
 
 
 ## 1. Requirements
@@ -212,13 +224,12 @@ all its dependencies are handled by `aws-cfn-vpn`.
 Although the [Shadowsocks Python version](https://github.com/shadowsocks/shadowsocks/tree/master)
 supports the multi-user API, but it doesn't fit this project, here's why:
 
-* The python version code and doc seem to be out of maintenance due to some reason. If you really need this you probably need to folk and make your own.
+* The python version code and doc seem to be out of maintenance due to some reason. If you really need this you probably need to fork it and make your own.
 * They are having different service process names and CLI interfaces which introduces the complexity of installation.
-* The Python version doesn't allow the empty `port_password: {}` object in config. An empty config is making sense to load the manager with no port created.
 * The Python version lacks the `list` commands. A pull request was opened years ago but never merged.
 * The Python version's `stat` command has a very different way to use, I didn't figure the usage syntax out by looking into the code.
-* The Python version's `ping` command has to be sent as the syntax: `ping:{}` in order to work if tested with `nc`. It caused by the tailing newline: `ping\n`.
 * The Python version's `ping` command returns a simple string `pong` rather than a list of ports.
+* The Python version's `ping` command has to be sent as the syntax: `ping:{}` in order to work if tested with `nc`. It caused by the tailing newline: `ping\n`.
 
 So either you get some change on your own or stick with the libev version.
 
