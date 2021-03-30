@@ -157,7 +157,10 @@ class Record(models.Model):
         """
         Return the record.answer in lowercase and split as Set.
         """
-        return set([item.lower() for item in (self.answer.split(',') if self.answer else [])])
+        return {
+            item.lower()
+            for item in (self.answer.split(',') if self.answer else [])
+        }
 
     @property
     def answer_from_dns_api(self):
@@ -165,8 +168,12 @@ class Record(models.Model):
         Return the answers from DNS API, in lowercase and as Set.
         """
         if self.domain.ns_api:
-            return set([record.get('answer').lower() for record in self.domain.ns_api.list_records(
-                self.domain.name, self.type, self.host)])
+            return {
+                record.get('answer').lower()
+                for record in self.domain.ns_api.list_records(
+                    self.domain.name, self.type, self.host
+                )
+            }
 
     @property
     def answer_from_dns_query(self):
@@ -182,7 +189,7 @@ class Record(models.Model):
             pass
         except Exception as e:
             logger.error(e)
-        return set([item.lower() for item in ips])
+        return {item.lower() for item in ips}
 
     @property
     def is_matching_dns_api(self):

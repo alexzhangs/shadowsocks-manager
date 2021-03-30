@@ -152,9 +152,7 @@ class Account(User, StatisticMethod):
 
         template = Template.objects.get(type='account_created')
 
-        kwargs = {}
-        kwargs['account'] = self
-        kwargs['node_accounts'] = []
+        kwargs = {'account': self, 'node_accounts': []}
         for na in nas:
             d = {}
             kwargs['node_accounts'].append(d)
@@ -176,9 +174,6 @@ class Account(User, StatisticMethod):
             elif self._original_password != self.password: # password is changed
                 na.on_delete()
                 na.on_update()
-            else:
-                pass
-
             if self._original_is_active != self.is_active: # activity is changed
                 new = (self.is_active and na.node.is_active)
                 if na.is_active != new:
@@ -303,7 +298,11 @@ class Node(StatisticMethod):
         with this node.
         """
         nodes = self.record.nodes.all() if self.record else [self]
-        return set([node.public_ip for node in nodes if node.is_active == is_active and node.public_ip])
+        return {
+            node.public_ip
+            for node in nodes
+            if node.is_active == is_active and node.public_ip
+        }
 
     def get_ip_field_by_interface(self, interface):
         return '{}_ip'.format(InterfaceList.name(interface).lower())
@@ -487,11 +486,7 @@ class NodeAccount(StatisticMethod):
         if not self.node.ssmanager:
             return
 
-        if original:
-            port = '_original_username'
-        else:
-            port = 'username'
-
+        port = '_original_username' if original else 'username'
         if self.node.ssmanager.is_accessible:
             self.node.ssmanager.remove(port=getattr(self.account, port))
             self.clear_cache()
@@ -702,16 +697,15 @@ class SSManager(models.Model):
         * for Shadowsocks python version: return a emtpy dict: {}.
         """
         data = self._ping()
-        if data:
-            parts = data.split(':', 1)
-            if len(parts) == 2:
-                # libev version
-                return json.loads(parts[1])
-            else:
-                # python version
-                return {}
-        else:
+        if not data:
             return None
+        parts = data.split(':', 1)
+        if len(parts) == 2:
+            # libev version
+            return json.loads(parts[1])
+        else:
+            # python version
+            return {}
 
     def list(self):
         """
@@ -733,9 +727,7 @@ class SSManager(models.Model):
         * ping_ex()
         * list_ex()
         """
-        keys = []
-        for str in ['ping', 'list']:
-            keys.append('{0}-{1}'.format(self, str))
+        keys = ['{0}-{1}'.format(self, str) for str in ['ping', 'list']]
         logger.debug('clearing cache: %s' % keys)
         cache.delete_many(keys)
 
@@ -776,10 +768,7 @@ class SSManager(models.Model):
         """
         items = self.list_ex()
         if isinstance(items, list):
-            for item in items:
-                if item['server_port'] == str(port):
-                    return True
-            return False
+            return any(item['server_port'] == str(port) for item in items)
         else:
             return None
 

@@ -40,7 +40,7 @@ class Period(models.Model):
             return Period.valid_term[0]
         elif self.year:
             return Period.valid_term[1]
-        elif not (self.year and self.month):
+        elif not self.month:
             return Period.valid_term[2]
         else:
             raise Exception('Invalid combination of year: %s and month: %s' % (self.year, self.month))
@@ -73,14 +73,13 @@ class Statistic(models.Model):
 
     @property
     def object_type(self):
-        if self.content_type:
-            cls = self.content_type.model_class()
-            if cls in Statistic.valid_cls:
-                return cls.__name__
-            else:
-                raise Exception('%s: invalid class: %s, valid classes are: %s' % (self, cls, Statistic.valid_cls))
-        else:
+        if not self.content_type:
             return 'None'
+        cls = self.content_type.model_class()
+        if cls in Statistic.valid_cls:
+            return cls.__name__
+        else:
+            raise Exception('%s: invalid class: %s, valid classes are: %s' % (self, cls, Statistic.valid_cls))
 
     @property
     def object_cls(self):

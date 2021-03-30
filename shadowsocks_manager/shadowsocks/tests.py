@@ -298,7 +298,7 @@ class NodeTestCase(TestCase):
 
         # change nodes's public_ip
         for obj in models.Node.objects.filter(record__isnull=False):
-            obj.public_ip = '.'.join([str(int(part)+3) for part in obj.public_ip.split('.')])
+            obj.public_ip = '.'.join(str(int(part)+3) for part in obj.public_ip.split('.'))
             obj.save()
 
         # ip addresses are synced between node and record
