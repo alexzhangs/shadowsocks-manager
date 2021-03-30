@@ -36,7 +36,6 @@ class DomainTestCase(TestCase):
     @classmethod
     def down(cls):
         print('Domain: tearing down ...')
-        pass
 
     @classmethod
     def setUpTestData(cls):

@@ -29,6 +29,6 @@ class RetryTestCase(TestCase):
             Return True on the Nth time call of this function, return False on otherwise.
             """
             self.RETRYING += 1
-            return True if self.RETRYING == n else False
+            return self.RETRYING == n
 
         return retryee(n)
