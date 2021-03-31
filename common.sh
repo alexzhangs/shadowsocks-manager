@@ -30,6 +30,11 @@ function install-xsh () {
     fi
 }
 
+function set-virtualenv-vars () {
+    VENV_HOME=$(xsh /os/user/home "$SSM_USER")
+    VENV_DIR=$VENV_HOME/$SSM_USER
+}
+
 check-os
 install-xsh
 
@@ -37,8 +42,6 @@ if [[ -z $SSM_USER ]]; then
     declare SSM_USER=ssm
 fi
 
-declare VENV_HOME=$(xsh /os/user/home "$SSM_USER")
-declare VENV_DIR=$VENV_HOME/$SSM_USER
 declare INSTALL_DIR=/home/$SSM_USER/shadowsocks-manager
 declare DJANGO_STATIC_DIR=/var/local/www/$SSM_USER/static/
 

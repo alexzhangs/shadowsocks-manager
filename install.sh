@@ -26,6 +26,9 @@ function create-user () {
 }
 
 function create-virtualenv () {
+    # set VENV_* environment variables
+    set-virtualenv-vars
+
     printf "Creating virtualenv $SSM_USER in $VENV_HOME ...\n"
     (cd "$VENV_HOME" && virtualenv "$SSM_USER" && chown -R $SSM_USER:$SSM_USER "$SSM_USER")
 }

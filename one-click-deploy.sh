@@ -88,6 +88,9 @@ function main () {
     # required, install shadowsocks-manager itself
     bash "$WORK_DIR/install.sh"
 
+    # set VENV_* environment variables
+    set-virtualenv-vars
+
     # required, setup shadowsocks-manager
     sudo -H -u "$SSM_USER" bash "$INSTALL_DIR/runinenv.sh" "$VENV_DIR" bash "$INSTALL_DIR/setup.sh" "$@"
 
