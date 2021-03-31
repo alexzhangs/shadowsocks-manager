@@ -29,7 +29,7 @@ script:
   - bash runinenv.sh "$VENV_DIR" bash start-testserver.sh
   - bash runinenv.sh "$VENV_DIR" pip install coverage
   - cd shadowsocks_manager
-  - bash runinenv.sh "$VENV_DIR" coverage run manage.py test --noinput -v 2
-  - bash runinenv.sh "$VENV_DIR" coverage xml -o coverage-$TRAVIS_PYTHON_VERSION.xml
+  - bash ../runinenv.sh "$VENV_DIR" coverage run manage.py test --noinput -v 2
+  - bash ../runinenv.sh "$VENV_DIR" coverage xml -o coverage-$TRAVIS_PYTHON_VERSION.xml
 after_success:
   - bash <(curl -s https://codecov.io/bash)
