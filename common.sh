@@ -22,9 +22,7 @@ function install-xsh () {
     fi
     # install xsh if missing
     if ! type xsh >/dev/null 2>&1; then
-        git clone https://github.com/alexzhangs/xsh
-        bash xsh/install.sh
-        . ~/.xshrc
+        curl -s https://raw.githubusercontent.com/alexzhangs/xsh/master/boot | bash && . ~/.xshrc
 
         # load xsh libs
         xsh load xsh-lib/core
