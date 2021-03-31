@@ -27,7 +27,7 @@ function create-user () {
 
 function create-virtualenv () {
     printf "Creating virtualenv $SSM_USER in $VENV_HOME ...\n"
-    (cd "$VENV_HOME" && virtualenv "$SSM_USER")
+    (cd "$VENV_HOME" && virtualenv "$SSM_USER" && chown $SSM_USER:$SSM_USER "$SSM_USER")
 }
 
 function install-project-files () {
