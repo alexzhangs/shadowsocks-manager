@@ -89,8 +89,7 @@ function main () {
     bash "$WORK_DIR/install.sh"
 
     # required, setup shadowsocks-manager
-    sudo -u "$SSM_USER" bash "$INSTALL_DIR/setup.sh" "$@"
-
+    sudo -H -u "$SSM_USER" bash "$INSTALL_DIR/runinenv.sh" "$VENV_DIR" bash "$INSTALL_DIR/setup.sh" "$@"
 
     # restart supervisord to load /etc/default/supervisor and vendors
     service supervisord restart

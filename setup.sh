@@ -4,7 +4,7 @@
 #?   Setup shadowsocks-manager in your Python environment.
 #?   If you need to run the setup under a specific Python environment, make
 #?   sure to activate it before to run the setup.
-#?   Run this script under root on Linux.
+#?   Run this script under non-root on Linux.
 #?
 #? Usage:
 #?   setup.sh [-n DOMAIN] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE] [-o PORT_BEGIN] [-O PORT_END] [-h]

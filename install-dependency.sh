@@ -8,6 +8,7 @@
 #?     * rabbitmq-server
 #?     * memcached
 #?     * pip
+#?     * virtualenv
 #?
 #? Usage:
 #?   install-dependency.sh
@@ -24,9 +25,10 @@ function main () {
 
     # install pip
     xsh aws/gist/ec2/linux/installer/pip
-}
 
-install-xsh
+    # install virtualenv
+    pip install virtualenv
+}
 
 main "$@"
 

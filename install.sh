@@ -1,8 +1,15 @@
 #!/bin/bash
 
 #? Description:
-#?   Install the project file of shadowsocks-manager.
+#?   Install the project files of shadowsocks-manager.
 #?   Run this script under root on Linux.
+#?
+#?   The following actions are taken:
+#?     * create user
+#?     * create virtualenv
+#?     * copy project files
+#?     * copy nginx and supervisor files if the services present
+#?     * create django static dir
 #?
 #? Usage:
 #?   install.sh
@@ -16,6 +23,11 @@ function create-user () {
         userdel -r $SSM_USER
     fi
     useradd -m $SSM_USER
+}
+
+function create-virtualenv () {
+    printf "Creating virtualenv $SSM_USER in $VENV_HOME ...\n"
+    (cd "$VENV_HOME" && virtualenv "$SSM_USER")
 }
 
 function install-project-files () {
@@ -53,13 +65,14 @@ function install-supervisor-conf () {
 }
 
 function create-django-static-dir () {
-    printf "Creating Django static dir: $DJANGO_STATIC_DIR\n"
+    printf "Creating Django static dir: $DJANGO_STATIC_DIR ...\n"
     mkdir -p "$DJANGO_STATIC_DIR"
     chown $SSM_USER:$SSM_USER "$DJANGO_STATIC_DIR"
 }
 
 function main () {
     create-user
+    create-virtualenv
     install-project-files
     install-nginx-conf
     install-supervisor-conf

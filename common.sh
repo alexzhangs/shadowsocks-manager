@@ -4,12 +4,6 @@
 # exit on any error
 set -e -o pipefail
 
-if [[ -z $SSM_USER ]]; then
-    declare SSM_USER=ssm
-fi
-declare INSTALL_DIR=/home/$SSM_USER/shadowsocks-manager
-declare DJANGO_STATIC_DIR=/var/local/www/$SSM_USER/static/
-
 function usage () {
     awk '/^#\?/ {sub("^[ ]*#\\?[ ]?", ""); print}' "$0" \
         | awk '{gsub(/^[^ ]+.*/, "\033[1m&\033[0m"); print}'
@@ -39,3 +33,14 @@ function install-xsh () {
 }
 
 check-os
+install-xsh
+
+if [[ -z $SSM_USER ]]; then
+    declare SSM_USER=ssm
+fi
+
+declare VENV_HOME=$(xsh /os/user/home "$SSM_USER")
+declare VENV_DIR=$VENV_HOME/$SSM_USER
+declare INSTALL_DIR=/home/$SSM_USER/shadowsocks-manager
+declare DJANGO_STATIC_DIR=/var/local/www/$SSM_USER/static/
+

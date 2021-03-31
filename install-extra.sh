@@ -26,8 +26,6 @@ function main () {
     xsh aws/gist/ec2/linux/installer/supervisor -i -o -s -v 4.0.3
 }
 
-install-xsh
-
 main "$@"
 
 exit

@@ -13,6 +13,8 @@
 
 export SSM_USER=ssm
 export SSM_USER_HOME=/home/$SSM_USER
+export SSM_VENV_DIR=$SSM_USER_HOME/$SSM_USER
+export SSM_HOME_DIR=$SSM_USER_HOME/shadowsocks-manager
 export SSM_DJANGO_DIR=$SSM_USER_HOME/shadowsocks-manager/shadowsocks_manager
 export SSM_UWSGI_DIR=$SSM_USER_HOME/shadowsocks-manager/uwsgi
 
