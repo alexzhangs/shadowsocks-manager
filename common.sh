@@ -4,12 +4,6 @@
 # exit on any error
 set -e -o pipefail
 
-if [[ -z $SSM_USER ]]; then
-    declare SSM_USER=ssm
-fi
-declare INSTALL_DIR=/home/$SSM_USER/shadowsocks-manager
-declare DJANGO_STATIC_DIR=/var/local/www/$SSM_USER/static/
-
 function usage () {
     awk '/^#\?/ {sub("^[ ]*#\\?[ ]?", ""); print}' "$0" \
         | awk '{gsub(/^[^ ]+.*/, "\033[1m&\033[0m"); print}'
@@ -28,9 +22,7 @@ function install-xsh () {
     fi
     # install xsh if missing
     if ! type xsh >/dev/null 2>&1; then
-        git clone https://github.com/alexzhangs/xsh
-        bash xsh/install.sh
-        . ~/.xshrc
+        curl -s https://raw.githubusercontent.com/alexzhangs/xsh/master/boot | bash && . ~/.xshrc
 
         # load xsh libs
         xsh load xsh-lib/core
@@ -38,4 +30,18 @@ function install-xsh () {
     fi
 }
 
+function set-virtualenv-vars () {
+    VENV_HOME=$(xsh /os/user/home "$SSM_USER")
+    VENV_DIR=$VENV_HOME/$SSM_USER
+}
+
 check-os
+install-xsh
+
+if [[ -z $SSM_USER ]]; then
+    declare SSM_USER=ssm
+fi
+
+declare INSTALL_DIR=/home/$SSM_USER/shadowsocks-manager
+declare DJANGO_STATIC_DIR=/var/local/www/$SSM_USER/static/
+
