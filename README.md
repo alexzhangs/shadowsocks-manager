@@ -1,5 +1,3 @@
-[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors)
-
 [![GitHub tag](https://img.shields.io/github/tag/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
 [![GitHub](https://img.shields.io/github/license/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
 [![GitHub last commit](https://img.shields.io/github/last-commit/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
@@ -175,6 +173,17 @@ Shadowsocks Accounts` and assign the existing nodes to them.
 
     After a few seconds, the created user ports should be available to your
 Shadowsocks client.
+
+1. The builtin local service manager for Shadowsocks python version
+
+    There's a builtin local service manager available for the Shadowsocks `python version`. 
+
+    The `python version` is pre-installed with `shadowsocks-manager`. With the service manager, you can start&stop
+the local service daemon on-the-fly. Check it out from the web admin console `Home › Shadowsocks › Shadowsocks Nodes`, 
+under the `SHADOWSOCKS MANAGERS` tab.
+
+    However the `traffice statistics` and `user port creation status` features are not available for the 
+`python version`.
 
 
 ## 4. Sendmail (Optional)
