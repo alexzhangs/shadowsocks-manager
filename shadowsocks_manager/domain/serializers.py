@@ -22,4 +22,4 @@ class DomainSerializer(serializers.ModelSerializer):
 class RecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Record
-        fields = ('id', 'host', 'domain', 'type', 'answer', 'dt_created', 'dt_updated')
+        fields = ('id', 'host', 'domain', 'type', 'answer', 'site', 'dt_created', 'dt_updated')

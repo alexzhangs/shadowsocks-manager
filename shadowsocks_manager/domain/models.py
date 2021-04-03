@@ -9,12 +9,23 @@ from collections import defaultdict
 from django.db import models
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from django.contrib.sites.models import Site
+from django.conf import settings
 
 
 logger = logging.getLogger('django')
 
 
 # Create your models here.
+
+class Site(Site):
+
+    class Meta:
+        proxy = True
+
+    def __str__(self):
+        return self.name
+
 
 class BaseNsApi(object):
 
@@ -143,6 +154,8 @@ class Record(models.Model):
     type = models.CharField(max_length=8, null=True, blank=True, choices=TYPE)
     answer = models.CharField(max_length=512, null=True, blank=True,
         help_text='Answer for the host name, comma "," is the delimiter for multiple answers.')
+    site = models.ForeignKey(Site, null=True, blank=True, on_delete=models.SET_NULL, related_name='records',
+        help_text="The record with a site will be dynamically added to Django's ALLOWED_HOSTS.")
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -150,6 +163,17 @@ class Record(models.Model):
         unique_together = ('host', 'domain')
 
     def __str__(self):
+        return self.fqdn
+
+    def save(self, *args, **kwargs):
+        super(Record, self).save(*args, **kwargs)
+        if self.site:
+            self.site.domain = self.fqdn
+            self.site.save()
+            settings.ALLOWED_HOSTS.update_cache()
+
+    @property
+    def fqdn(self):
         return '.'.join([self.host, self.domain.name])
 
     @property
@@ -181,9 +205,8 @@ class Record(models.Model):
         Return the answers from DNS query, in lowercase and as Set.
         """
         ips = []
-        fqdn = '.'.join([self.host, self.domain.name])
         try:
-            truename, alias, ips = socket.gethostbyname_ex(fqdn)
+            truename, alias, ips = socket.gethostbyname_ex(self.fqdn)
         except socket.gaierror:
             # not found the host
             pass

@@ -41,13 +41,13 @@ class DomainAdmin(admin.ModelAdmin):
 
 @admin.register(Record)
 class RecordAdmin(admin.ModelAdmin):
-    fields = ('host', 'domain', 'type', 'answer',
+    fields = ('host', 'domain', 'type', 'answer', 'site',
                   'dt_created', 'dt_updated')
 
     readonly_fields = ('dt_created', 'dt_updated')
 
     list_display = ('host', 'domain', 'type', 'answer', 'answer_from_dns_api', 'is_matching_dns_api',
-                        'answer_from_dns_query', 'is_matching_dns_query',
+                        'answer_from_dns_query', 'is_matching_dns_query', 'site',
                         'dt_created', 'dt_updated')
 
     def answer_from_dns_api(self, obj):

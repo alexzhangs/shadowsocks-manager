@@ -60,7 +60,6 @@ function setup-django () {
 
     printf "Modifying Django settings...\n"
     sed -e "s/DEBUG = True/DEBUG = False/" \
-        -e "s/DOMAIN = .*/DOMAIN = '$DOMAIN'/" \
         -e "s/SECRET_KEY = .*/SECRET_KEY = '$(guid 50)'/" \
         -e "s/TIME_ZONE = .*/TIME_ZONE = '$TIMEZONE'/" \
         -e "s|STATIC_ROOT = .*|STATIC_ROOT = '$DJANGO_STATIC_DIR'|" \
@@ -86,20 +85,50 @@ function load-django-data () {
 
 function create-django-admin () {
     printf "Creating super user...\n"
-    echo "from django.contrib.auth.models import User;
-User.objects.filter(username='$USERNAME').delete();
-User.objects.create_superuser('$USERNAME', '$EMAIL', '$PASSWORD')" \
-        | python manage.py shell
+    cat << EOF | python manage.py shell
+from django.contrib.auth.models import User
+User.objects.filter(username='$USERNAME').delete()
+User.objects.create_superuser('$USERNAME', '$EMAIL', '$PASSWORD')
+EOF
 }
 
 function setup-app-config () {
     printf "Setting Shadowsocks port range...\n"
-    echo "from shadowsocks.models import Config;
-config = Config.load();
-config.port_begin = '$PORT_BEGIN' or config.port_begin;
-config.port_end = '$PORT_END' or config.port_end;
-config.save()" \
-        | python manage.py shell
+    cat << EOF | python manage.py shell
+from shadowsocks.models import Config
+config = Config.load()
+config.port_begin = '$PORT_BEGIN' or config.port_begin
+config.port_end = '$PORT_END' or config.port_end
+config.save()
+EOF
+}
+
+function setup-site () {
+    printf "Setting Site name...\n"
+    cat << EOF | python manage.py shell
+from django.contrib.sites.models import Site
+site = Site.objects.get(pk=1)
+site.name = 'shadowsocks-manager'
+site.save()
+EOF
+}
+
+function setup-domain () {
+    printf "Setting Domain name...\n"
+    cat << EOF | python manage.py shell
+from domain.models import Domain, Record
+from django.contrib.sites.models import Site
+parts = '$DOMAIN'.split('.')
+if parts:
+    host = parts[:-2]
+    root_domain = parts[-2:]
+if root_domain:
+    domain, created = Domain.objects.get_or_create(name='.'.join(root_domain))
+    if host and domain:
+        record, created = Record.objects.get_or_create(host='.'.join(host), domain=domain)
+        record.site = Site.objects.get(pk=1)
+        record.save()
+EOF
 }
 
 function collect-django-static () {

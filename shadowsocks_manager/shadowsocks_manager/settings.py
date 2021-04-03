@@ -28,24 +28,15 @@ SECRET_KEY = '1a22&*@(!7sdzwd$oc3^q3*va!k6u&*a4s-h#^0r=5so!&6^u4'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+from allowedsites import CachedAllowedSites
+ALLOWED_HOSTS = CachedAllowedSites(
+    defaults=('localhost', '127.0.0.1',),
+    dynamic_public_ip=True,
+    net_timeout=3,
+    cache_timeout=300
+)
 
-def get_public_ip():
-    import requests
-    public_ip = None
-    try:
-        public_ip = requests.get('http://checkip.amazonaws.com').text.rstrip('\n')
-    except requests.exceptions.RequestException:
-        pass
-    return public_ip
-
-PUBLIC_IP = get_public_ip()
-if PUBLIC_IP:
-    ALLOWED_HOSTS.append(PUBLIC_IP)
-
-DOMAIN = ''
-if DOMAIN:
-    ALLOWED_HOSTS.append(DOMAIN)
+SITE_ID = 1
 
 
 # Application definition
@@ -57,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'django_celery_beat',
     'django_celery_results',
     'import_export',
