@@ -50,4 +50,4 @@ class SSManagerViewSet(viewsets.ModelViewSet):
     """
     queryset = models.SSManager.objects.all()
     serializer_class = serializers.SSManagerSerializer
-    filter_fields = ['node', 'node__name']
+    filter_fields = ['node', 'node__name', 'server_edition', 'is_server_enabled']

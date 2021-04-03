@@ -35,4 +35,4 @@ class RecordViewSet(viewsets.ModelViewSet):
     """
     queryset = models.Record.objects.all()
     serializer_class = serializers.RecordSerializer
-    filter_fields = ['host', 'domain', 'domain__name', 'type', 'answer']
+    filter_fields = ['host', 'domain', 'domain__name', 'type', 'answer', 'site', 'site__name', 'site__domain']

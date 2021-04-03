@@ -10,7 +10,7 @@ from . import models
 class ConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Config
-        fields = ('id', 'port_begin', 'port_end', 'timeout', 'dt_created', 'dt_updated')
+        fields = ('id', 'port_begin', 'port_end', 'timeout_remote', 'timeout_local', 'cache_timeout', 'dt_created', 'dt_updated')
 
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -34,4 +34,4 @@ class NodeAccountSerializer(serializers.ModelSerializer):
 class SSManagerSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.SSManager
-        fields = ('id', 'node', 'interface', 'port', 'encrypt', 'timeout', 'fastopen', 'dt_created', 'dt_updated')
+        fields = ('id', 'node', 'interface', 'port', 'encrypt', 'timeout', 'fastopen', 'server_edition', 'is_server_enabled', 'dt_created', 'dt_updated')
