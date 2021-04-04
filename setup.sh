@@ -183,6 +183,8 @@ function main () {
     load-django-data
     create-django-admin
     setup-app-config
+    setup-site
+    setup-domain
     collect-django-static
 }
 
