@@ -1,8 +1,8 @@
-[![GitHub tag](https://img.shields.io/github/tag/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
+[![GitHub tag](https://img.shields.io/github/v/tag/alexzhangs/shadowsocks-manager?sort=date)](https://github.com/alexzhangs/shadowsocks-manager/)
 [![GitHub](https://img.shields.io/github/license/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
 [![GitHub last commit](https://img.shields.io/github/last-commit/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
 
-[![Travis (.com)](https://img.shields.io/travis/com/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://travis-ci.com/alexzhangs/shadowsocks-manager)
+[![Travis (.com)](https://img.shields.io/travis/com/alexzhangs/shadowsocks-manager/master.svg?style=flat-square)](https://travis-ci.com/alexzhangs/shadowsocks-manager)
 [![codecov](https://codecov.io/gh/alexzhangs/shadowsocks-manager/branch/master/graph/badge.svg?token=KTI3TNRKAV)](https://codecov.io/gh/alexzhangs/shadowsocks-manager)
 [![GitHub issues](https://img.shields.io/github/issues/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
