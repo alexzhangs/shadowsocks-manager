@@ -4,12 +4,20 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from shadowsocks.tests import AllData as ShadowsocksTestData
-from . import models
-
+import json
 from django.test import TestCase
 
+from shadowsocks.tests import AllData as ShadowsocksTestData
+from . import models, serializers
+
 # Create your tests here.
+class PeriodTestCase(TestCase):
+
+    def test(self):
+        obj = serializers.PeriodSerializer()
+        json.loads(json.dumps(obj.to_representation(models.Period.objects.first())))
+
+
 class StatisticTestCase(TestCase):
     fixtures = []
     fixtures.extend(ShadowsocksTestData.fixtures)
@@ -24,3 +32,6 @@ class StatisticTestCase(TestCase):
         # no statistics data is asserted, cause there's no Manager API really called.
         models.Statistic.statistic()
         models.Statistic.reset()
+
+        obj = serializers.StatisticSerializer()
+        json.loads(json.dumps(obj.to_representation(models.Statistic.objects.first())))

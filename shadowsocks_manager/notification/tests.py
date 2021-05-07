@@ -4,9 +4,10 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
+import json
 from django.test import TestCase
 
-from . import models
+from . import models, serializers
 
 
 # Create your tests here.
@@ -16,6 +17,9 @@ class NotificationTestCase(TestCase):
     def test_template(self):
         for obj in models.Template.objects.all():
             self.assertTrue(obj.template)
+
+        obj = serializers.TemplateSerializer()
+        json.loads(json.dumps(obj.to_representation(models.Template.objects.first())))
 
     def test_template_account_created(self):
         pass  # todo

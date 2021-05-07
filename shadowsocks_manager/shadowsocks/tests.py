@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
+import json
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from botocore.exceptions import ClientError
@@ -11,7 +12,7 @@ from botocore.exceptions import ClientError
 from domain.models import Record
 from domain.tests import DomainTestCase
 from notification.tests import NotificationTestCase
-from . import models
+from . import models, serializers
 
 
 # https://github.com/mayermakes/Get_IP
@@ -66,6 +67,11 @@ class ConfigTestCase(TestCase):
     def test(self):
         print('testing Config load() ...')
         self.assertEqual(models.Config.load(), models.Config.objects.first())
+
+    def test_serializer(self):
+        print('testing Config serializer ...')
+        obj = serializers.ConfigSerializer()
+        json.loads(json.dumps(obj.to_representation(models.Config.objects.first())))
 
 
 class AccountTestCase(TestCase):
@@ -176,6 +182,11 @@ class AccountTestCase(TestCase):
 
         for obj in models.Account.objects.all():
             self.assertTrue(obj.notify(sender=obj))
+
+    def test_serializer(self):
+        print('testing Account serializer ...')
+        obj = serializers.AccountSerializer()
+        json.loads(json.dumps(obj.to_representation(models.Account.objects.first())))
 
 
 class NodeTestCase(TestCase):
@@ -323,6 +334,11 @@ class NodeTestCase(TestCase):
         for obj in models.Node.objects.filter(record__isnull=False):
             self.assertTrue(obj.is_matching_record)
 
+    def test_serializer(self):
+        print('testing Node serializer ...')
+        obj = serializers.NodeSerializer()
+        json.loads(json.dumps(obj.to_representation(models.Node.objects.first())))
+
 
 class NodeAccountTestCase(TestCase):
     fixtures = AllData.fixtures
@@ -342,7 +358,7 @@ class NodeAccountTestCase(TestCase):
         super(NodeAccountTestCase, self).tearDown()
 
     def test(self):
-        print('testing Node heartbeat() ...')
+        print('testing NodeAccount heartbeat() ...')
         # perform the heartbeat once
         models.NodeAccount.heartbeat()
 
@@ -357,6 +373,11 @@ class NodeAccountTestCase(TestCase):
             self.assertFalse(obj.is_created())
             self.assertFalse(obj.is_accessible_ex())
             obj.delete()
+
+    def test_serializer(self):
+        print('testing NodeAccount serializer ...')
+        obj = serializers.NodeAccountSerializer()
+        json.loads(json.dumps(obj.to_representation(models.NodeAccount.objects.first())))
 
 
 class SSManagerTestCase(TestCase):
@@ -432,3 +453,8 @@ class SSManagerTestCase(TestCase):
         obj = models.SSManager.objects.filter(interface=models.InterfaceList.PUBLIC).first()
         obj.node.public_ip = None
         self.assertRaises(ValidationError, obj.clean)
+
+    def test_serializer(self):
+        print('testing SSManager serializer ...')
+        obj = serializers.SSManagerSerializer()
+        json.loads(json.dumps(obj.to_representation(models.SSManager.objects.first())))

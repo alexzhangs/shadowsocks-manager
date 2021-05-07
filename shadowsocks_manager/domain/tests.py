@@ -4,9 +4,10 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
+import json
 from django.test import TestCase
 
-from . import models
+from . import models, serializers
 
 
 # Create your tests here.
@@ -47,11 +48,20 @@ class DomainTestCase(TestCase):
             self.assertTrue(str(obj))
             self.assertFalse(obj.is_api_accessible)
 
+        obj = serializers.NameServerSerializer()
+        json.loads(json.dumps(obj.to_representation(models.NameServer.objects.first())))
+
     def test_domain(self):
         for obj in models.Domain.objects.all():
             self.assertTrue(str(obj))
 
+        obj = serializers.DomainSerializer()
+        json.loads(json.dumps(obj.to_representation(models.Domain.objects.first())))
+
     def test_record(self):
+        obj = serializers.RecordSerializer()
+        json.loads(json.dumps(obj.to_representation(models.Record.objects.first())))
+
         for obj in models.Record.objects.all():
             self.assertTrue(str(obj))
             self.assertFalse(obj.is_matching_dns_query)
