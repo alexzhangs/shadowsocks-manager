@@ -256,13 +256,13 @@ class NodeTestCase(TestCase):
         obj.public_ip = None
         self.assertRaises(ValidationError, obj.clean)
 
-        obj = models.Node.objects.first()
+        obj = models.Node.objects.filter(record__isnull=False, public_ip__isnull=False).first()
         obj.record = None
-        obj.clean
+        obj.clean()
 
-        obj = models.Node.objects.first()
+        obj = models.Node.objects.filter(record__isnull=False, public_ip__isnull=False).first()
         obj.public_ip = None
-        obj.clean
+        obj.clean()
 
     def test_change_ips(self):
         print('testing Node change_ips() ...')
