@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import unicode_literals
 
 from rest_framework import serializers
+from django_enumfield.contrib.drf import EnumField
 
 from . import models
 
@@ -35,3 +36,6 @@ class SSManagerSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.SSManager
         fields = ('id', 'node', 'interface', 'port', 'encrypt', 'timeout', 'fastopen', 'server_edition', 'is_server_enabled', 'dt_created', 'dt_updated')
+
+    interface = EnumField(models.InterfaceList)
+    server_edition = EnumField(models.ServerEditionList)
