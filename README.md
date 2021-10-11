@@ -1,17 +1,17 @@
-[![GitHub tag](https://img.shields.io/github/v/tag/alexzhangs/shadowsocks-manager?sort=date)](https://github.com/alexzhangs/shadowsocks-manager/)
+[![GitHub tag](https://img.shields.io/github/v/tag/alexzhangs/shadowsocks-manager?sort=date)](https://github.com/alexzhangs/shadowsocks-manager/tags)
 [![GitHub](https://img.shields.io/github/license/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
-[![GitHub last commit](https://img.shields.io/github/last-commit/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
+[![GitHub last commit](https://img.shields.io/github/last-commit/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/commits/master)
 
 [![Travis (.com)](https://img.shields.io/travis/com/alexzhangs/shadowsocks-manager/master.svg?style=flat-square)](https://travis-ci.com/alexzhangs/shadowsocks-manager)
 [![codecov](https://codecov.io/gh/alexzhangs/shadowsocks-manager/branch/master/graph/badge.svg?token=KTI3TNRKAV)](https://codecov.io/gh/alexzhangs/shadowsocks-manager)
-[![GitHub issues](https://img.shields.io/github/issues/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
+[![GitHub issues](https://img.shields.io/github/issues/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/pulls)
 
 | Python:2.7        | Python:3.6        | Python:3.7        | Python:3.8        | Python:3.9        |
 |-------------------|-------------------|-------------------|-------------------|-------------------|
 | [![Build1][1]][0] | [![Build2][2]][0] | [![Build3][3]][0] | [![Build4][4]][0] | [![Build5][5]][0] |
 
-[0]: https://travis-ci.org/alexzhangs/shadowsocks-manager
+[0]: https://travis-ci.com/alexzhangs/shadowsocks-manager
 [1]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/1?use_travis_com=true
 [2]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/2?use_travis_com=true
 [3]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/3?use_travis_com=true
