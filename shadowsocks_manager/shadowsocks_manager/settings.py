@@ -33,7 +33,7 @@ ALLOWED_HOSTS = CachedAllowedSites(
     defaults=('localhost', '127.0.0.1',),
     dynamic_public_ip=True,
     net_timeout=3,
-    cache_timeout=300
+    cache_timeout=30
 )
 
 SITE_ID = 1
