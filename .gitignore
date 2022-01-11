@@ -4,4 +4,4 @@ shadowsocks_manager/*/migrations/*
 !shadowsocks_manager/*/migrations/__init__.py
 .coverage
 coverage*.xml
-.idea/aws.xml
+.idea/
