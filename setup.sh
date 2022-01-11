@@ -7,7 +7,7 @@
 #?   Run this script under non-root on Linux.
 #?
 #? Usage:
-#?   setup.sh [-n DOMAIN] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE] [-o PORT_BEGIN] [-O PORT_END] [-h]
+#?   setup.sh [-n DOMAIN] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE] [-r PORT_BEGIN] [-R PORT_END] [-h]
 #?
 #? Options:
 #?   [-n DOMAIN]
@@ -140,7 +140,7 @@ function main () {
     declare DOMAIN USERNAME PASSWORD EMAIL TIMEZONE PORT_BEGIN PORT_END \
             OPTIND OPTARG opt
 
-    while getopts n:u:p:e:t:r:Rh opt; do
+    while getopts n:u:p:e:t:r:R:h opt; do
         case $opt in
             n)
                 DOMAIN=$OPTARG
