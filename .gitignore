@@ -1,3 +1,4 @@
+*.pyc
 shadowsocks_manager/celerybeat-schedule.db
 shadowsocks_manager/db*.sqlite3
 shadowsocks_manager/*/migrations/*
