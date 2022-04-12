@@ -57,8 +57,8 @@ class SSManagerInline(admin.TabularInline):
     max_num = 1
 
     fields = ('interface', 'port', 'encrypt', 'timeout', 'fastopen', 'is_accessible',
-              'server_edition', 'server_version', 'is_server_enabled', 'server_status',)
-    readonly_fields = ('is_accessible', 'server_version', 'server_status', 'dt_created', 'dt_updated')
+              'server_edition', 'is_v2ray_enabled', 'server_version', 'is_server_enabled', 'server_status',)
+    readonly_fields = ('is_accessible', 'is_v2ray_enabled', 'server_version', 'server_status', 'dt_created', 'dt_updated')
 
     def is_accessible(self, obj):
         return obj.is_accessible

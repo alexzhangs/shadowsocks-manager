@@ -393,8 +393,9 @@ class SSManagerTestCase(TestCase):
             port=6001,
             fastopen=False,
             encrypt='aes-256-cfb',
-            server_edition = models.ServerEditionList.PYTHON,
-            is_server_enabled = True,
+            server_edition=models.ServerEditionList.PYTHON,
+            is_v2ray_enabled=False,
+            is_server_enabled=True,
         )
         obj.save()
 
@@ -406,7 +407,8 @@ class SSManagerTestCase(TestCase):
                 port=6001,
                 fastopen=False,
                 encrypt='aes-256-cfb',
-                server_edition = models.ServerEditionList.LIBEV,
+                server_edition=models.ServerEditionList.LIBEV,
+                is_v2ray_enabled=False,
             )
             obj.save()
 

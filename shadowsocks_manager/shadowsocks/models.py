@@ -535,7 +535,7 @@ class SSManager(models.Model):
     port = models.PositiveIntegerField(default=6001,
         help_text='Port number bound to Manager API.')
     encrypt = models.CharField(max_length=32, default='aes-256-cfb',
-        help_text='Encrypt method: rc4-md5, aes-128-gcm, aes-192-gcm, aes-256-gcm,'
+        help_text='Encrypt method: rc4-md5, aes-128-gcm, aes-192-gcm, aes-256-gcm, '
         'aes-128-cfb, aes-192-cfb, aes-256-cfb, aes-128-ctr, aes-192-ctr, aes-256-ctr, '
         'camellia-128-cfb, camellia-192-cfb, camellia-256-cfb, bf-cfb, chacha20-ietf-poly1305, '
         'xchacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf.')
@@ -545,9 +545,12 @@ class SSManager(models.Model):
         help_text='Enable TCP fast open, with Linux kernel > 3.7.0.')
     server_edition = enum.EnumField(ServerEditionList, default=ServerEditionList.LIBEV,
         help_text='The Shadowsocks server edition. The libev edition is recommended.')
+    is_v2ray_enabled = models.BooleanField(default=False,
+        help_text='Whether the v2ray-plugin is enabled for Shadowsocks server. The changes made here will not '
+            'affect the plugin status on server.')
     is_server_enabled = models.BooleanField(default=False,
-        help_text='Take the Shadowsocks server startup or shutdown. Only enable this with the localhost '
-            'node and the Shadowsocks python edition.')
+        help_text='Control the Shadowsocks server up or down. Works only with the Shadowsocks python edition '
+            'local node.')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
