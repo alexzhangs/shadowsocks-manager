@@ -14,7 +14,9 @@ django-celery-beat; python_version > '2.7'
 # 20210917 - py2.7 - workaround for: ERROR: django-celery-results 2.2.0 requires celery<6.0,>=5.0, but you'll have celery 4.4.7 which is incompatible.
 django-celery-results==2.0.1; python_version <= '2.7'
 django-celery-results; python_version > '2.7'
-django-enumfield
+# 20220622 - py2.7 - workaround for: ImportError: No module named enum
+django-enumfield<3.0; python_version <= '2.7'
+django-enumfield; python_version > '2.7'
 # 20210314 - py2.7 - workaround for: SyntaxError: invalid syntax: File "/Users/alex/.pyenv/versions/ssm/lib/python2.7/site-packages/django_filters/filterset.py", line 184
 # https://github.com/carltongibson/django-filter/issues/954
 django-filter~=1.1; python_version <= '2.7'
