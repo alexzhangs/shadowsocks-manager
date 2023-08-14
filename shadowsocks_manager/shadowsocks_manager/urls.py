@@ -19,13 +19,22 @@ from __future__ import unicode_literals
 
 from django.conf.urls import url, include
 from django.contrib import admin
+from rest_framework.routers import DefaultRouter
+
+from notification.urls import router as notification_router
+from shadowsocks.urls import router as shadowsocks_router
+from statistic.urls import router as statistic_router
+from domain.urls import router as domain_router
+
+router = DefaultRouter()
+router.registry.extend(notification_router.registry)
+router.registry.extend(shadowsocks_router.registry)
+router.registry.extend(statistic_router.registry)
+router.registry.extend(domain_router.registry)
 
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^', include('notification.urls')),
-    url(r'^', include('shadowsocks.urls')),
-    url(r'^', include('statistic.urls')),
-    url(r'^', include('domain.urls')),
+    url(r'^', include(router.urls)),
 ]

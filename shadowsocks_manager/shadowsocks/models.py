@@ -34,6 +34,13 @@ from domain.models import Record
 logger = logging.getLogger('django')
 
 
+class Foo(models.Model):
+    x = models.CharField(max_length=10)
+
+
+class Bar(Foo):
+    y = models.CharField(max_length=10)
+
 # Create your models here.
 
 class Config(SingletonModel):
@@ -380,17 +387,22 @@ class Node(StatisticMethod):
           1. Inactivate the node to remove the node IP from the DNS record list.
           2. Sleep 5 minutes to wait for the DNS record take effect.
           3. Send a message to trigger the IP replacement.
-          4. Sleep another 20 minutes to wait for the AWS config to capture the new IP, and send it back to django.
+          4. Sleep another 5 minutes to wait for the AWS config to capture the new IP, and send it back to django.
           5. Activate the node to add the new node IP to the DNS record list.
-        The whole process takes around 30 minutes to take effect for clients.
+        The whole process takes around 10 minutes for each node to take effect on client side.
         Updating DNS record on the fly is depends on the NameServer API which you have to set first in the domain app.
         This is a feature of [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn).
         """
-        for node in cls.objects.filter(is_active=True):
+        for node in cls.objects.filter(
+            is_active=True,
+            sns_endpoint__isnull=False,
+            sns_access_key__isnull=False,
+            sns_secret_key__isnull=False,
+        ):
             node.toggle_active()  # make the node inactive
             time.sleep(300)  # assuming your DNS record TTL is 300 seconds
             node.change_ip()
-            time.sleep(1200)  # AWS config capture takes time
+            time.sleep(300)  # AWS config capture takes time
             node.toggle_active()  # make the node active again
 
 
