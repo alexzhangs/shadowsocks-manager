@@ -30,9 +30,9 @@ class Period(models.Model):
         unique_together = ('year', 'month')
 
     def __str__(self):
-        return str(self.year) + ('-' + str(self.month) if self.month else '') if self.year else ''
+        return str(self.year) + ('-' + str(self.month) if self.month else '') if self.year else 'Total'
 
-    valid_term = ['Monthly', 'Yearly', 'All']
+    valid_term = ['Monthly', 'Yearly', 'Total']
 
     @property
     def term(self):
@@ -104,7 +104,7 @@ class Statistic(models.Model):
             'Account': [Account, 'Monthly'],
             'None': [Node, 'Monthly']
         },
-        'All': {
+        'Total': {
             'NodeAccount': [NodeAccount, 'Yearly'],
             'Node': [Node, 'Yearly'],
             'Account': [Account, 'Yearly'],
@@ -116,7 +116,7 @@ class Statistic(models.Model):
         {
             'periods': [
                 'Yearly',
-                'All'
+                'Total'
             ],
             'cls': NodeAccount,
             'filter': {}
@@ -125,7 +125,7 @@ class Statistic(models.Model):
             'periods': [
                 'Monthly',
                 'Yearly',
-                'All'
+                'Total'
             ],
             'cls': Node,
             'filter': {
@@ -136,7 +136,7 @@ class Statistic(models.Model):
             'periods': [
                 'Monthly',
                 'Yearly',
-                'All'
+                'Total'
             ],
             'cls': Account,
             'filter': {
@@ -147,7 +147,7 @@ class Statistic(models.Model):
             'periods': [
                 'Monthly',
                 'Yearly',
-                'All'
+                'Total'
             ],
             'cls': None,
             'filter': {}
@@ -190,7 +190,7 @@ class Statistic(models.Model):
             else:
                 kwargs['period__year__isnull'] = False
             kwargs['period__month__isnull'] = True
-        elif depend[1] == 'All':
+        elif depend[1] == 'Total':
             kwargs['period__year__isnull'] = True
             kwargs['period__month__isnull'] = True
 
@@ -279,7 +279,7 @@ class Statistic(models.Model):
                 elif period == 'Yearly':
                     period_kwargs['year'] = ts.year
                     period_kwargs['month'] = None
-                elif period == 'All':
+                elif period == 'Total':
                     period_kwargs['year'] = None
                     period_kwargs['month'] = None
                 else:
