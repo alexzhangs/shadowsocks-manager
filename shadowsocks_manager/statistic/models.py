@@ -200,9 +200,6 @@ class Statistic(models.Model):
             raise Exception('%s: failed to get consolidate filter: %s' % (self, depend))
 
     def consolidate(self):
-        # MonthlyNodeAccount should use 'update_stat'
-        assert(self.stat_type != 'MonthlyNodeAccount')
-
         transferred_past = 0
         transferred_live = 0
 
