@@ -29,8 +29,8 @@ djangorestframework
 # ipaddress is available since Python 3.3
 ipaddress; python_version < '3.3'
 psutil
-django-memcached==1.59; python_version <= '2.7'
-django-memcached; python_version > '2.7'
+python-memcached==1.59; python_version <= '2.7'
+python-memcached; python_version > '2.7'
 pytz
 requests
 shadowsocks
