@@ -37,5 +37,5 @@ pytz
 requests
 # 20240319 - https://github.com/shadowsocks/shadowsocks/pull/1493
 #shadowsocks
-git+https://github.com/StackStomp/shadowsocks/tree/master
+git+https://github.com/StackStomp/shadowsocks@master
 uWSGI
