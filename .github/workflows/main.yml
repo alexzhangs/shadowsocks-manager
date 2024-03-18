@@ -50,8 +50,7 @@ jobs:
       run: |
         sudo mkdir -p "${{ env.DJANGO_STATIC_DIR }}"
         sudo chown ${{ env.SSM_USER }}:${{ env.SSM_USER }} "${{ env.DJANGO_STATIC_DIR }}"
-        python --version
-        (cd "${{ env.VENV_HOME }}" && virtualenv "${{ env.VENV_NAME }}")
+        (cd "${{ env.VENV_HOME }}" && virtualenv -p python${{ matrix.python-version }} "${{ env.VENV_NAME }}")
         bash runinenv.sh "${{ env.VENV_DIR }}" bash setup.sh
 
     - name: Run tests
