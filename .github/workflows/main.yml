@@ -9,10 +9,11 @@ on:
   - cron: 23 11 * * 5
 
 env:
-  SSM_USER: "$(whoami)"
-  DJANGO_STATIC_DIR: "/var/local/www/$SSM_USER/static/"
-  VENV_HOME: "${{ github.workspace }}"
-  VENV_DIR: "$VENV_HOME/$SSM_USER"
+  SSM_USER: "runner"
+  DJANGO_STATIC_DIR: "/var/local/www/${{ env.SSM_USER }}/static/"
+  VENV_HOME: "/home/${{ env.SSM_USER }}"
+  VENV_NAME: "${{ env.SSM_USER }}-${{ matrix.python-version }}"
+  VENV_DIR: "${{ env.VENV_HOME }}/${{ env.VENV_NAME }}"
 
 jobs:
   test:
@@ -46,18 +47,18 @@ jobs:
 
     - name: Install this project
       run: |
-        sudo mkdir -p "$DJANGO_STATIC_DIR"
-        sudo chown $SSM_USER:$SSM_USER "$DJANGO_STATIC_DIR"
-        (cd "$VENV_HOME" && virtualenv "$SSM_USER")
-        bash runinenv.sh "$VENV_DIR" bash setup.sh
+        sudo mkdir -p "${{ env.DJANGO_STATIC_DIR }}"
+        sudo chown ${{ env.SSM_USER }}:${{ env.SSM_USER }} "${{ env.DJANGO_STATIC_DIR }}"
+        (cd "${{ env.VENV_HOME }}" && virtualenv "${{ env.VENV_NAME }}")
+        bash runinenv.sh "${{ env.VENV_DIR }}" bash setup.sh
 
     - name: Run tests
       run: |
-        bash runinenv.sh "$VENV_DIR" bash start-testserver.sh
-        bash runinenv.sh "$VENV_DIR" pip install coverage
+        bash runinenv.sh "${{ env.VENV_DIR }}" bash start-testserver.sh
+        bash runinenv.sh "${{ env.VENV_DIR }}" pip install coverage
         cd shadowsocks_manager
-        bash ../runinenv.sh "$VENV_DIR" coverage run manage.py test --noinput -v 2
-        bash ../runinenv.sh "$VENV_DIR" coverage xml -o coverage-${{ matrix.python-version }}.xml
+        bash ../runinenv.sh "${{ env.VENV_DIR }}" coverage run manage.py test --noinput -v 2
+        bash ../runinenv.sh "${{ env.VENV_DIR }}" coverage xml -o coverage-${{ matrix.python-version }}.xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
