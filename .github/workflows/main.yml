@@ -1,0 +1,58 @@
+name: Test shadowsocks-manager with multiple Python versions on Ubuntu Linux and upload coverage to Codecov
+
+on: [push, pull_request]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [2.7, 3.6, 3.7, 3.8, 3.9, 3.12]
+
+    services:
+      memcached:
+        image: memcached
+        ports:
+          - 11211:11211
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install system packages
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install rabbitmq-server
+        sudo service rabbitmq-server start
+        sudo pip install virtualenv
+        echo -e '#!/usr/bin/env bash\n' | sudo tee /usr/sbin/sendmail
+        sudo chmod 755 /usr/sbin/sendmail
+
+    - name: Install this project
+      run: |
+        sudo mkdir -p "$DJANGO_STATIC_DIR"
+        sudo chown $SSM_USER:$SSM_USER "$DJANGO_STATIC_DIR"
+        (cd "$VENV_HOME" && virtualenv "$SSM_USER")
+        bash runinenv.sh "$VENV_DIR" bash setup.sh
+
+    - name: Run tests
+      run: |
+        bash runinenv.sh "$VENV_DIR" bash start-testserver.sh
+        bash runinenv.sh "$VENV_DIR" pip install coverage
+        cd shadowsocks_manager
+        bash ../runinenv.sh "$VENV_DIR" coverage run manage.py test --noinput -v 2
+        bash ../runinenv.sh "$VENV_DIR" coverage xml -o coverage-${{ matrix.python-version }}.xml
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./shadowsocks_manager/coverage-${{ matrix.python-version }}.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
