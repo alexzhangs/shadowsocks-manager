@@ -9,7 +9,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [2.7, 3.6, 3.7, 3.8, 3.9, 3.12]
+        python-version: [3.6.15, 3.7.17, 3.8.18, 3.9.18, 3.10.13, 3.11.8, 3.12.2]
 
     services:
       memcached:
