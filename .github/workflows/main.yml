@@ -1,6 +1,18 @@
 name: Test shadowsocks-manager with multiple Python versions on Ubuntu Linux and upload coverage to Codecov
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - "**/*"
+  pull_request:
+  schedule:
+  - cron: 23 11 * * 5
+
+env:
+  SSM_USER: "$(whoami)"
+  DJANGO_STATIC_DIR: "/var/local/www/$SSM_USER/static/"
+  VENV_HOME: "${{ github.workspace }}"
+  VENV_DIR: "$VENV_HOME/$SSM_USER"
 
 jobs:
   test:
@@ -14,8 +26,6 @@ jobs:
     services:
       memcached:
         image: memcached
-        ports:
-          - 11211:11211
 
     steps:
     - uses: actions/checkout@v4
