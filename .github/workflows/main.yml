@@ -10,10 +10,10 @@ on:
 
 env:
   SSM_USER: "runner"
-  DJANGO_STATIC_DIR: "/var/local/www/${{ env.SSM_USER }}/static/"
-  VENV_HOME: "/home/${{ env.SSM_USER }}"
-  VENV_NAME: "${{ env.SSM_USER }}-${{ matrix.python-version }}"
-  VENV_DIR: "${{ env.VENV_HOME }}/${{ env.VENV_NAME }}"
+  DJANGO_STATIC_DIR: "/var/local/www/runner/static/"
+  VENV_HOME: "/home/runner"
+  VENV_NAME: "runner"
+  VENV_DIR: "/home/runner/runner"
 
 jobs:
   test:
@@ -46,7 +46,7 @@ jobs:
         sudo chmod 755 /usr/sbin/sendmail
 
     - name: Install this project
-      run: |
+      run: |1
         sudo mkdir -p "${{ env.DJANGO_STATIC_DIR }}"
         sudo chown ${{ env.SSM_USER }}:${{ env.SSM_USER }} "${{ env.DJANGO_STATIC_DIR }}"
         (cd "${{ env.VENV_HOME }}" && virtualenv "${{ env.VENV_NAME }}")
