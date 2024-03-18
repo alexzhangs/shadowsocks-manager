@@ -22,7 +22,7 @@ django-celery-results; python_version > '2.7'
 # 20220622 - py2.7 - workaround for: ImportError: No module named enum
 django-enumfield<3.0; python_version <= '2.7'
 django-enumfield; python_version > '2.7'
-# 20210314 - py2.7 - workaround for: SyntaxError: invalid syntax: File "/Users/alex/.pyenv/versions/ssm/lib/python2.7/site-packages/django_filters/filterset.py", line 184
+# 20210314 - py2.7 - workaround for: SyntaxError: invalid syntax: File python2.7/site-packages/django_filters/filterset.py, line 184
 # https://github.com/carltongibson/django-filter/issues/954
 django-filter~=1.1; python_version <= '2.7'
 django-filter; python_version > '2.7'
@@ -31,11 +31,13 @@ djangorestframework
 # ipaddress is available since Python 3.3
 ipaddress; python_version < '3.3'
 psutil
-python-memcached==1.59; python_version <= '2.7'
-python-memcached; python_version > '2.7'
+# 20240319 - python 3.x - workaround for: AttributeError: 'Client' object has no attribute '_deletetouch': File python3.12/site-packages/django/core/cache/backends/memcached.py, line 202
+# python-memcached==1.59; python_version <= '2.7'
+# python-memcached; python_version > '2.7'
+python-memcached==1.59
 pytz
 requests
 # 20240319 - https://github.com/shadowsocks/shadowsocks/pull/1493
-#shadowsocks
+# shadowsocks
 git+https://github.com/StackStomp/shadowsocks@master
 uWSGI
