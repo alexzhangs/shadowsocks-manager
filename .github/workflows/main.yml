@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         python-version: [3.7, 3.8, 3.9, 3.11, 3.12]
 
@@ -46,9 +47,10 @@ jobs:
         sudo chmod 755 /usr/sbin/sendmail
 
     - name: Install this project
-      run: |1
+      run: |
         sudo mkdir -p "${{ env.DJANGO_STATIC_DIR }}"
         sudo chown ${{ env.SSM_USER }}:${{ env.SSM_USER }} "${{ env.DJANGO_STATIC_DIR }}"
+        python --version
         (cd "${{ env.VENV_HOME }}" && virtualenv "${{ env.VENV_NAME }}")
         bash runinenv.sh "${{ env.VENV_DIR }}" bash setup.sh
 
