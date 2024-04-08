@@ -6,7 +6,8 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'shadowsocks_manager.settings')
+    # prefix package name to allow being called outside of django environment
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "shadowsocks_manager.shadowsocks_manager.settings")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -15,6 +16,16 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
+
+    django_root = os.path.dirname(os.path.abspath(__file__))
+
+    # add the django root to the python path to allow django commands to be run from any directory
+    if django_root not in sys.path:
+        sys.path.insert(0, django_root)
+
+    # change dir to the django root to allow the dir-sensitive commands(such as loaddata) to be run from any directory
+    os.chdir(django_root)
+
     execute_from_command_line(sys.argv)
 
 

@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
 
+from decouple import config
+
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -23,10 +25,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '1a22&*@(!7sdzwd$oc3^q3*va!k6u&*a4s-h#^0r=5so!&6^u4'
+SECRET_KEY = config('SSM_SECRET_KEY', default='ef24ff499c58a21711385e8a6b31a7680fb41765b8ca0cb451')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('SSM_DEBUG', default=True, cast=bool)
 
 from allowedsites import CachedAllowedSites
 ALLOWED_HOSTS = CachedAllowedSites(
@@ -70,7 +72,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'shadowsocks_manager.urls'
+# prefix package name to allow being called outside of django environment
+ROOT_URLCONF = 'shadowsocks_manager.shadowsocks_manager.urls'
 
 TEMPLATES = [
     {
@@ -88,7 +91,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'shadowsocks_manager.wsgi.application'
+# prefix package name to allow being called outside of django environment
+WSGI_APPLICATION = 'shadowsocks_manager.shadowsocks_manager.wsgi.application'
 
 
 # Database
@@ -99,7 +103,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
         'TEST': {
-            'NAME': 'db-test.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db-test.sqlite3'),
         },
     }
 }
@@ -129,7 +133,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = config('SSM_TIME_ZONE', default='UTC')
 
 USE_I18N = True
 
@@ -142,7 +146,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = ''
+
+STATIC_ROOT = config('SSM_STATIC_ROOT', default=os.path.join(BASE_DIR, 'static'))
 
 
 # Django REST Framework
@@ -191,3 +196,4 @@ CACHES = {
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_CACHE_BACKEND = 'django-cache'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'

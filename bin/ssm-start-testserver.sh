@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #? Description:
 #?   Start the Django testing server, and the Celery beat and worker.
@@ -6,7 +6,7 @@
 #?   sure to activate it before to run the setup.
 #?
 #? Usage:
-#?   start-testserver.sh [[IP:]PORT]
+#?   ssm-start-testserver.sh [[IP:]PORT]
 #?
 #? Options:
 #?   [[IP:]PORT]
@@ -15,18 +15,18 @@
 #?   The default IP address is `127.0.0.1`.
 #?   The default PORT is `8000`.
 #?
-declare WORK_DIR=$(cd "$(dirname "$0")"; pwd)
-source "$WORK_DIR/common.sh"
+
+# exit on any error
+set -e -o pipefail
 
 function main () {
     declare listen=$1
 
-    printf "Changing to Django directory...\n"
-    cd "$WORK_DIR/shadowsocks_manager"
-
     # don't quote the variable $listen, leave it this way on purpose
-    python manage.py runserver $listen --insecure &
-    celery -A shadowsocks_manager worker -l info -B &
+    # shellcheck disable=SC2086
+    ssm runserver $listen --insecure &
+    sleep 1
+    celery -A shadowsocks_manager.shadowsocks_manager worker -l info -B &
 }
 
 main "$@"
