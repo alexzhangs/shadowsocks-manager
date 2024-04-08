@@ -3,6 +3,10 @@ shadowsocks_manager/celerybeat-schedule.db
 shadowsocks_manager/db*.sqlite3
 shadowsocks_manager/*/migrations/*
 !shadowsocks_manager/*/migrations/__init__.py
+shadowsocks_manager/static
 .coverage
 coverage*.xml
 .idea
+build
+dist
+shadowsocks_manager.egg-info

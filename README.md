@@ -57,8 +57,7 @@ Node's Shadowsocks Manager:
 
 * Python 2.7, Python 3.x
 * Django 1.11.x, Django 3.x
-* macOS Big Sur (only the core python code tested, the installation scripts
-  work on Linux only)
+* macOS Big Sur
 * [AWS Amazon Linux AMI](https://aws.amazon.com/amazon-linux-ami/)
 * [AWS Amazon Linux 2 AMI](https://aws.amazon.com/amazon-linux-2/)
 * [Shadowsocks-libev 3.2.0 for Linux (multi-user API is required)](https://github.com/shadowsocks/shadowsocks-libev)
@@ -66,73 +65,32 @@ Node's Shadowsocks Manager:
 
 ## 2. Install
 
-NOTE: It's better to install the project within a virtualenv.
+This project is a part of an entire VPN solution, which includes the Shadowsocks server and Shadowsocks manager. The Shadowsocks server serves the traffic, the Shadowsocks manager serves the users and the traffic statistics. The solution is designed to be deployed in the AWS cloud. If you are looking for such a solution, you can refer to the repo [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn). With `aws-cfn-vpn`, you can deploy the entire solution with a few commands.
 
-Open a terminal on the server in which the shadowsocks-manager is going to run.
-
-1. Get the code:
+### 2.1. Install the dependencies
 
     ```sh
-    git clone https://github.com/alexzhangs/shadowsocks-manager
+    # used by django cache
+    docker run -d -p 11211:11211 --name memcached memcached
+    # used by django message broker
+    docker run -d -p 5672:5672 --name rabbitmq rabbitmq
     ```
 
-1. Install
+### 2.2. Install the project
 
-    The installation scripts can WORK ONLY ON LINUX and be tested only with Amazon Linux AMI and Amazon Linux 2 AMI.
+1. Install with pip (run with django test server)
 
-    Run below commands under root.
+    This is the manual way to install the project. It requires the manual setup of the project.
 
+    NOTE: It's better to install the project within a Python virtualenv.
+    
     ```sh
-    bash shadowsocks-manager/one-click-deploy.sh
+    pip install shadowsocks-manager
+    ssm-setup -K -D -c -m -l -u admin -p yourpassword -e admin@yourdomain.com
+    ssm-start-testserver
     ```
 
-    If you want to customize the shadowsocks-manager installation, see: `bash shadowsocks-manager/one-click-deploy.sh -h`:
-
-    ```
-    Description:
-      Deploy shadowsocks-manager with one single command.
-      Run this script under root on Linux.
-    
-    Usage:
-      one-click-deploy.sh [-n DOMAIN] [-u USERNAME] [-p PASSWORD] [-e EMAIL] [-t TIMEZONE] [-o PORT_BEGIN] [-O PORT_END] [-h]
-    
-    Options:
-      [-n DOMAIN]
-    
-      Domain name resolved to the shadowsocks-manager web application.
-    
-      [-u USERNAME]
-    
-      Username for shadowsocks-manager administrator, default is 'admin'.
-    
-      [-p PASSWORD]
-    
-      Password for shadowsocks-manager administrator, default is 'passw0rd'.
-    
-      [-e EMAIL]
-    
-      Email for the shadowsocks-manager administrator.
-      Also, be used as the sender of the account notification Email.
-    
-      [-t TIMEZONE]
-    
-      Set Django's timezone, default is 'UTC'.
-      Statistic period also senses this setting. Note that AWS billing is based on UTC.
-    
-      [-r PORT_BEGIN]
-    
-      Port range allowed for all Shadowsocks nodes.
-    
-      [-R PORT_END]
-    
-      Port range allowed for all Shadowsocks nodes.
-    
-      [-h]
-    
-      This help.
-    ```
-
-1. Verify the installation
+### 2.3. Verify the installation
 
     If all go smoothly, the shadowsocks-manager services should have been all started. Open the web admin console in a web browser, and log on with the admin user.
 
@@ -200,18 +158,7 @@ On macOS, refer to repo
 NOTE: This dependency needs the manual setup anyway, it is not handled by any installation script.
 
 
-## 5. Can the installation be easier?
-
-Yes, if you are deploying the services in the AWS.
-
-[aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn)
-is a set of AWS CloudFormation templates which let you
-deploy VPN services, including Shadowsocks (support cluster) and
-XL2TPD, with a single click. Also, this repo, shadowsocks-manager and
-all its dependencies are handled by `aws-cfn-vpn`.
-
-
-## 6. Differences from the alternation: [shadowsocks/shadowsocks-manager](https://github.com/shadowsocks/shadowsocks-manager)
+## 5. Differences from the alternation: [shadowsocks/shadowsocks-manager](https://github.com/shadowsocks/shadowsocks-manager)
 
 **This repo Do's:**
 
@@ -228,7 +175,7 @@ all its dependencies are handled by `aws-cfn-vpn`.
 * Need to run an additional agent on each Shadowsocks server.
 
 
-## 7. Some differences between the Shadowsocks Python version and libev version
+## 6. Some differences between the Shadowsocks Python version and libev version
 
 Although the [Shadowsocks Python version](https://github.com/shadowsocks/shadowsocks/tree/master)
 supports the multi-user API, but it doesn't fit this project, here's why:
@@ -242,13 +189,42 @@ supports the multi-user API, but it doesn't fit this project, here's why:
 
 So either you get some change on your own or stick with the libev version.
 
-## 8. Known Issues
+
+## 7. Known Issues
 
 1. DNS records matching for Node may not be accurate on macOS.
     For unknown reason sometimes DNS query returns only one IP address
 while multiple IP addresses were configured for the domain.
 
 
+## 8. Development
+
+1. Link the project code in your workspace to the Python environment
+
+    ```sh
+    cd shadowsocks-manager
+    pip install -e .
+    ```
+
+1. Configure the shadowsocks-manager
+
+    ```sh
+    ssm-setup -c -m -l -u admin -p yourpassword
+    ```
+
+1. Run the development server
+
+    ```sh
+    ssm-start-testserver
+    ```
+
+1. Stop the development server
+
+    ```sh
+    ssm-stop-testserver
+    ```
+
+    
 ## 9. Troubleshooting
 
 1. Check the logs
