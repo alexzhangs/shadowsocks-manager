@@ -67,39 +67,47 @@ Node's Shadowsocks Manager:
 
 This project is a part of an entire VPN solution, which includes the Shadowsocks server and Shadowsocks manager. The Shadowsocks server serves the traffic, the Shadowsocks manager serves the users and the traffic statistics. The solution is designed to be deployed in the AWS cloud. If you are looking for such a solution, you can refer to the repo [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn). With `aws-cfn-vpn`, you can deploy the entire solution with a few commands.
 
-### 2.1. Install the dependencies
+### 2.1. Manual installation
 
-    ```sh
-    # used by django cache
-    docker run -d -p 11211:11211 --name memcached memcached
-    # used by django message broker
-    docker run -d -p 5672:5672 --name rabbitmq rabbitmq
-    ```
+Assume you have installed the `docker` on your host.
 
-### 2.2. Install the project
+```sh
+# create a docker network
+docker network create ssm-network
 
-1. Install with pip (run with django test server)
+# run memcached, used by django cache
+docker run -d -p 11211:11211 --network ssm-network --name ssm-memcached memcached
 
-    This is the manual way to install the project. It requires the manual setup of the project.
+# run rabbitmq, used by celery
+docker run -d -p 5672:5672 --network ssm-network --name ssm-rabbitmq rabbitmq
 
-    NOTE: It's better to install the project within a Python virtualenv.
-    
-    ```sh
-    pip install shadowsocks-manager
-    ssm-setup -K -D -c -m -l -u admin -p yourpassword -e admin@yourdomain.com
-    ssm-start-testserver
-    ```
+# create a directory to store the data, it will be mounted to the container
+mkdir -p ~/ssm-volume
+
+# run the shadowsocks-manager
+docker run -d -p 80:80 --network ssm-network -v ~/ssm-volume:/var/local/ssm --name ssm shadowsocks-manager \
+           -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False -e SSM_MEMCACHED_HOST=ssm-memcached -e SSM_RABBITMQ_HOST=ssm-rabbitmq -u admin -p yourpassword -M admin@yourdomain.com
+```
+
+### 2.2. Install with script
+
+```sh
+git clone https://github.com/alexzhangs/shadowsocks-manager
+bash shadowsocks-manager/install.sh -u admin -p yourpassword -M admin@yourdomain.com
+```
 
 ### 2.3. Verify the installation
 
-    If all go smoothly, the shadowsocks-manager services should have been all started. Open the web admin console in a web browser, and log on with the admin user.
+If all go smoothly, the shadowsocks-manager services should have been all started. Open the web admin console in a web browser, and log on with the admin user.
 
-    Use:
-    ```
-    http://<your_server_ip>/admin
-    ```
+Use:
+```
+http://<your_server_ip>/admin
+or 
+http://localhost/admin
+```
 
-    If goes well, then congratulations! The installation has succeeded.
+If goes well, then congratulations! The installation has succeeded.
 
 
 ## 3. Using shadowsocks-manager
@@ -199,6 +207,16 @@ while multiple IP addresses were configured for the domain.
 
 ## 8. Development
 
+1. Install the dependencies
+
+    ```sh
+    # run memcached, used by django cache
+    docker run -d -p 11211:11211 --name ssm-memcached memcached
+
+    # run rabbitmq, used by celery
+    docker run -d -p 5672:5672 --name ssm-rabbitmq rabbitmq
+    ```
+
 1. Link the project code in your workspace to the Python environment
 
     ```sh
@@ -215,13 +233,13 @@ while multiple IP addresses were configured for the domain.
 1. Run the development server
 
     ```sh
-    ssm-start-testserver
+    ssm-dev-start
     ```
 
 1. Stop the development server
 
     ```sh
-    ssm-stop-testserver
+    ssm-dev-stop
     ```
 
     
@@ -231,7 +249,7 @@ while multiple IP addresses were configured for the domain.
 
     ```
     # supervisor
-    cat /tmp/supervisord.log
+    cat /var/log/supervisor/supervisord.log
 
     # uWSGI
     cat /var/log/ssm-uwsgi.log

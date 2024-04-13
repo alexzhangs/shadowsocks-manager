@@ -1,19 +1,22 @@
 #!/usr/bin/env python
 """
 Description:
-    ssm-superuser is a command-line utility for administrative tasks.
+    ssm-createsuperuser is a command-line utility for administrative tasks.
     It is used to manage the superuser account for the shadowsocks-manager.
 
 Usage:
-    ssm-superuser --username USERNAME --password PASSWORD [--email EMAIL]
+    ssm-createsuperuser --username USERNAME --password PASSWORD [--email EMAIL]
 
 Options:
     -u --username=USERNAME     Username for the superuser account.
     -p --password=PASSWORD     Password for the superuser account.
     -e --email=EMAIL           Email for the superuser account.
 
-Examples:
-    ssm-superuser -u admin -p admin123 -e admin@example.com
+Returns:
+    None
+
+Example:
+    ssm-createsuperuser -u admin -p admin123 -e admin@example.com
 """
 import os
 import sys
@@ -23,14 +26,6 @@ from docopt import docopt
 def create_superuser(username, password, email):
     # prefix package name to allow being called outside of django environment
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "shadowsocks_manager.shadowsocks_manager.settings")
-    try:
-        from django.core.management import execute_from_command_line
-    except ImportError as exc:
-        raise ImportError(
-            "Couldn't import Django. Are you sure it's installed and "
-            "available on your PYTHONPATH environment variable? Did you "
-            "forget to activate a virtual environment?"
-        ) from exc
 
     django_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

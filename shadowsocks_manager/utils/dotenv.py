@@ -11,8 +11,11 @@ Options:
     [-w ENVS ...]   Write enviaronment variables in KEY=VALUE format for .env file.
                     The .env file is used by django settings.
 
-Examples:
-    ssm-dotenv -w SSM_DEBUG=False SSM_SECRET_KEY=yourkey
+Returns:
+    None
+
+Example:
+    ssm-dotenv -w SSM_SECRET_KEY=yourkey SSM_DEBUG=False
 """
 import os
 from docopt import docopt
@@ -58,7 +61,7 @@ def main():
                 else:
                     f.write(line)
             if not key_found:
-                f.write(new_line)
+                f.write('\n' + new_line)
                 print(f"Added environment variable '{key}' to .env file.")
 
 
