@@ -17,9 +17,11 @@ from decouple import config
 
 import os
 
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+DATA_HOME = config('SSM_DATA_HOME', default=BASE_DIR)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
@@ -73,7 +75,7 @@ MIDDLEWARE = [
 ]
 
 # prefix package name to allow being called outside of django environment
-ROOT_URLCONF = 'shadowsocks_manager.shadowsocks_manager.urls'
+ROOT_URLCONF = 'shadowsocks_manager.urls'
 
 TEMPLATES = [
     {
@@ -92,18 +94,20 @@ TEMPLATES = [
 ]
 
 # prefix package name to allow being called outside of django environment
-WSGI_APPLICATION = 'shadowsocks_manager.shadowsocks_manager.wsgi.application'
+WSGI_APPLICATION = 'shadowsocks_manager.wsgi.application'
 
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
+DB_ROOT = os.path.join(DATA_HOME, 'db')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'NAME': os.path.join(DB_ROOT, 'db.sqlite3'),
         'TEST': {
-            'NAME': os.path.join(BASE_DIR, 'db-test.sqlite3'),
+            'NAME': os.path.join(DB_ROOT, 'db-test.sqlite3'),
         },
     }
 }
@@ -147,7 +151,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-STATIC_ROOT = config('SSM_STATIC_ROOT', default=os.path.join(BASE_DIR, 'static'))
+STATIC_ROOT = os.path.join(DATA_HOME, 'static')
 
 
 # Django REST Framework
@@ -185,15 +189,25 @@ LOGGING = {
 }
 
 
+# Memcached
+
+MEMCACHED_HOST = config('SSM_MEMCACHED_HOST', default='localhost')
+MEMCACHED_PORT = config('SSM_MEMCACHED_PORT', default='11211')
+
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '127.0.0.1:11211',
+        'LOCATION': '{}:{}'.format(MEMCACHED_HOST, MEMCACHED_PORT),
     }
 }
 
 
+# Celery
+
+RABBITMQ_HOST = config('SSM_RABBITMQ_HOST', default='localhost')
+RABBITMQ_PORT = config('SSM_RABBITMQ_PORT', default='5672')
+
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_CACHE_BACKEND = 'django-cache'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+CELERY_BROKER_URL = 'amqp://guest:guest@{}:{}//'.format(RABBITMQ_HOST, RABBITMQ_PORT)

@@ -6,32 +6,57 @@
 #?   sure to activate it before to run the setup.
 #?
 #? Usage:
-#?   ssm-setup.sh [-k SECRET_KEY | -K] [-d | -D] [-t TIMEZONE] [-c] [-m] [-l] [-u USERNAME -p PASSWORD [-e EMAIL]] [-r PORT_BEGIN] [-R PORT_END] [-h]
+#?   ssm-setup.sh [-e ENV ...]
+#?                [-c] [-m] [-l] [-u USERNAME -p PASSWORD [-M EMAIL]] [-r PORT_BEGIN] [-R PORT_END] [-h]
 #?
 #? Options:
-#?   [-k SECRET_KEY]
+#?   [-e ENV ...]
 #?
-#?   Set Django's SECRET_KEY.
-#?   Please use either -k or -K to update the default SECRET_KEY in production environment.
+#?   Set the environment variables in KEY=VALUE format for .env file.
+#?   The .env file is used by Django settings.
+#?   This option can be used multiple times.
 #?
-#?   [-K]
+#?   The valid KEYs are:
 #?
-#?   Set Django's SECRET_KEY to a random value. You can fetch this value afterwords from the .env file.
+#?   - SSM_SECRET_KEY
 #?
-#?   [-d]
+#?     Set Django's SECRET_KEY.
+#?     The default value is hardcoded in the .env file and Django's settings.
+#?     Do not use the default value in production environment.
+#?     Below command will generate a random SECRET_KEY:
+#?     ```sh
+#?     $ od -vN 25 -An -tx1 /dev/urandom | tr -d ' \n'
+#?     ```
 #?
-#?   Set Django's DEBUG to True.
-#?   Do not use this option in production environment.
+#?   - SSM_DEBUG
 #?
-#?   [-D]
+#?     Set Django's DEBUG.
+#?     The value can be 'True' or 'False'.
+#?     The default value depends on the .env file and Django's settings.
+#?     Do not use value SSM_DEBUG=True in production environment.
 #?
-#?   Set Django's DEBUG to False, this is django's default setting.
-#?   Please use this option in production environment.
+#?   - SSM_TIME_ZONE
 #?
-#?   [-t TIMEZONE]
+#?     Set Django's TIME_ZONE.
+#?     The value can be any valid timezone name.
+#?     The default value depends on the .env file and Django's settings.
 #?
-#?   Set Django's TIMEZONE, default is 'UTC'.
-#?   Statistic period also senses this setting. Note that AWS billing is based on UTC.
+#?   - SSM_DATA_HOME
+#?
+#?     Set the base directory for the Django database and static files.
+#?     The default value depends on the .env file and Django's settings.
+#?
+#?   - SSM_MEMCACHED_HOST, SSM_MEMCACHED_PORT
+#?
+#?     Set the Memcached server's host and port which are used by Django cache.
+#?     The default value depends on the .env file and Django's settings.
+#? 
+#?   - SSM_RABBITMQ_HOST, SSM_RABBITMQ_PORT
+#?
+#?     Set the RabbitMQ server's host and port which are used by Celery.
+#?     The default value depends on the .env file and Django's settings.
+#?
+#?   However, this script will not check the validity of the KEYs and VALUEs.
 #?
 #?   [-c]
 #?
@@ -51,25 +76,30 @@
 #?   [-u USERNAME]
 #?
 #?   Username for shadowsocks-manager administrator.
+#?   No default value.
 #?   This is necessary for the first time setup.
 #?
 #?   [-p PASSWORD]
 #?
 #?   Password for shadowsocks-manager administrator'.
+#?   No default value.
 #?   This is necessary for the first time setup.
 #?
-#?   [-e EMAIL]
+#?   [-M EMAIL]
 #?
 #?   Email for the shadowsocks-manager administrator.
 #?   Also, be used as the sender of the account notification Email.
+#?   No default value.
 #?
 #?   [-r PORT_BEGIN]
 #?
-#?   Port range allowed for all Shadowsocks nodes.
+#?   The beginning port number for Shadowsocks nodes.
+#?   The default value depends on the Django fixture data.
 #?
 #?   [-R PORT_END]
 #?
-#?   Port range allowed for all Shadowsocks nodes.
+#?   The ending port number for Shadowsocks nodes.
+#?   The default value depends on the Django fixture data.
 #?
 #?   [-h]
 #?
@@ -80,10 +110,10 @@
 #?   $ ssm-setup -c -m -l -u admin -p yourpassword
 #?
 #?   # Update a development environment to be production ready:
-#?   $ ssm-setup -K -D
+#?   $ ssm-setup -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False
 #?
 #?   # First time setup in production environment:
-#?   $ ssm-setup -K -D -c -m -l -u admin -p yourpassword -e admin@example.com
+#?   $ ssm-setup -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False -c -m -l -u admin -p yourpassword -M admin@yourdomain.com
 #?
 
 # exit on any error
@@ -101,30 +131,15 @@ function check-os () {
     fi
 }
 
-function guid () {
-    od -vN "$(($1 / 2))" -An -tx1 /dev/urandom | tr -d ' \n'
-}
-
 function main () {
-    declare secret_key debug_flag timezone collect_flag migrate_flag loaddata_flag username password email port_begin port_end \
+    declare -a envs
+    declare collect_flag migrate_flag loaddata_flag username password email port_begin port_end \
             OPTIND OPTARG opt
 
-    while getopts k:KdDt:cmlu:p:e:r:R:h opt; do
+    while getopts e:cmlu:p:M:r:R:h opt; do
         case $opt in
-            k)
-                secret_key=$OPTARG
-                ;;
-            K)
-                secret_key=$(guid 50)
-                ;;
-            d)
-                debug_flag=True
-                ;;
-            D)
-                debug_flag=False
-                ;;
-            t)
-                timezone=$OPTARG
+            e)
+                envs+=("$OPTARG")
                 ;;
             c)
                 collect_flag=1
@@ -141,7 +156,7 @@ function main () {
             p)
                 password=$OPTARG
                 ;;
-            e)
+            M)
                 email=$OPTARG
                 ;;
             r)
@@ -164,29 +179,21 @@ function main () {
         exit 255
     fi
 
-    if [[ -n $secret_key ]]; then
-        ssm-dotenv -w "SSM_SECRET_KEY=$secret_key"
-    fi
-
-    if [[ -n $debug_flag ]]; then
-        ssm-dotenv -w "SSM_DEBUG=$debug_flag"
-    fi
-
-    if [[ -n $timezone ]]; then
-        ssm-dotenv -w "SSM_TIME_ZONE=$timezone"
+    if [[ -n ${envs[*]} ]]; then
+        ssm-dotenv -w "${envs[@]}"
     fi
 
     if [[ -n $collect_flag ]]; then
-        ssm collectstatic --no-input -c
+        ssm-manage collectstatic --no-input -c
     fi
 
     if [[ -n $migrate_flag ]]; then
-        ssm makemigrations
-        ssm migrate
+        ssm-manage makemigrations
+        ssm-manage migrate
     fi
 
     if [[ -n $loaddata_flag ]]; then
-        ssm loaddata fixtures/auth.group.json \
+        ssm-manage loaddata fixtures/auth.group.json \
                fixtures/sites.site.json \
                fixtures/django_celery_beat.crontabschedule.json \
                fixtures/django_celery_beat.intervalschedule.json \
@@ -197,15 +204,15 @@ function main () {
     fi
 
     if [[ -n $username && -n $password ]]; then
-        ssm-superuser --username "$username" --password "$password" --email "$email"
+        ssm-createsuperuser --username "$username" --password "$password" --email "$email"
     fi
 
     if [[ -n $port_begin ]]; then
-        ssm shadowsocks_config --port-begin "$port_begin"
+        ssm-manage shadowsocks_config --port-begin "$port_begin"
     fi
 
     if [[ -n $port_end ]]; then
-        ssm shadowsocks_config --port-end "$port_end"
+        ssm-manage shadowsocks_config --port-end "$port_end"
     fi
 }
 

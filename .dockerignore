@@ -1,7 +1,7 @@
 **/.DS_Store
 **/__pycache__
-*.pyc
-*.sqlite3
+**/*.pyc
+**/*.sqlite3
 shadowsocks_manager.egg-info
 shadowsocks_manager/static
 shadowsocks_manager/data
@@ -12,3 +12,5 @@ shadowsocks_manager/coverage*.xml
 .idea
 build
 dist
+install.sh
+.git
