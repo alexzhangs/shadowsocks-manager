@@ -87,7 +87,7 @@ docker run -d -p 5672:5672 --network ssm-network --name ssm-rabbitmq rabbitmq
 mkdir -p ~/ssm-volume
 
 # run the shadowsocks-manager
-docker run -d -p 80:80 --network ssm-network -v ~/ssm-volume:/var/local/ssm --name ssm shadowsocks-manager \
+docker run -d -p 80:80 --network ssm-network -v ~/ssm-volume:/var/local/ssm --name ssm alexzhangs/shadowsocks-manager \
            -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False -e SSM_MEMCACHED_HOST=ssm-memcached -e SSM_RABBITMQ_HOST=ssm-rabbitmq \
            -u admin -p yourpassword -M admin@yourdomain.com
 ```
