@@ -67,9 +67,11 @@ Node's Shadowsocks Manager:
 
 This project is a part of an entire VPN solution, which includes the Shadowsocks server and Shadowsocks manager. The Shadowsocks server serves the traffic, the Shadowsocks manager serves the users and the traffic statistics. The solution is designed to be deployed in the AWS cloud. If you are looking for such a solution, you can refer to the repo [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn). With `aws-cfn-vpn`, you can deploy the entire solution with a few commands.
 
-### 2.1. Manual installation
+### 2.1. Dependencies
 
-Assume you have installed the `docker` on your host.
+Assume you have installed the [Docker](https://www.docker.com/) on your host.
+
+### 2.2. Manual installation
 
 ```sh
 # create a docker network
@@ -86,17 +88,18 @@ mkdir -p ~/ssm-volume
 
 # run the shadowsocks-manager
 docker run -d -p 80:80 --network ssm-network -v ~/ssm-volume:/var/local/ssm --name ssm shadowsocks-manager \
-           -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False -e SSM_MEMCACHED_HOST=ssm-memcached -e SSM_RABBITMQ_HOST=ssm-rabbitmq -u admin -p yourpassword -M admin@yourdomain.com
+           -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False -e SSM_MEMCACHED_HOST=ssm-memcached -e SSM_RABBITMQ_HOST=ssm-rabbitmq \
+           -u admin -p yourpassword -M admin@yourdomain.com
 ```
 
-### 2.2. Install with script
+### 2.3. Install with script
 
 ```sh
 git clone https://github.com/alexzhangs/shadowsocks-manager
 bash shadowsocks-manager/install.sh -u admin -p yourpassword -M admin@yourdomain.com
 ```
 
-### 2.3. Verify the installation
+### 2.4. Verify the installation
 
 If all go smoothly, the shadowsocks-manager services should have been all started. Open the web admin console in a web browser, and log on with the admin user.
 
