@@ -22,7 +22,7 @@
 #   $ docker run -d -p 80 shadowsocks-manager
 #
 #   # for production environment
-#   $ docker run -d -p 80 -v /path/on/your/host:/var/local/ssm shadowsocks-manager \
+#   $ docker run -d -p 80 -v /path/on/your/host:/var/local/ssm alexzhangs/shadowsocks-manager \
 #                -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False -u admin -p yourpassword -M admin@yourdomain.com
 #
 # For more information, please refer to the project repository:

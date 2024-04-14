@@ -143,7 +143,7 @@ function main () {
 
     # run shadowsocks-manager
     echo "Running ssm ..."
-    docker run -d -p 80:80 --network ssm-network -v $volume_path:/var/local/ssm --name ssm shadowsocks-manager \
+    docker run -d -p 80:80 --network ssm-network -v $volume_path:/var/local/ssm --name ssm alexzhangs/shadowsocks-manager \
                "${env_options[@]}" -u "$username" -p "$password" -M "$email" -r "$port_begin" -R "$port_end"
 }
 
