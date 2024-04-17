@@ -21,11 +21,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install system packages
         run: |
+          pip install --upgrade pip
           echo -e '#!/usr/bin/env bash\n' | sudo tee /usr/sbin/sendmail
           sudo chmod 755 /usr/sbin/sendmail
       - name: Install this project
         run: |
-          pip install -r requirments.txt
+          pip install -r requirements.txt
       - name: Run Django testcases
         run: |
           pip install coverage
