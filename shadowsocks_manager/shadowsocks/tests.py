@@ -12,7 +12,7 @@ from botocore.exceptions import ClientError
 from domain.models import Record
 from domain.tests import DomainTestCase
 from notification.tests import NotificationTestCase
-from . import models, serializers
+from shadowsocks import models, serializers
 
 
 # https://github.com/mayermakes/Get_IP
@@ -32,7 +32,7 @@ ip = get_ip()
 
 # Create your tests here.
 class AllData:
-    fixtures = ['config.json', 'auth.group.json']
+    fixtures = ['config.json', 'fixtures/auth.group.json']
     fixtures.extend(DomainTestCase.fixtures)
     fixtures.extend(NotificationTestCase.fixtures)
     testcases = ['ConfigTestCase', 'AccountTestCase', 'NodeTestCase', 'SSManagerTestCase', 'NodeAccountTestCase']
@@ -438,7 +438,7 @@ class SSManagerTestCase(TestCase):
         self.assertTrue(obj.is_server_enabled)
         self.assertTrue(obj.server.version)
         # failed to pass this on travis
-        #self.assertRegexpMatches(obj.server.status, 'running')
+        self.assertRegexpMatches(obj.server.status, 'running')
 
         print('testing SSManager add() ...')
         obj.add(port, 'mock-password')
