@@ -7,7 +7,7 @@ from __future__ import absolute_import
 import json
 from django.test import TestCase
 
-from . import models, serializers
+from notification import models, serializers
 
 
 # Create your tests here.

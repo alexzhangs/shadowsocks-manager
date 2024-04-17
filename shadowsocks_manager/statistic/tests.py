@@ -8,7 +8,7 @@ import json
 from django.test import TestCase
 
 from shadowsocks.tests import AllData as ShadowsocksTestData
-from . import models, serializers
+from statistic import models, serializers
 
 # Create your tests here.
 class PeriodTestCase(TestCase):

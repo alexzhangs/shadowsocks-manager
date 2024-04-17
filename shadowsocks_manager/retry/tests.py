@@ -6,7 +6,7 @@ from __future__ import absolute_import
 
 from unittest import TestCase
 
-from . import retry
+from retry import retry
 
 # Create your tests here.
 class RetryTestCase(TestCase):
