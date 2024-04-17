@@ -32,6 +32,8 @@ SECRET_KEY = config('SSM_SECRET_KEY', default='ef24ff499c58a21711385e8a6b31a7680
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('SSM_DEBUG', default=True, cast=bool)
 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 from allowedsites import CachedAllowedSites
 ALLOWED_HOSTS = CachedAllowedSites(
     defaults=('localhost', '127.0.0.1',),
