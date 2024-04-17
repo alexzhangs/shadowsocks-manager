@@ -19,6 +19,8 @@
 #?   If any option is provided, the ssm-setup will be executed with the provided options.
 #?
 #? Environment:
+#?   The following environment variables are used by this script:
+#?
 #?   - SSM_USER
 #?
 #?     Required.

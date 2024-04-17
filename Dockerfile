@@ -6,7 +6,7 @@
 #   - /var/local/ssm: Data home directory for shadowsocks-manager in the container.
 #
 # Environment:
-#   Export the following environment variables to configure the shadowsocks-manager:
+#   The following environment variables are exported in the Dockerfile:
 #
 #   - SSM_USER:         The user name for running the shadowsocks-manager. 
 #   - SSM_DATA_HOME:    The data home directory for shadowsocks-manager in the container.
