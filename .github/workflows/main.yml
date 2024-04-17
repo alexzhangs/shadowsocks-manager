@@ -1,0 +1,44 @@
+name: Test shadowsocks-manager
+'on':
+  push:
+    branches:
+      - '**/*'
+  pull_request: null
+  schedule:
+    - cron: 23 11 * * 5
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.7.*', '3.8.*', '3.9.*', '3.10.*', '3.11.*', '3.12.*']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install system packages
+        run: |
+          echo -e '#!/usr/bin/env bash\n' | sudo tee /usr/sbin/sendmail
+          sudo chmod 755 /usr/sbin/sendmail
+      - name: Install this project
+        run: |
+          pip install -r requirments.txt
+      - name: Run Django testcases
+        run: |
+          pip install coverage
+          ssm-test -c
+      - name: Upload coverage report to Codecov
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: |
+          pip install codecov-cli
+          ssm-test -u
+      - name: Test Dockerfile
+        run: |
+          docker build -t alexzhangs/shadowsocks-manager .
+      - name: Test installer
+        run: |
+          bash install.sh
