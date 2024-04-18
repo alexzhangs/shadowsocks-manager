@@ -22,7 +22,6 @@ jobs:
       - name: Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y libssl-dev
           pip install --upgrade pip
           echo -e '#!/usr/bin/env bash\n' | sudo tee /usr/sbin/sendmail
           sudo chmod 755 /usr/sbin/sendmail
