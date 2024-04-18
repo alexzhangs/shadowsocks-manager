@@ -1,0 +1,1 @@
+[{"model": "shadowsocksz.config", "pk": 1, "fields": {"port_begin": 8381, "port_end": 8480, "timeout_remote": 3, "timeout_local": 0.5, "cache_timeout": 300, "dt_created": "2019-05-03T19:03:55.716Z", "dt_updated": "2019-05-16T17:11:38.233Z"}}]

@@ -831,7 +831,8 @@ class SSServer(object):
     def __init__(self, manager, *args, **kwargs):
         super(SSServer, self).__init__(*args, **kwargs)
         self.manager = manager
-        self.lift_pip_shadowsocks()
+        # the lift_pip_shadowsocks is no longer needed after the django app shadowsocks was renamed to shadowsocksz
+        # self.lift_pip_shadowsocks()
 
     def pidfile(self, original=False):
         return '/tmp/shadowsocks-{}.pid'.format(self.manager._original_port if original else self.manager.port)

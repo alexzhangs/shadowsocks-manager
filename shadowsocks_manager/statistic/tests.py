@@ -7,7 +7,7 @@ from __future__ import absolute_import
 import json
 from django.test import TestCase
 
-from shadowsocks.tests import AllData as ShadowsocksTestData
+from shadowsocksz.tests import AllData as ShadowsocksTestData
 from statistic import models, serializers
 
 # Create your tests here.

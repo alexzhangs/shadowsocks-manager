@@ -13,7 +13,7 @@ from botocore.exceptions import ClientError
 from domain.models import Record
 from domain.tests import DomainTestCase
 from notification.tests import NotificationTestCase
-from shadowsocks import models, serializers
+from shadowsocksz import models, serializers
 
 
 # https://github.com/mayermakes/Get_IP
