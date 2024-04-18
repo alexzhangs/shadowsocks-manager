@@ -60,7 +60,7 @@ INSTALLED_APPS = [
     'import_export',
     'rest_framework',
     'django_filters',
-    'shadowsocks',
+    'shadowsocksz',
     'statistic',
     'notification',
     'domain',

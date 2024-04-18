@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
-from shadowsocks.models import Config
+from shadowsocksz.models import Config
 
 class Command(BaseCommand):
-    help = 'Set shadowsocks config parameters'
+    help = 'Set shadowsocksz config parameters'
     django_default_options = ('verbosity', 'settings', 'pythonpath', 'traceback', 'no_color', 
                        'force_color', 'skip_checks')
 
@@ -21,4 +21,4 @@ class Command(BaseCommand):
 
             if value is not None:
                 Config.objects.update(**{key: value})
-                self.stdout.write(self.style.SUCCESS(f'Successfully set shadowsocks.config.{key} to {value}'))
+                self.stdout.write(self.style.SUCCESS(f'Successfully set shadowsocksz.config.{key} to {value}'))
