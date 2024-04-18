@@ -103,6 +103,8 @@ WSGI_APPLICATION = 'shadowsocks_manager.wsgi.application'
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
 DB_ROOT = os.path.join(DATA_HOME, 'db')
+if not os.path.exists(DB_ROOT):
+    os.makedirs(DB_ROOT)
 
 DATABASES = {
     'default': {
