@@ -2,21 +2,10 @@
 [![GitHub](https://img.shields.io/github/license/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
 [![GitHub last commit](https://img.shields.io/github/last-commit/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/commits/master)
 
-[![Travis (.com)](https://img.shields.io/travis/com/alexzhangs/shadowsocks-manager/master.svg?style=flat-square)](https://travis-ci.com/alexzhangs/shadowsocks-manager)
-[![codecov](https://codecov.io/gh/alexzhangs/shadowsocks-manager/branch/master/graph/badge.svg?token=KTI3TNRKAV)](https://codecov.io/gh/alexzhangs/shadowsocks-manager)
+[![Test shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/main.yml/badge.svg)](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/main.yml)
+[![codecov](https://codecov.io/gh/alexzhangs/shadowsocks-manager/graph/badge.svg?token=KTI3TNRKAV)](https://codecov.io/gh/alexzhangs/shadowsocks-manager)
 [![GitHub issues](https://img.shields.io/github/issues/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/pulls)
-
-| Python:2.7        | Python:3.6        | Python:3.7        | Python:3.8        | Python:3.9        |
-|-------------------|-------------------|-------------------|-------------------|-------------------|
-| [![Build1][1]][0] | [![Build2][2]][0] | [![Build3][3]][0] | [![Build4][4]][0] | [![Build5][5]][0] |
-
-[0]: https://travis-ci.com/alexzhangs/shadowsocks-manager
-[1]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/1?use_travis_com=true
-[2]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/2?use_travis_com=true
-[3]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/3?use_travis_com=true
-[4]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/4?use_travis_com=true
-[5]: https://travis-matrix-badges.herokuapp.com/repos/alexzhangs/shadowsocks-manager/branches/master/5?use_travis_com=true
 
 # shadowsocks-manager
 
@@ -186,9 +175,13 @@ NOTE: This dependency needs the manual setup anyway, it is not handled by any in
 * Need to run an additional agent on each Shadowsocks server.
 
 
-## 6. Some differences between the Shadowsocks Python version and libev version
+## 6. Some differences between the Shadowsocks Python version (2.8.2) and libev version
 
-Although the [Shadowsocks Python version](https://github.com/shadowsocks/shadowsocks/tree/master)
+Version status for the Shadowsocks Python version:
+* pypi: [2.8.2](https://pypi.org/project/shadowsocks/)
+* github: [3.0.0](https://github.com/shadowsocks/shadowsocks/tree/master)
+
+Although the Shadowsocks Python version
 supports the multi-user API, but it doesn't fit this project, here's why:
 
 * The python version code and doc seem to be out of maintenance due to some reason. If you really need this you probably need to fork it and make your own.
@@ -200,6 +193,15 @@ supports the multi-user API, but it doesn't fit this project, here's why:
 
 So either you get some change on your own or stick with the libev version.
 
+### Update for Shadowsocks Python version on 2024-04
+
+Both the pypi version (2.8.2) and the github master branch (3.0.0) failed to start `ssserver` due to the upstream and dependency changes.
+
+Since the Python version is pre-installed in this project, mainly for running test cases, I have to make a patch to make it work.
+
+The fix based on github master branch 3.0.0, and would be minimal, just to make the `ssserver` start without any error, no more features added.
+After the fix, the pre-installed Python version will be changed from the pypi version to [my fork](https://github.com/alexforks/shadowsocks/tree/master).
+
 
 ## 7. Known Issues
 
@@ -207,6 +209,20 @@ So either you get some change on your own or stick with the libev version.
     For unknown reason sometimes DNS query returns only one IP address
 while multiple IP addresses were configured for the domain.
 
+1. The Shadowsocks Python version's ssserver won't start on macOS.
+    The error message is like:
+    ```
+    $ ssserver -k 8388 -p password
+    WARNING: /Users/***/.pyenv/versions/3.12.0/envs/ssm-3.12/bin/python3.12 is loading libcrypto in an unsafe way
+    Abort trap: 6
+    ```
+
+    Solution:
+    Link the homebrew openssl library to the system library.
+    ```sh
+    sudo ln -s /opt/homebrew/opt/openssl/lib/libcrypto.dylib /usr/local/lib/
+    sudo ln -s /opt/homebrew/opt/openssl/lib/libssl.dylib /usr/local/lib/
+    ```
 
 ## 8. Development
 
@@ -243,6 +259,19 @@ while multiple IP addresses were configured for the domain.
 
     ```sh
     ssm-dev-stop
+    ```
+
+1. Test the Django code
+
+    ```sh
+    ssm-test -t
+    ```
+
+1. Test the Github workflows locally
+
+    ```sh
+    brew install act
+    act -j test
     ```
 
     
