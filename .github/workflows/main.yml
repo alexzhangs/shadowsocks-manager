@@ -22,10 +22,12 @@ jobs:
       - name: Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y openssl
+          sudo apt-get install -y libssl-dev
           pip install --upgrade pip
           echo -e '#!/usr/bin/env bash\n' | sudo tee /usr/sbin/sendmail
           sudo chmod 755 /usr/sbin/sendmail
+          docker run -d -p 11211:11211 --name ssm-memcached memcached
+          docker run -d -p 5672:5672 --name ssm-rabbitmq rabbitmq
       - name: Install this project
         run: |
           pip install -r requirements.txt
