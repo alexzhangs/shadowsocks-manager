@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import json
+import re
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from botocore.exceptions import ClientError
@@ -437,7 +438,9 @@ class SSManagerTestCase(TestCase):
         self.assertTrue(obj.is_accessible)
         self.assertTrue(obj.is_server_enabled)
         self.assertTrue(obj.server.version)
-        self.assertRegexpMatches(obj.server.status, '(running|sleeping)')
+        #self.assertRegexpMatches(obj.server.status, '(running|sleeping)')
+        #self.assertRegex(obj.server.status, '(running|sleeping)')
+        self.assertTrue(re.match('(running|sleeping)', obj.server.status or ''))
 
         print('testing SSManager add() ...')
         obj.add(port, 'mock-password')
