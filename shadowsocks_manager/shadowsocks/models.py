@@ -899,12 +899,16 @@ class SSServer(object):
         elif self.manager.server_edition == ServerEditionList.PYTHON:
             command = ['ssserver', '--version']
 
+        print(command)
         try:
             (rc, stdout, stderr) = self.call(command)
             if rc == 0:
                 return stdout.split(' ')[1].strip('\n')
-        except OSError:
-            pass
+            else:
+                print(rc, stdout, stderr)
+        except OSError as e:
+            print(e)
+            #pass
 
     @property
     def status(self):
