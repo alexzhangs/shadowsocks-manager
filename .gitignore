@@ -4,7 +4,7 @@
 *.sqlite3*
 shadowsocks_manager.egg-info
 shadowsocks_manager/static
-shadowsocks_manager/data
+shadowsocks_manager/db
 shadowsocks_manager/*/migrations/*
 !shadowsocks_manager/*/migrations/__init__.py
 shadowsocks_manager/.coverage
