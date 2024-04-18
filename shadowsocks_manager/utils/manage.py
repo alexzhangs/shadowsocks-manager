@@ -22,8 +22,8 @@ def main():
         $ ssm-manage runserver
         $ ssm-manage shell
     """
-    subprocess.call(["ssm", "python", "manage.py"] + sys.argv[1:])
+    return subprocess.call(["ssm", "python", "manage.py"] + sys.argv[1:])
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

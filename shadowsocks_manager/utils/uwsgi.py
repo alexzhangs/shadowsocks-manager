@@ -20,8 +20,8 @@ def main():
     Example:
         $ ssm-uwsgi
     """
-    subprocess.call(["ssm", "uwsgi", "--ini", "uwsgi.ini"] + sys.argv[1:])
+    return subprocess.call(["ssm", "uwsgi", "--ini", "uwsgi.ini"] + sys.argv[1:])
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

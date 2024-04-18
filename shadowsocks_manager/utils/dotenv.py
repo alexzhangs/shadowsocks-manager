@@ -18,6 +18,7 @@ Example:
     ssm-dotenv -w SSM_SECRET_KEY=yourkey SSM_DEBUG=False
 """
 import os
+import sys
 from docopt import docopt
 
 
@@ -66,4 +67,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
