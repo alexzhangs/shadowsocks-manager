@@ -21,8 +21,8 @@ def main():
         $ ssm-celery worker -l info
         $ ssm-celery beat -l info
     """
-    subprocess.call(["ssm", "celery", "-A", "shadowsocks_manager"] + sys.argv[1:])
+    return subprocess.call(["ssm", "celery", "-A", "shadowsocks_manager"] + sys.argv[1:])
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

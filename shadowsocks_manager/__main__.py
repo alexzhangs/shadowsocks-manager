@@ -38,8 +38,8 @@ def main():
 
  
     # make the proxy call
-    subprocess.call(sys.argv[1:])
+    return subprocess.call(sys.argv[1:])
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
