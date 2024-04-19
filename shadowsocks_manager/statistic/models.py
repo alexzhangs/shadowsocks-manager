@@ -222,7 +222,7 @@ class Statistic(models.Model):
         # Collect the base statistic data depended by all other statistic
         for node in Node.objects.filter(is_active=True):
             ts = timezone.now()
-            ss_stat = node.ssmanager.ping_ex()
+            ss_stat = node.ssmanager.ping_ex() if node.ssmanager else None
             if ss_stat:
                 # NodeAccount Monthly
                 for na in node.accounts_ref.filter(is_active=True):
