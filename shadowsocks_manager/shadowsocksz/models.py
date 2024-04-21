@@ -954,8 +954,7 @@ class SSServer(object):
             '--log-file', self.logfile(),
             '-d', 'start',
             '--manager-address', '{}:{}'.format(self.manager._ip, self.manager.port),  # the options order matters
-            '-p', str(Config.load().port_begin),
-            '-k', 'password',
+            '-k', 'passw0rd',
             '-m', self.manager.encrypt,
             '-t', str(self.manager.timeout),
             '--fast-open', str(self.manager.fastopen),
