@@ -23,10 +23,10 @@ Features:
 * Auto-creating DNS records
 * Production deployment ready
 * How's the Shadowsocks supported:
-    * libev version:
+    * libev edition:
         * Full functional.
         * No builtin service manager, you need to install it and start the service by yourself.
-    * python version:
+    * python edition:
         * Lacks the collection of traffic statistics.
         * Lacks the ability to test user port creation status.
         * Pre-installed, and have a builtin service manager.
@@ -132,16 +132,16 @@ Shadowsocks Accounts` and assign the existing nodes to them.
     After a few seconds, the created user ports should be available to your
 Shadowsocks client.
 
-1. The builtin local service manager for Shadowsocks python version
+1. The builtin local service manager for Shadowsocks python edition
 
-    There's a builtin local service manager available for the Shadowsocks `python version`. 
+    There's a builtin local service manager available for the Shadowsocks `python edition`. 
 
-    The `python version` is pre-installed with `shadowsocks-manager`. With the service manager, you can start&stop
+    The `python edition` is pre-installed with `shadowsocks-manager`. With the service manager, you can start&stop
 the local service daemon on-the-fly. Check it out from the web admin console `Home › Shadowsocks › Shadowsocks Nodes`, 
 under the `SHADOWSOCKS MANAGERS` tab.
 
     However the `traffice statistics` and `user port creation status` features are not available for the 
-`python version`.
+`python edition`.
 
 
 ## 4. Sendmail (Optional)
@@ -175,32 +175,32 @@ NOTE: This dependency needs the manual setup anyway, it is not handled by any in
 * Need to run an additional agent on each Shadowsocks server.
 
 
-## 6. Some differences between the Shadowsocks Python version (2.8.2) and libev version
+## 6. Some differences between the Shadowsocks Python edition (2.8.2) and libev edition
 
-Version status for the Shadowsocks Python version:
+Version status for the Shadowsocks Python edition:
 * pypi: [2.8.2](https://pypi.org/project/shadowsocks/)
 * github: [3.0.0](https://github.com/shadowsocks/shadowsocks/tree/master)
 
-Although the Shadowsocks Python version
+Although the Shadowsocks Python edition
 supports the multi-user API, but it doesn't fit this project, here's why:
 
-* The python version code and doc seem to be out of maintenance due to some reason. If you really need this you probably need to fork it and make your own.
+* The python edition code and doc seem to be out of maintenance due to some reason. If you really need this you probably need to fork it and make your own.
 * They are having different service process names and CLI interfaces which introduces the complexity of installation.
-* The Python version lacks the `list` commands. A pull request was opened years ago but never merged.
-* The Python version's `stat` command has a very different way to use, I didn't figure the usage syntax out by looking into the code.
-* The Python version's `ping` command returns a simple string `pong` rather than a list of ports.
-* The Python version's `ping` command has to be sent as the syntax: `ping:{}` in order to work if tested with `nc`. It caused by the tailing newline: `ping\n`.
+* The Python edition lacks the `list` commands. A pull request was opened years ago but never merged.
+* The Python edition's `stat` command has a very different way to use, I didn't figure the usage syntax out by looking into the code.
+* The Python edition's `ping` command returns a simple string `pong` rather than a list of ports.
+* The Python edition's `ping` command has to be sent as the syntax: `ping:{}` in order to work if tested with `nc`. It caused by the tailing newline: `ping\n`.
 
-So either you get some change on your own or stick with the libev version.
+So either you get some change on your own or stick with the libev edition.
 
-### Update for Shadowsocks Python version on 2024-04
+### Update for Shadowsocks Python edition on 2024-04
 
 Both the pypi version (2.8.2) and the github master branch (3.0.0) failed to start `ssserver` due to the upstream and dependency changes.
 
-Since the Python version is pre-installed in this project, mainly for running test cases, I have to make a patch to make it work.
+Since the Python edition is pre-installed in this project, mainly for running test cases, I have to make a patch to make it work.
 
 The fix based on github master branch 3.0.0, and would be minimal, just to make the `ssserver` start without any error, no more features added.
-After the fix, the pre-installed Python version will be changed from the pypi version to [my fork](https://github.com/alexforks/shadowsocks/tree/master).
+After the fix, the pre-installed Python edition will be changed from the pypi version to [my fork](https://github.com/alexforks/shadowsocks/tree/master).
 
 
 ## 7. Known Issues
@@ -209,10 +209,10 @@ After the fix, the pre-installed Python version will be changed from the pypi ve
     For unknown reason sometimes DNS query returns only one IP address
 while multiple IP addresses were configured for the domain.
 
-1. The Shadowsocks Python version's ssserver won't start on macOS.
+1. The Shadowsocks Python edition's ssserver won't start on macOS.
     The error message is like:
     ```
-    $ ssserver -k 8388 -p password
+    $ ssserver -k passw0rd
     WARNING: /Users/***/.pyenv/versions/3.12.0/envs/ssm-3.12/bin/python3.12 is loading libcrypto in an unsafe way
     Abort trap: 6
     ```
