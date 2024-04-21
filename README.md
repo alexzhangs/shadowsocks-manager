@@ -224,6 +224,32 @@ while multiple IP addresses were configured for the domain.
     sudo ln -s /opt/homebrew/opt/openssl/lib/libssl.dylib /usr/local/lib/
     ```
 
+1. Install the project with pip under Python 2.7 get error:
+    ```
+    pip install -e .
+    ```
+
+    Error message:
+    ```
+    ...
+    Collecting pyyaml
+    Downloading PyYAML-5.4.1.tar.gz (175 kB)
+        |████████████████████████████████| 175 kB 392 kB/s 
+    Installing build dependencies ... done
+    Getting requirements to build wheel ... error
+    ERROR: Command errored out with exit status 1:
+    ...
+        raise AttributeError, attr
+    AttributeError: cython_sources
+    ...
+    ```
+
+    Solution:
+    ```sh
+    pip install --no-build-isolation -e .
+    ```
+
+
 ## 8. Development
 
 1. Install the dependencies

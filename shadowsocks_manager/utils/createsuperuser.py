@@ -40,7 +40,7 @@ def create_superuser(username, password, email):
     User.objects.filter(username=username).delete()
     User.objects.create_superuser(username, email, password)
 
-    print(f"Superuser '{username}' created successfully.")
+    print("Superuser '{username}' created successfully.")
 
 
 def main():
