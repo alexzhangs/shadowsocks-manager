@@ -651,8 +651,8 @@ class SSManager(models.Model):
     def _ping(self):
         """
         Manager API command: `ping`.
-        * For Shadowsocks libev version: returns all users: 'stat: {...}'.
-        * For Shadowsocks python version: returns simple string: 'pong'.
+        * For Shadowsocks libev edition: returns all users: 'stat: {...}'.
+        * For Shadowsocks python edition: returns simple string: 'pong'.
         """
         command = 'ping'
         return self.call(command, read=True)
@@ -661,7 +661,7 @@ class SSManager(models.Model):
         """
         Manager API command: `list`.
         List all users with password.
-        Works only for libev version.
+        Works only for libev edition.
         This is an undocumented Shadowsocks Manager Command, but works.
         """
         if self.server_edition == ServerEditionList.LIBEV:
@@ -701,24 +701,24 @@ class SSManager(models.Model):
     def ping(self):
         """
         Send ping.
-        * for Shadowsocks libev version: list all users, return in JSON.
-        * for Shadowsocks python version: return a emtpy dict: {}.
+        * for Shadowsocks libev edition: list all users, return in JSON.
+        * for Shadowsocks python edition: return a emtpy dict: {}.
         """
         data = self._ping()
         if not data:
             return None
         parts = data.split(':', 1)
         if len(parts) == 2:
-            # libev version
+            # libev edition
             return json.loads(parts[1])
         else:
-            # python version
+            # python edition
             return {}
 
     def list(self):
         """
         List all users with password, return in JSON.
-        Works only for libev version.
+        Works only for libev edition.
         """
         ports = self._list()
         if ports:
@@ -923,7 +923,7 @@ class SSServer(object):
     '''
     def install(self):
         """
-        Install Shadowsocks python version.
+        Install Shadowsocks python edition.
         Skip if already installed.
         """
         if not self.version:
@@ -934,7 +934,7 @@ class SSServer(object):
 
     def uninstall(self):
         """
-        Uninstall Shadowsocks python version.
+        Uninstall Shadowsocks python edition.
         Skip if not installed.
         """
         if self.version:
