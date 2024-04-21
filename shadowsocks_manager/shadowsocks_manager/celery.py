@@ -1,5 +1,5 @@
 # py2.7 and py3 compatibility imports
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 from __future__ import print_function
 
 import os
