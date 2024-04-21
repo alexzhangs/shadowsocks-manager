@@ -131,7 +131,7 @@ function main () {
         docker network rm ssm-network
     fi
 
-    echo "Creating a docker network ..."
+    echo "Creating ssm-network ..."
     docker network create ssm-network
 
     echo "Running ssm-memcached ..."
