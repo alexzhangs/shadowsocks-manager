@@ -8,11 +8,19 @@ from unittest import TestCase
 
 from retry import retry
 
+
+import logging
+# disable logging for the test module to make the output clean
+logging.disable(logging.CRITICAL)
+
+
 # Create your tests here.
 class RetryTestCase(TestCase):
-    def test(self):
+    def test_retry_positive(self):
         self.assertTrue(self.call_retryee(n=1, count=0))
         self.assertTrue(self.call_retryee(n=4, count=3))
+
+    def test_retry_negative(self):
         self.assertFalse(self.call_retryee(n=2, count=0))
         self.assertFalse(self.call_retryee(n=5, count=3))
 
