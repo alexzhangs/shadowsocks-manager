@@ -293,6 +293,20 @@ while multiple IP addresses were configured for the domain.
     ssm-test -t
     ```
 
+1. Test the Django code with coverage
+
+    ```sh
+    pip install coverage
+    ssm-test -c
+    ```
+
+1. Upload the coverage report to codecov
+
+    ```sh
+    pip install codecov-cli
+    ssm-test -u
+    ```
+
 1. Test the Github workflows locally
 
     ```sh
@@ -300,7 +314,32 @@ while multiple IP addresses were configured for the domain.
     act -j test
     ```
 
-    
+1. Build the pypi package
+
+    ```sh
+    pip install build
+    python -m build
+    ```
+
+1. Upload the pypi package
+
+    ```sh
+    pip install twine
+
+    # upload the package to the test pypi
+    python -m twine upload --repository testpypi dist/*
+
+    # upload the package to the live pypi
+    python -m twine upload dist/*
+    ```
+
+1. Build the docker image
+
+    ```sh
+    docker build -t alexzhangs/shadowsocks-manager .
+    ```
+
+
 ## 9. Troubleshooting
 
 1. Check the logs
