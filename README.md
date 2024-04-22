@@ -302,6 +302,8 @@ while multiple IP addresses were configured for the domain.
 
 1. Upload the coverage report to codecov
 
+    Make sure the `CODECOV_TOKEN` is exported in the environment before uploading.
+
     ```sh
     pip install codecov-cli
     ssm-test -u
@@ -318,10 +320,20 @@ while multiple IP addresses were configured for the domain.
 
     ```sh
     pip install build
-    python -m build
+
+    # build source distribution, equivalent to `python setup.py sdist`
+    python -m build -s
+
+    # build binary distribution for py3, equivalent to `python setup.py bdist_wheel`
+    python3 -m build -w
+
+    # build binary distribution for py2
+    python2 -m build -w
     ```
 
 1. Upload the pypi package
+
+    Set the ~/.pypirc file with the API token from the TestPyPI and PyPI before uploading.
 
     ```sh
     pip install twine
@@ -331,6 +343,19 @@ while multiple IP addresses were configured for the domain.
 
     # upload the package to the live pypi
     python -m twine upload dist/*
+    ```
+
+1. Test the pypi package
+
+    ```sh
+    # install the package from the test pypi
+    # --no-deps is used to skip installing dependencies for the test pypi
+    pip install -i https://test.pypi.org/simple/ --no-deps shadowsocks-manager
+
+    # install the package from the live pypi
+    # --no-binary is used to force building the package from the source
+    # --use-pep517 is used together to make sure the PEP 517 is tested
+    pip install --no-binary --use-pep517 shadowsocks-manager
     ```
 
 1. Build the docker image
