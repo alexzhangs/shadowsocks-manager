@@ -59,14 +59,24 @@ jobs:
       - name: Install dependencies
         run: pip install --upgrade pip
       - name: Install from binary distribution
-        run: |
-          pip install --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 6
+          max_attempts: 3
+          retry_on: error
+          command: |
+            pip install --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
       - name: Clean up for installing source distribution
         run: |
           pip list --exclude pip | awk 'NR>2 {print $1}' | xargs pip uninstall -y
       - name: Install from source distribution with PEP 517 required
-        run: |
-          pip install --use-pep517 --no-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 3
+          max_attempts: 3
+          retry_on: error
+          command: |
+            pip install --use-pep517 --no-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
 
   pypi-py2-install:
     runs-on: ubuntu-latest
@@ -81,11 +91,21 @@ jobs:
           pip install --upgrade pip
           pip install setuptools wheel
       - name: Install from binary distribution
-        run: |
-          pip install --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 6
+          max_attempts: 3
+          retry_on: error
+          command: |
+            pip install --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
       - name: Clean up for installing source distribution
         run: |
           pip list --exclude pip --exclude setuptools | awk 'NR>2 {print $1}' | xargs pip uninstall -y
       - name: Install from source distribution with setuptools and wheel required
-        run: |
-          pip install --no-binary --no-build-isolation shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 3
+          max_attempts: 3
+          retry_on: error
+          command: |
+            pip install --no-binary --no-build-isolation shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
