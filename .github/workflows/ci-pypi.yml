@@ -27,6 +27,10 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install build twine bump-my-version
+      - name: Set up git user
+        run: |
+          git config --global user.name "ci-pypi.github-actions[bot]"
+          git config --global user.email "ci-pypi.github.actions[bot]@noreply.github.com"
       - name: Bump version and tag commit
         id: bump-version
         run: |
@@ -39,8 +43,8 @@ jobs:
         run: python -m build
       - name: Upload to PyPI
         run: twine upload dist/*
-      - name: Sleep for 10 seconds to wait for the package to be available
-        run: sleep 10
+      - name: Push commit and tag
+        run: git push --tags origin HEAD:${GITHUB_REF#refs/heads/}
 
   pypi-py3-install:
     runs-on: ubuntu-latest
