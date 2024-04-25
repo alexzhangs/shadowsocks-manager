@@ -28,12 +28,14 @@ jobs:
           push: true
           tags: alexzhangs/shadowsocks-manager:${{ steps.get_version.outputs.version }}
           platforms: linux/amd64,linux/arm64
-      - name: Tag commit
+      - name: Set up git user
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git tag -a -m "" "docker-${{ steps.get_version.outputs.version }}"
-          git push origin "docker-${{ steps.get_version.outputs.version }}"
+          git config --global user.name "ci-docker.github-actions[bot]"
+          git config --global user.email "ci-docker.github.actions[bot]@noreply.github.com"
+      - name: Tag commit
+        run: git tag -a -m "" "docker-${{ steps.get_version.outputs.version }}"
+      - name: Push tag
+        run: git push origin "docker-${{ steps.get_version.outputs.version }}"
   
   docker-run:
     runs-on: ubuntu-latest
