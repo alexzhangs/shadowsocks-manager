@@ -1,44 +1,20 @@
 name: ci-testpypi
 on:
+  push:
+    paths:
+      - '.github/workflows/ci-testpypi.yml'
+      - 'pyproject.toml'
   workflow_run:
     workflows: ["ci-unittest"]
     types:
       - completed
-  push:
-    paths:
-      - '.github/workflows/ci-testpypi.yml'
-      - 'MANIFEST.in'
-      - 'pyproject.toml'
 env:
-  TIMESTAMP: ${{ format('{0:yyyyMMddHHmm}', github.event.workflow_run.updated_at) }}
   TWINE_USERNAME: __token__
   TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
 jobs:
-  check-previous-workflow:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check if triggered by schedule
-        id: check-trigger
-        run: |
-          trigger_event=$(gh api repos/:owner/:repo/actions/runs/${{ github.event.workflow_run.id }} --jq '.event')
-          if [[ "$trigger_event" == "schedule" ]]; then
-            echo "Previous workflow was triggered by schedule, skipping."
-            echo "::set-output name=skip::true"
-          else
-            echo "::set-output name=skip::false"
-          fi
-      - name: Check run conclusion
-        if: steps.check-trigger.outputs.skip == 'false'
-        run: |
-          conclusion=$(gh api repos/:owner/:repo/actions/runs/${{ github.event.workflow_run.id }} --jq '.conclusion')
-          if [[ "$conclusion" != "success" ]]; then
-            echo "Previous workflow was not successful, skipping."
-            exit 1
-          fi
-
   get-new-version:
     runs-on: ubuntu-latest
-    needs: check-previous-workflow
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     outputs:
       new_version: ${{ steps.new-version.outputs.new_version }}
     steps:
@@ -48,12 +24,12 @@ jobs:
         id: new-version
         run: |
           python -c "
-          import configparser
+          import configparser, datetime
           config = configparser.ConfigParser()
-          config.read('setup.cfg')
-          version = config.get('metadata', 'version')
+          config.read('pyproject.toml')
+          version = config.get('project', 'version')
           major, minor, patch = version.split('.')
-          suffix = 'dev-' + '${{ env.TIMESTAMP }}'
+          suffix = 'dev-' + datetime.datetime.now().strftime('%Y%m%d%H%M')
           new_version = '{0}.{1}.{2}.{3}'.format(major, minor, patch, suffix)
           print('::set-output name=new_version::' + new_version)
           "
@@ -91,33 +67,6 @@ jobs:
       - name: Upload to TestPyPI
         run: twine upload --repository testpypi dist/*
 
-  testpypi-py2-build-and-upload:
-    runs-on: ubuntu-latest
-    needs: [get-new-version, testpypi-py3-build-and-upload]
-    container:
-      image: python:2.7
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install build twine
-      - name: Set new version
-        run: |
-          python -c "
-          import configparser
-          config = configparser.ConfigParser()
-          new_version = '${{ needs.get-new-version.outputs.new_version }}'
-          config.set('metadata', 'version', new_version)
-          with open('setup.cfg', 'w') as f:
-              config.write(f)
-          "
-      - name: Build binary distribution only
-        run: python -m build -w
-      - name: Upload to TestPyPI
-        run: twine upload --repository testpypi dist/*
-
   testpypi-py3-install:
     runs-on: ubuntu-latest
     needs: [get-new-version, testpypi-py3-build-and-upload]
@@ -139,7 +88,7 @@ jobs:
           PIP_INDEX_URL: https://test.pypi.org/simple/
         run: |
           pip install --no-deps --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
-      - name: Clean up for source distribution
+      - name: Clean up for installing source distribution
         run: |
           pip uninstall -y shadowsocks-manager
       - name: Install from source distribution with PEP 517 required
@@ -150,24 +99,26 @@ jobs:
 
   testpypi-py2-install:
     runs-on: ubuntu-latest
-    needs: [get-new-version, testpypi-py2-build-and-upload]
+    needs: [get-new-version, testpypi-py3-build-and-upload]
     container:
       image: python:2.7
     env:
       NEW_VERSION: ${{ needs.get-new-version.outputs.new_version }}
     steps:
       - name: Install dependencies
-        run: pip install --upgrade pip setuptools
+        run: |
+          pip install --upgrade pip
+          pip install setuptools wheel
       - name: Install from binary distribution
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
         run: |
           pip install --no-deps --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
-      - name: Clean up for source distribution
+      - name: Clean up for install source distribution
         run: |
           pip uninstall -y shadowsocks-manager
-      - name: Install from source distribution with setuptools required
+      - name: Install from source distribution with setuptools and wheel required
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
         run: |
-          pip install --no-deps --no-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+          pip install --no-deps --no-binary --no-build-isolation shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}

@@ -1,18 +1,14 @@
 name: ci-unittest
 on:
   push:
-    branches:
-      - '**/*'
     paths:
       - '.github/workflows/ci-unittest.yml'
       - 'bin/**'
-      - 'setup.cfg'
-      - 'setup.py'
       - 'shadowsocks_manager/**'
       - '!shadowsocks_manager/uwsgi.ini'
-  pull_request: null
+  pull_request:
   schedule:
-    - cron: 23 11 * * 5
+    - cron: '23 11 1 * *'  # monthly
 jobs:
   unittest:
     runs-on: ubuntu-latest
@@ -30,6 +26,7 @@ jobs:
       - name: Install system packages
         run: |
           pip install --upgrade pip
+          pip install coverage codecov-cli
           echo -e '#!/usr/bin/env bash\n' | sudo tee /usr/sbin/sendmail
           sudo chmod 755 /usr/sbin/sendmail
           docker run -d -p 11211:11211 --name ssm-memcached memcached
@@ -39,12 +36,8 @@ jobs:
           pip install -e .
           ssm-setup -m
       - name: Run Django testcases
-        run: |
-          pip install coverage
-          ssm-test -c
+        run: ssm-test -c
       - name: Upload coverage report to Codecov
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          pip install codecov-cli
-          ssm-test -u
+        run: ssm-test -u
