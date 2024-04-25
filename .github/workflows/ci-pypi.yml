@@ -30,11 +30,11 @@ jobs:
       - name: Bump version and tag commit
         id: bump-version
         run: |
-          VERSION_PART=$(echo "${GITHUB_REF#refs/tags/}" | awk -F- '{print $3}')
-          VERSION_PART=${VERSION_PART:-patch}
-          NEW_VERSION=$(bump-my-version show-bump | awk "/${VERSION_PART}/ {print \$NF}")
-          bumpversion bump --verbose "${VERSION_PART}"
-          echo "::set-output name=new_version::${NEW_VERSION}"
+          version_part=$(echo "${GITHUB_REF#refs/tags/}" | awk -F- '{print $3}')
+          version_part=${version_part:-patch}
+          bump-my-version bump --verbose "${version_part}"
+          current_version=$(bump-my-version show-bump | awk 'NR==1 {print $1}')
+          echo "::set-output name=new_version::${current_version}"
       - name: Build source and binary distributions
         run: python -m build
       - name: Upload to PyPI

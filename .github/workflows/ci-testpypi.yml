@@ -12,31 +12,11 @@ env:
   TWINE_USERNAME: __token__
   TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
 jobs:
-  get-new-version:
+  testpypi-py3-build-and-upload:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
     outputs:
-      new_version: ${{ steps.new-version.outputs.new_version }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Get new version
-        id: new-version
-        run: |
-          python -c "
-          import configparser, datetime
-          config = configparser.ConfigParser()
-          config.read('pyproject.toml')
-          version = config.get('project', 'version')
-          major, minor, patch = version.split('.')
-          suffix = 'dev-' + datetime.datetime.now().strftime('%Y%m%d%H%M')
-          new_version = '{0}.{1}.{2}.{3}'.format(major, minor, patch, suffix)
-          print('::set-output name=new_version::' + new_version)
-          "
-
-  testpypi-py3-build-and-upload:
-    runs-on: ubuntu-latest
-    needs: get-new-version
+      new_version: ${{ steps.bump-version.outputs.new_version }}
     strategy:
       fail-fast: false
       matrix:
@@ -52,16 +32,14 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install build twine
-      - name: Set new version
+      - name: Bump version without commit and tag
+        id: bump-version
         run: |
-          python -c "
-          import configparser
-          config = configparser.ConfigParser()
-          new_version = '${{ needs.get-new-version.outputs.new_version }}'
-          config.set('metadata', 'version', new_version)
-          with open('setup.cfg', 'w') as f:
-              config.write(f)
-          "
+          suffix="dev-$(date +%Y%m%d%H%M)"
+          current_version=$(bump-my-version show-bump | awk 'NR==1 {print $1}')
+          new_versoin="${current_version}.${suffix}"
+          bump-my-version bump --verbose --no-commit --no-tag --new-version "${new_versoin}" suffix_N
+          echo "::set-output name=new_version::${new_versoin}"
       - name: Build source and binary distributions
         run: python -m build
       - name: Upload to TestPyPI
@@ -69,13 +47,13 @@ jobs:
 
   testpypi-py3-install:
     runs-on: ubuntu-latest
-    needs: [get-new-version, testpypi-py3-build-and-upload]
+    needs: testpypi-py3-build-and-upload
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.12.3']
     env:
-      NEW_VERSION: ${{ needs.get-new-version.outputs.new_version }}
+      NEW_VERSION: ${{ needs.testpypi-py3-build-and-upload.outputs.new_version }}
     steps:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -99,11 +77,11 @@ jobs:
 
   testpypi-py2-install:
     runs-on: ubuntu-latest
-    needs: [get-new-version, testpypi-py3-build-and-upload]
+    needs: testpypi-py3-build-and-upload
     container:
       image: python:2.7
     env:
-      NEW_VERSION: ${{ needs.get-new-version.outputs.new_version }}
+      NEW_VERSION: ${{ needs.testpypi-py3-build-and-upload.outputs.new_version }}
     steps:
       - name: Install dependencies
         run: |
