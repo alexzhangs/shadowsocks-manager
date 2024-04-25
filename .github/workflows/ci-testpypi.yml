@@ -4,6 +4,8 @@ on:
     paths:
       - '.github/workflows/ci-testpypi.yml'
       - 'pyproject.toml'
+    tags-ignore:
+      - '**'
   workflow_run:
     workflows: ["ci-unittest"]
     types:
@@ -47,8 +49,6 @@ jobs:
         run: python -m build
       - name: Upload to TestPyPI
         run: twine upload --repository testpypi dist/*
-      - name: Sleep for 10 seconds to wait for the package to be available
-        run: sleep 10
 
   testpypi-py3-install:
     runs-on: ubuntu-latest
