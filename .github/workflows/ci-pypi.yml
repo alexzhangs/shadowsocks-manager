@@ -16,6 +16,7 @@ jobs:
         python-version: ['3.12.3']
     outputs:
       new_version: ${{ steps.bump-version.outputs.new_version }}
+      new_tag_name: ${{ steps.bump-version.outputs.new_tag_name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -38,13 +39,14 @@ jobs:
           version_part=${version_part:-patch}
           bump-my-version bump --verbose "${version_part}"
           current_version=$(bump-my-version show-bump | awk 'NR==1 {print $1}')
-          echo "::set-output name=new_version::${current_version}"
+          echo "new_version=${current_version}" >> $GITHUB_OUTPUT
+          echo "new_tag_name=pypi-${current_version}" >> $GITHUB_OUTPUT
       - name: Build source and binary distributions
         run: python -m build
       - name: Upload to PyPI
         run: twine upload dist/*
       - name: Push commit and tag
-        run: git push --tags origin HEAD:${GITHUB_REF#refs/heads/}
+        run: git push origin HEAD ${{ steps.bump-version.outputs.new_tag_name }}
 
   pypi-py3-install:
     runs-on: ubuntu-latest
