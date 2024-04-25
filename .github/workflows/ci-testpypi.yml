@@ -11,6 +11,7 @@ on:
 env:
   TWINE_USERNAME: __token__
   TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+  PROJECT_NAME_FOR_TESTPYPI: shadowsocks-manager-alexzhangs
 jobs:
   testpypi-py3-build-and-upload:
     runs-on: ubuntu-latest
@@ -32,13 +33,15 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install build twine bump-my-version
+      - name: Update project name to avoid naming conflict in TestPyPI
+        run: |
+          sed -i 's/^name = .*/name = "${{ env.PROJECT_NAME_FOR_TESTPYPI }}"/' pyproject.toml
       - name: Bump version without commit and tag
         id: bump-version
         run: |
-          suffix="dev-$(date +%Y%m%d%H%M)"
           current_version=$(bump-my-version show-bump | awk 'NR==1 {print $1}')
-          new_versoin="${current_version}.${suffix}"
-          bump-my-version bump --verbose --no-commit --no-tag --new-version "${new_versoin}" suffix_N
+          new_versoin="${current_version}.$(date +%Y%m%d%H%M)"
+          bump-my-version bump --verbose --no-commit --no-tag --new-version "${new_versoin}" suffix
           echo "::set-output name=new_version::${new_versoin}"
       - name: Build source and binary distributions
         run: python -m build
@@ -65,15 +68,15 @@ jobs:
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
         run: |
-          pip install --no-deps --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+          pip install --no-deps --only-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
       - name: Clean up for installing source distribution
         run: |
-          pip uninstall -y shadowsocks-manager
+          pip uninstall -y ${{ env.PROJECT_NAME_FOR_TESTPYPI }}
       - name: Install from source distribution with PEP 517 required
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
         run: |
-          pip install --use-pep517 --no-deps --no-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+          pip install --use-pep517 --no-deps --no-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
 
   testpypi-py2-install:
     runs-on: ubuntu-latest
@@ -91,12 +94,12 @@ jobs:
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
         run: |
-          pip install --no-deps --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+          pip install --no-deps --only-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
       - name: Clean up for install source distribution
         run: |
-          pip uninstall -y shadowsocks-manager
+          pip uninstall -y ${{ env.PROJECT_NAME_FOR_TESTPYPI }}
       - name: Install from source distribution with setuptools and wheel required
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
         run: |
-          pip install --no-deps --no-binary --no-build-isolation shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+          pip install --no-deps --no-binary --no-build-isolation ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
