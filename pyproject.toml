@@ -146,14 +146,12 @@ parse = """
     (?P<patch>\\d+)
     (
         \\.                         # separator
-        (?P<suffix_L>[a-zA-Z]+)     # suffix Label
-        -                           # separator
-        (?P<suffix_N>[0-9]\\d*)     # suffix Number
+        (?P<suffix>[0-9]\\d*)       # suffix Number
     )?                              # suffix is optional
 """
 serialize = [
     "{major}.{minor}.{patch}",
-    "{major}.{minor}.{patch}.{suffix_L}-{suffix_N}",
+    "{major}.{minor}.{patch}.{suffix}",
 ]
 search = "{current_version}"
 replace = "{new_version}"
@@ -168,9 +166,6 @@ allow_dirty = true
 commit = true
 message = "Bump version: {current_version} → {new_version}"
 commit_args = "--no-verify"
-
-[tool.bumpversion.parts.suffix_L]
-values = ["dev"]
 
 [[tool.bumpversion.files]]
 filename = "pyproject.toml"
