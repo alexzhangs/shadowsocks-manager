@@ -63,7 +63,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: pip install --upgrade pip
+        run: |
+          pip install --upgrade pip
+          pip install setuptools wheel
       - name: Install from binary distribution
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
@@ -72,11 +74,11 @@ jobs:
       - name: Clean up for installing source distribution
         run: |
           pip uninstall -y ${{ env.PROJECT_NAME_FOR_TESTPYPI }}
-      - name: Install from source distribution with PEP 517 required
+      - name: Install from source distribution with setuptools and wheel required
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
         run: |
-          pip install --use-pep517 --no-deps --no-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
+          pip install --no-build-isolation --no-deps --no-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
 
   testpypi-py2-install:
     runs-on: ubuntu-latest
@@ -102,4 +104,4 @@ jobs:
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
         run: |
-          pip install --no-deps --no-binary --no-build-isolation ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
+          pip install --no-build-isolation --no-deps --no-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
