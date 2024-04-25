@@ -1,3 +1,0 @@
-recursive-include shadowsocks_manager *fixtures/*
-include shadowsocks_manager/.env
-include assets/**/*
