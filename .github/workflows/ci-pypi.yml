@@ -46,7 +46,9 @@ jobs:
       - name: Upload to PyPI
         run: twine upload dist/*
       - name: Push commit and tag
-        run: git push origin HEAD ${{ steps.bump-version.outputs.new_tag_name }}
+        run: |
+          git push origin HEAD
+          git push origin ${{ steps.bump-version.outputs.new_tag_name }}
 
   pypi-py3-install:
     runs-on: ubuntu-latest
