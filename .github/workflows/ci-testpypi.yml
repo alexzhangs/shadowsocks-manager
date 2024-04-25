@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install build twine
+          pip install build twine bump-my-version
       - name: Bump version without commit and tag
         id: bump-version
         run: |
