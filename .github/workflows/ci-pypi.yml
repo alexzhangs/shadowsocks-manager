@@ -1,12 +1,33 @@
 name: ci-pypi
+
+# This workflow bumps the version of the package (do commit and tag),
+# builds and uploads the package to PyPI, tests the installation under py3 and py2 from PyPI,
+# and pushes the commit and tag to the branch `master`.
+#
+# This workflow is triggered by:
+#   - a manual trigger
+#   - a push to the repository with tags matching the pattern `ci-pypi` or `ci-pypi-*`
+#     the version part to bump can be specified in the tag name, e.g., `ci-pypi-major`
+#     the default version part to bump is `patch`
+#
+# This workflow should always be run against the branch `master`.
+
 on:
+  workflow_dispatch:
+    inputs:
+      VERSION_PART:
+        description: 'Version part to bump: major, minor, patch, or suffix'
+        required: false
+        default: 'patch'
   push:
     tags:
       - 'ci-pypi'
-      - 'ci-pypi-*'
+      - 'ci-pypi-(major|minor|patch|suffix)'
+
 env:
   TWINE_USERNAME: __token__
   TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+
 jobs:
   pypi-py3-build-and-upload:
     runs-on: ubuntu-latest
@@ -15,9 +36,21 @@ jobs:
       matrix:
         python-version: ['3.12.3']
     outputs:
-      new_version: ${{ steps.bump-version.outputs.new_version }}
-      new_tag_name: ${{ steps.bump-version.outputs.new_tag_name }}
+      NEW_VERSION: ${{ steps.bump-version.outputs.NEW_VERSION }}
     steps:
+      - name: Get version part
+        id: get_version_part
+        run: |
+          case ${{ github.event_name }} in
+            workflow_dispatch)
+              version_part=${{ github.event.inputs.VERSION_PART }}
+              ;;
+            push)
+              version_part=$(echo "${{ github.ref_name }}" | awk -F- '{print $NF}')
+              version_part=${version_part:-patch}
+              ;;
+          esac
+          echo "VERSION_PART=$version_part" >> $GITHUB_ENV
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -35,20 +68,15 @@ jobs:
       - name: Bump version and tag commit
         id: bump-version
         run: |
-          version_part=$(echo "${GITHUB_REF#refs/tags/}" | awk -F- '{print $3}')
-          version_part=${version_part:-patch}
-          bump-my-version bump --verbose "${version_part}"
+          bump-my-version bump --verbose "${{ env.VERSION_PART }}"
           current_version=$(bump-my-version show-bump | awk 'NR==1 {print $1}')
-          echo "new_version=${current_version}" >> $GITHUB_OUTPUT
-          echo "new_tag_name=pypi-${current_version}" >> $GITHUB_OUTPUT
+          echo "NEW_VERSION=${current_version}" >> $GITHUB_OUTPUT
       - name: Build source and binary distributions
         run: python -m build
       - name: Upload to PyPI
         run: twine upload dist/*
       - name: Push commit and tag
-        run: |
-          git push origin HEAD
-          git push origin ${{ steps.bump-version.outputs.new_tag_name }}
+        run: git push origin HEAD:master refs/tags/${{ steps.bump-version.outputs.NEW_VERSION }}
 
   pypi-py3-install:
     runs-on: ubuntu-latest
@@ -58,7 +86,7 @@ jobs:
       matrix:
         python-version: ['3.12.3']
     env:
-      NEW_VERSION: ${{ needs.pypi-py3-build-and-upload.outputs.new_version }}
+      NEW_VERSION: ${{ needs.pypi-py3-build-and-upload.outputs.NEW_VERSION }}
     steps:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -92,7 +120,7 @@ jobs:
     container:
       image: python:2.7
     env:
-      NEW_VERSION: ${{ needs.pypi-py3-build-and-upload.outputs.new_version }}
+      NEW_VERSION: ${{ needs.pypi-py3-build-and-upload.outputs.NEW_VERSION }}
     steps:
       - name: Install dependencies
         run: |
