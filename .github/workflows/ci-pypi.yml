@@ -136,7 +136,7 @@ jobs:
             pip install --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
       - name: Clean up for installing source distribution
         run: |
-          pip list --exclude pip --exclude setuptools | awk 'NR>2 {print $1}' | xargs pip uninstall -y
+          pip list --exclude pip --exclude setuptools --exclude wheel | awk 'NR>2 {print $1}' | xargs pip uninstall -y
       - name: Install from source distribution with setuptools and wheel required
         uses: nick-invision/retry@v2
         with:
