@@ -156,7 +156,7 @@ serialize = [
 search = "{current_version}"
 replace = "{new_version}"
 regex = false
-ignore_missing_version = true
+ignore_missing_version = false
 ignore_missing_files = false
 tag = true
 sign_tags = false
@@ -171,6 +171,12 @@ commit_args = "--no-verify"
 filename = "pyproject.toml"
 search = '^version = "{current_version}"$'
 replace = 'version = "{new_version}"'
+regex = true
+
+[[tool.bumpversion.files]]
+filename = "setup.cfg"
+search = '^version = {current_version}$'
+replace = 'version = {new_version}'
 regex = true
 
 [tool.coverage.run]
