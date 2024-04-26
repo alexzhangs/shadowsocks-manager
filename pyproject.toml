@@ -150,8 +150,8 @@ parse = """
     )?                              # suffix is optional
 """
 serialize = [
-    "{major}.{minor}.{patch}",
     "{major}.{minor}.{patch}-{suffix}",
+    "{major}.{minor}.{patch}",
 ]
 search = "{current_version}"
 replace = "{new_version}"
