@@ -1,19 +1,31 @@
 name: ci-docker
+
+# This workflow builds and pushes a Docker image to DockerHub,
+# and tags the commit with the current version of the package.
+#
+# This workflow is triggered by:
+#   - a manual trigger
+#   - a release is published
+
 on:
-  push:
-    tags:
-      - 'ci-docker'
+  workflow_dispatch:
+  release:
+    types: [published]
+
 jobs:
   docker-build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.get_version.outputs.VERSION }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Extract version
+      - name: Get version
         id: get_version
         run: |
-          VERSION=$(grep version setup.cfg | awk '{print $3}')
-          echo "::set-output name=version::$VERSION"
+          version=$(awk -F\" '/^version = / {print $2}' pyproject.toml)
+          echo "VERSION=$version" >> $GITHUB_ENV
+          echo "VERSION=$version" >> $GITHUB_OUTPUT
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Login to DockerHub
@@ -26,16 +38,16 @@ jobs:
         with:
           context: .
           push: true
-          tags: alexzhangs/shadowsocks-manager:${{ steps.get_version.outputs.version }}
+          tags: alexzhangs/shadowsocks-manager:${{ env.VERSION }}
           platforms: linux/amd64,linux/arm64
       - name: Set up git user
         run: |
           git config --global user.name "ci-docker.github-actions[bot]"
           git config --global user.email "ci-docker.github.actions[bot]@noreply.github.com"
       - name: Tag commit
-        run: git tag -a -m "" "docker-${{ steps.get_version.outputs.version }}"
+        run: git tag -a -m "" "docker-${{ env.VERSION }}"
       - name: Push tag
-        run: git push origin "docker-${{ steps.get_version.outputs.version }}"
+        run: git push origin "refs/tags/docker-${{ env.VERSION }}"
   
   docker-run:
     runs-on: ubuntu-latest
