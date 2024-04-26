@@ -1,20 +1,36 @@
-name: testcases-build-deploy
-'on':
+name: ci-unittest
+
+# This workflow runs unittests on multiple Python versions,
+# and uploads the coverage report to Codecov.
+#
+# This workflow is triggered by:
+#   - a manual trigger
+#   - a push to the repository with changes in the certain paths
+#   - a pull request
+#   - a monthly schedule
+
+on:
+  workflow_dispatch:
   push:
-    branches:
-      - '**/*'
-  pull_request: null
+    paths:
+      - '.github/workflows/ci-unittest.yml'
+      - 'bin/**'
+      - 'shadowsocks_manager/**'
+      - '!shadowsocks_manager/uwsgi.ini'
+  pull_request:
   schedule:
-    - cron: 23 11 * * 5
+    - cron: '23 11 1 * *'
+
 jobs:
-  test:
+  unittest:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.7.17', '3.8.18', '3.9.19', '3.10.14', '3.11.9', '3.12.3']
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -22,27 +38,18 @@ jobs:
       - name: Install system packages
         run: |
           pip install --upgrade pip
+          pip install coverage codecov-cli
           echo -e '#!/usr/bin/env bash\n' | sudo tee /usr/sbin/sendmail
           sudo chmod 755 /usr/sbin/sendmail
           docker run -d -p 11211:11211 --name ssm-memcached memcached
           docker run -d -p 5672:5672 --name ssm-rabbitmq rabbitmq
       - name: Install this project
         run: |
-          pip install -r requirements.txt
+          pip install -e .
           ssm-setup -m
       - name: Run Django testcases
-        run: |
-          pip install coverage
-          ssm-test -c
+        run: ssm-test -c
       - name: Upload coverage report to Codecov
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          pip install codecov-cli
-          ssm-test -u
-      - name: Test Dockerfile
-        run: |
-          docker build -t alexzhangs/shadowsocks-manager .
-      - name: Test installer
-        run: |
-          bash install.sh
+        run: ssm-test -u

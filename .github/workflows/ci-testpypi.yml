@@ -1,0 +1,140 @@
+name: ci-testpypi
+
+# This workflow bumps the version of the package (without commit and tag), 
+# builds and uploads the package to TestPyPI,
+# and tests the installation under py3 and py2 from TestPyPI.
+#
+# This workflow is triggered by:
+#   - a manual trigger
+#   - a push to the repository with changes in the certain paths
+#   - a workflow run from ci-unittest with success conclusion
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/ci-testpypi.yml'
+      - 'pyproject.toml'
+  workflow_run:
+    workflows: ["ci-unittest"]
+    types:
+      - completed
+
+env:
+  TWINE_USERNAME: __token__
+  TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
+  PROJECT_NAME_FOR_TESTPYPI: shadowsocks-manager-alexzhangs
+
+jobs:
+  testpypi-py3-build-and-upload:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') }}
+    outputs:
+      NEW_VERSION: ${{ steps.bump-version.outputs.NEW_VERSION }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12.3']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install build twine bump-my-version
+      - name: Update project name to avoid naming conflict in TestPyPI
+        run: |
+          sed -i 's/^name = .*/name = "${{ env.PROJECT_NAME_FOR_TESTPYPI }}"/' pyproject.toml
+      - name: Bump version without commit and tag
+        id: bump-version
+        run: |
+          current_version=$(bump-my-version show-bump | awk 'NR==1 {print $1}')
+          new_versoin="${current_version}-$(date +%Y%m%d%H%M)"
+          bump-my-version bump --verbose --no-commit --no-tag --new-version "${new_versoin}" suffix
+          echo "NEW_VERSION=${new_versoin}" >> $GITHUB_OUTPUT
+      - name: Build source and binary distributions
+        run: python -m build
+      - name: Upload to TestPyPI
+        run: twine upload --repository testpypi dist/*
+    
+  testpypi-py3-install:
+    runs-on: ubuntu-latest
+    needs: testpypi-py3-build-and-upload
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12.3']
+    env:
+      NEW_VERSION: ${{ needs.testpypi-py3-build-and-upload.outputs.NEW_VERSION }}
+    steps:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install setuptools wheel
+      - name: Install from binary distribution
+        env:
+          PIP_INDEX_URL: https://test.pypi.org/simple/
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 6
+          max_attempts: 3
+          retry_on: error
+          command: |
+            pip install --no-deps --only-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
+      - name: Clean up for installing source distribution
+        run: |
+          pip uninstall -y ${{ env.PROJECT_NAME_FOR_TESTPYPI }}
+      - name: Install from source distribution with setuptools and wheel required
+        env:
+          PIP_INDEX_URL: https://test.pypi.org/simple/
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 3
+          max_attempts: 3
+          retry_on: error
+          command: |
+            pip install --no-build-isolation --no-deps --no-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
+
+  testpypi-py2-install:
+    runs-on: ubuntu-latest
+    needs: testpypi-py3-build-and-upload
+    container:
+      image: python:2.7
+    env:
+      NEW_VERSION: ${{ needs.testpypi-py3-build-and-upload.outputs.NEW_VERSION }}
+    steps:
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install setuptools wheel
+      - name: Install from binary distribution
+        env:
+          PIP_INDEX_URL: https://test.pypi.org/simple/
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 6
+          max_attempts: 3
+          retry_on: error
+          command: |
+            pip install --no-deps --only-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
+      - name: Clean up for install source distribution
+        run: |
+          pip uninstall -y ${{ env.PROJECT_NAME_FOR_TESTPYPI }}
+      - name: Install from source distribution with setuptools and wheel required
+        env:
+          PIP_INDEX_URL: https://test.pypi.org/simple/
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 3
+          max_attempts: 3
+          retry_on: error
+          command: |
+            pip install --no-build-isolation --no-deps --no-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}

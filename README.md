@@ -1,11 +1,17 @@
-[![GitHub tag](https://img.shields.io/github/v/tag/alexzhangs/shadowsocks-manager?sort=date)](https://github.com/alexzhangs/shadowsocks-manager/tags)
-[![GitHub](https://img.shields.io/github/license/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
+[![License](https://img.shields.io/github/license/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/)
 [![GitHub last commit](https://img.shields.io/github/last-commit/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/commits/master)
-
-[![Test shadowsocks-manager](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/main.yml/badge.svg)](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/main.yml)
-[![codecov](https://codecov.io/gh/alexzhangs/shadowsocks-manager/graph/badge.svg?token=KTI3TNRKAV)](https://codecov.io/gh/alexzhangs/shadowsocks-manager)
 [![GitHub issues](https://img.shields.io/github/issues/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/alexzhangs/shadowsocks-manager.svg?style=flat-square)](https://github.com/alexzhangs/shadowsocks-manager/pulls)
+[![GitHub tag](https://img.shields.io/github/v/tag/alexzhangs/shadowsocks-manager?sort=date)](https://github.com/alexzhangs/shadowsocks-manager/tags)
+
+[![GitHub Actions - CI Unit test](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-unittest.yml/badge.svg)](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-unittest.yml)
+[![GitHub Actions - CI TestPyPI](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-testpypi.yml/badge.svg)](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-testpypi.yml)
+[![GitHub Actions - CI PyPI](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-pypi.yml/badge.svg)](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-pypi.yml)
+[![PyPI Package Version](https://badge.fury.io/py/shadowsocks-manager.svg)](https://pypi.org/project/shadowsocks-manager/)
+[![codecov](https://codecov.io/gh/alexzhangs/shadowsocks-manager/graph/badge.svg?token=KTI3TNRKAV)](https://codecov.io/gh/alexzhangs/shadowsocks-manager)
+
+[![GitHub Actions - CI Docker Build and Push](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-docker.yml/badge.svg)](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-docker.yml)
+[![Docker Image Version](https://img.shields.io/docker/v/alexzhangs/shadowsocks-manager?label=docker%20image)](https://hub.docker.com/r/alexzhangs/shadowsocks-manager)
 
 # shadowsocks-manager
 
@@ -36,19 +42,17 @@ Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 The development status can be found at: [project home](https://github.com/alexzhangs/shadowsocks-manager/projects/1).
 
 Node List:
-![Home › Shadowsocks › Shadowsocks Nodes](/assets/images/shadowsocks-node-list.png)
+![Home › Shadowsocks › Shadowsocks Nodes](https://www.0xbeta.com/shadowsocks-manager/assets/images/shadowsocks-node-list.png)
 
 Node's Shadowsocks Manager:
-![Home › Shadowsocks › Shadowsocks Nodes](/assets/images/shadowsocks-node-ssmanager.png)
+![Home › Shadowsocks › Shadowsocks Nodes](https://www.0xbeta.com/shadowsocks-manager/assets/images/shadowsocks-node-ssmanager.png)
 
 
 ## 1. Requirements
 
 * Python 2.7, Python 3.x
 * Django 1.11.x, Django 3.x
-* macOS Big Sur
-* [AWS Amazon Linux AMI](https://aws.amazon.com/amazon-linux-ami/)
-* [AWS Amazon Linux 2 AMI](https://aws.amazon.com/amazon-linux-2/)
+* Docker
 * [Shadowsocks-libev 3.2.0 for Linux (multi-user API is required)](https://github.com/shadowsocks/shadowsocks-libev)
 
 
@@ -200,7 +204,7 @@ Both the pypi version (2.8.2) and the github master branch (3.0.0) failed to sta
 Since the Python edition is pre-installed in this project, mainly for running test cases, I have to make a patch to make it work.
 
 The fix based on github master branch 3.0.0, and would be minimal, just to make the `ssserver` start without any error, no more features added.
-After the fix, the pre-installed Python edition will be changed from the pypi version to [my fork](https://github.com/alexforks/shadowsocks/tree/master).
+After the fix, the pre-installed Python edition will be changed from the [original pypi version](https://pypi.org/project/shadowsocks/) to [my fork](https://pypi.org/project/shadowsocks-alexforks/).
 
 
 ## 7. Known Issues
@@ -224,9 +228,12 @@ while multiple IP addresses were configured for the domain.
     sudo ln -s /opt/homebrew/opt/openssl/lib/libssl.dylib /usr/local/lib/
     ```
 
-1. Install the project with pip under Python 2.7 get error:
+1. Install the project by source with pip under Python 2.7 get error:
     ```
-    pip install -e .
+    python --version
+    Python 2.7.18
+
+    pip install .
     ```
 
     Error message:
@@ -246,11 +253,23 @@ while multiple IP addresses were configured for the domain.
 
     Solution:
     ```sh
-    pip install --no-build-isolation -e .
+    pip install setuptools wheel
+    pip install --no-build-isolation .
     ```
 
 
 ## 8. Development
+
+The development of this project requires Python 3.x.
+
+However, the installation of the project is compatible with both Python 2.7 and 3.x.
+To keep the compatibility is difficult, but it's kept due to the historical reason.
+The following files are kept only for installing the source distribution of the PyPI package under Python 2.7:
+
+* setup.py
+* setup.cfg
+
+### 8.1. Development Environment Setup
 
 1. Install the dependencies
 
@@ -316,46 +335,41 @@ while multiple IP addresses were configured for the domain.
     act -j test
     ```
 
-1. Build the pypi package
+1. Build the PyPI package
 
     ```sh
     pip install build
 
-    # build source distribution, equivalent to `python setup.py sdist`
-    python -m build -s
-
-    # build binary distribution for py3, equivalent to `python setup.py bdist_wheel`
-    python3 -m build -w
-
-    # build binary distribution for py2
-    python2 -m build -w
+    # build source and binary distribution, equivalent to `python setup.py sdist bdist_wheel`
+    # universal wheel is enabled in the pyproject.toml to make the wheel compatible with both Python 2 and 3
+    python -m build
     ```
 
-1. Upload the pypi package
+1. Upload the PyPI package
 
     Set the ~/.pypirc file with the API token from the TestPyPI and PyPI before uploading.
 
     ```sh
     pip install twine
 
-    # upload the package to the test pypi
+    # upload the package to TestPyPI
     python -m twine upload --repository testpypi dist/*
 
-    # upload the package to the live pypi
+    # upload the package to PyPI
     python -m twine upload dist/*
     ```
 
-1. Test the pypi package
+1. Test the PyPI package
 
     ```sh
-    # install the package from the test pypi
-    # --no-deps is used to skip installing dependencies for the test pypi
+    # install the package from TestPyPI
+    # --no-deps is used to skip installing dependencies for the TestPyPI environment
     pip install -i https://test.pypi.org/simple/ --no-deps shadowsocks-manager
 
-    # install the package from the live pypi
+    # install the package from PyPI
     # --no-binary is used to force building the package from the source
     # --use-pep517 is used together to make sure the PEP 517 is tested
-    pip install --no-binary --use-pep517 shadowsocks-manager
+    pip install --no-binary shadowsocks-manager --use-pep517 shadowsocks-manager
     ```
 
 1. Build the docker image
@@ -363,6 +377,18 @@ while multiple IP addresses were configured for the domain.
     ```sh
     docker build -t alexzhangs/shadowsocks-manager .
     ```
+
+### 8.2. CI/CD
+
+Github Actions is currently used for the CI/CD.
+Travis CI is removed due to the limitation of the free plan.
+
+The CI/CD workflows are defined in the `.github/workflows` directory.
+
+* ci-unittest.yml: Run the unit tests.
+* ci-testpypi.yml: Build and upload the package to TestPyPI.
+* ci-pypi.yml: Build and upload the package to PyPI. It can be triggered by the tag: `ci-pypi` or `ci-pypi-(major|minor|patch|suffx)`.
+* ci-docker.yml: Build and push the docker image to Docker Hub. It can be triggered by the Github release.
 
 
 ## 9. Troubleshooting
