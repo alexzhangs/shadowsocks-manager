@@ -38,7 +38,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: alexzhangs/shadowsocks-manager:${{ env.VERSION }}
+          tags: |
+            - ${{ secrets.DOCKERHUB_USERNAME }}/shadowsocks-manager:latest
+            - ${{ secrets.DOCKERHUB_USERNAME }}/shadowsocks-manager:${{ env.VERSION }}
           platforms: linux/amd64,linux/arm64
       - name: Set up git user
         run: |
