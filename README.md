@@ -52,9 +52,7 @@ Node's Shadowsocks Manager:
 
 * Python 2.7, Python 3.x
 * Django 1.11.x, Django 3.x
-* macOS Big Sur
-* [AWS Amazon Linux AMI](https://aws.amazon.com/amazon-linux-ami/)
-* [AWS Amazon Linux 2 AMI](https://aws.amazon.com/amazon-linux-2/)
+* Docker
 * [Shadowsocks-libev 3.2.0 for Linux (multi-user API is required)](https://github.com/shadowsocks/shadowsocks-libev)
 
 
@@ -206,7 +204,7 @@ Both the pypi version (2.8.2) and the github master branch (3.0.0) failed to sta
 Since the Python edition is pre-installed in this project, mainly for running test cases, I have to make a patch to make it work.
 
 The fix based on github master branch 3.0.0, and would be minimal, just to make the `ssserver` start without any error, no more features added.
-After the fix, the pre-installed Python edition will be changed from the pypi version to [my fork](https://github.com/alexforks/shadowsocks/tree/master).
+After the fix, the pre-installed Python edition will be changed from the [original pypi version](https://pypi.org/project/shadowsocks/) to [my fork](https://pypi.org/project/shadowsocks-alexforks/).
 
 
 ## 7. Known Issues
@@ -230,9 +228,12 @@ while multiple IP addresses were configured for the domain.
     sudo ln -s /opt/homebrew/opt/openssl/lib/libssl.dylib /usr/local/lib/
     ```
 
-1. Install the project with pip under Python 2.7 get error:
+1. Install the project by source with pip under Python 2.7 get error:
     ```
-    pip install -e .
+    python --version
+    Python 2.7.18
+
+    pip install .
     ```
 
     Error message:
@@ -252,11 +253,23 @@ while multiple IP addresses were configured for the domain.
 
     Solution:
     ```sh
-    pip install --no-build-isolation -e .
+    pip install setuptools wheel
+    pip install --no-build-isolation .
     ```
 
 
 ## 8. Development
+
+The development of this project requires Python 3.x.
+
+However, the installation of the project is compatible with both Python 2.7 and 3.x.
+To keep the compatibility is difficult, but it's kept due to the historical reason.
+The following files are kept only for installing the source distribution of the PyPI package under Python 2.7:
+
+* setup.py
+* setup.cfg
+
+### 8.1. Development Environment Setup
 
 1. Install the dependencies
 
@@ -322,43 +335,38 @@ while multiple IP addresses were configured for the domain.
     act -j test
     ```
 
-1. Build the pypi package
+1. Build the PyPI package
 
     ```sh
     pip install build
 
-    # build source distribution, equivalent to `python setup.py sdist`
-    python -m build -s
-
-    # build binary distribution for py3, equivalent to `python setup.py bdist_wheel`
-    python3 -m build -w
-
-    # build binary distribution for py2
-    python2 -m build -w
+    # build source and binary distribution, equivalent to `python setup.py sdist bdist_wheel`
+    # universal wheel is enabled in the pyproject.toml to make the wheel compatible with both Python 2 and 3
+    python -m build
     ```
 
-1. Upload the pypi package
+1. Upload the PyPI package
 
     Set the ~/.pypirc file with the API token from the TestPyPI and PyPI before uploading.
 
     ```sh
     pip install twine
 
-    # upload the package to the test pypi
+    # upload the package to TestPyPI
     python -m twine upload --repository testpypi dist/*
 
-    # upload the package to the live pypi
+    # upload the package to PyPI
     python -m twine upload dist/*
     ```
 
-1. Test the pypi package
+1. Test the PyPI package
 
     ```sh
-    # install the package from the test pypi
-    # --no-deps is used to skip installing dependencies for the test pypi
+    # install the package from TestPyPI
+    # --no-deps is used to skip installing dependencies for the TestPyPI environment
     pip install -i https://test.pypi.org/simple/ --no-deps shadowsocks-manager
 
-    # install the package from the live pypi
+    # install the package from PyPI
     # --no-binary is used to force building the package from the source
     # --use-pep517 is used together to make sure the PEP 517 is tested
     pip install --no-binary shadowsocks-manager --use-pep517 shadowsocks-manager
@@ -369,6 +377,18 @@ while multiple IP addresses were configured for the domain.
     ```sh
     docker build -t alexzhangs/shadowsocks-manager .
     ```
+
+### 8.2. CI/CD
+
+Github Actions is currently used for the CI/CD.
+Travis CI is removed due to the limitation of the free plan.
+
+The CI/CD workflows are defined in the `.github/workflows` directory.
+
+* ci-unittest.yml: Run the unit tests.
+* ci-testpypi.yml: Build and upload the package to TestPyPI.
+* ci-pypi.yml: Build and upload the package to PyPI. It can be triggered by the tag: `ci-pypi` or `ci-pypi-(major|minor|patch|suffx)`.
+* ci-docker.yml: Build and push the docker image to Docker Hub. It can be triggered by the Github release.
 
 
 ## 9. Troubleshooting
