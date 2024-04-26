@@ -1,16 +1,26 @@
 name: ci-unittest
+
+# This workflow runs unittests on multiple Python versions,
+# and uploads the coverage report to Codecov.
+#
+# This workflow is triggered by:
+#   - a manual trigger
+#   - a push to the repository with changes in the certain paths
+#   - a pull request
+#   - a monthly schedule
+
 on:
+  workflow_dispatch:
   push:
     paths:
       - '.github/workflows/ci-unittest.yml'
       - 'bin/**'
       - 'shadowsocks_manager/**'
       - '!shadowsocks_manager/uwsgi.ini'
-    tags-ignore:
-      - '**'
   pull_request:
   schedule:
-    - cron: '23 11 1 * *'  # monthly
+    - cron: '23 11 1 * *'
+
 jobs:
   unittest:
     runs-on: ubuntu-latest
