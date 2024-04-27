@@ -144,4 +144,4 @@ jobs:
           max_attempts: 3
           retry_on: error
           command: |
-            pip install --no-binary --no-build-isolation shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+            pip install --no-build-isolation --no-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
