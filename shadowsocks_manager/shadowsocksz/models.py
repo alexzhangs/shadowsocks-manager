@@ -199,7 +199,9 @@ class Node(StatisticMethod):
     record = models.ForeignKey(Record, null=True, blank=True, on_delete=models.SET_NULL, related_name='nodes',
         help_text='Domain name resolved to the node public IP.')
     public_ip = models.GenericIPAddressField('Public IP', protocol='both', unpack_ipv4=True,
-        unique=True, null=True, blank=True, help_text='Public IP address for the node.')
+        null=True, blank=True, help_text='Public IP address for the node. The non-manager service '
+            'port testing is always based on this IP address since listening on private IP makes no sense. '
+            'So make sure this IP address is set, even as 127.0.0.1 or a private IP address for testing nodes.')
     private_ip = models.GenericIPAddressField('Private IP', protocol='both', unpack_ipv4=True,
         null=True, blank=True, help_text='Private IP address for the node.')
     location = models.CharField(max_length=64, null=True, blank=True,
@@ -541,11 +543,13 @@ class SSManager(models.Model):
         help_text='Port number bound to Manager API.')
     encrypt = models.CharField(max_length=32, default='aes-256-cfb',
         help_text='Encrypt method: rc4-md5, aes-128-gcm, aes-192-gcm, aes-256-gcm, '
-        'aes-128-cfb, aes-192-cfb, aes-256-cfb, aes-128-ctr, aes-192-ctr, aes-256-ctr, '
-        'camellia-128-cfb, camellia-192-cfb, camellia-256-cfb, bf-cfb, chacha20-ietf-poly1305, '
-        'xchacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf.')
+            'aes-128-cfb, aes-192-cfb, aes-256-cfb, aes-128-ctr, aes-192-ctr, aes-256-ctr, '
+            'camellia-128-cfb, camellia-192-cfb, camellia-256-cfb, bf-cfb, chacha20-ietf-poly1305, '
+            'xchacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf. '
+            'The changes made here will not affect the plugin status on server.')
     timeout = models.PositiveIntegerField(default=30,
-        help_text='Socket timeout in seconds for Shadowsocks client.')
+        help_text='Socket timeout in seconds for Shadowsocks client. '
+            'The changes made here will not affect the plugin status on server.')
     fastopen = models.BooleanField('Fast Open', default=False,
         help_text='Enable TCP fast open, with Linux kernel > 3.7.0.')
     server_edition = enum.EnumField(ServerEditionList, default=ServerEditionList.LIBEV,
@@ -553,9 +557,6 @@ class SSManager(models.Model):
     is_v2ray_enabled = models.BooleanField(default=False,
         help_text='Whether the v2ray-plugin is enabled for Shadowsocks server. The changes made here will not '
             'affect the plugin status on server.')
-    is_server_enabled = models.BooleanField(default=False,
-        help_text='Control the Shadowsocks server up or down. Works only with the Shadowsocks python edition '
-            'local node.')
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
@@ -575,14 +576,6 @@ class SSManager(models.Model):
             raise ValidationError({
                 self.node.get_ip_field_by_interface(self.interface):
                 [_('There is no IP address set for selected interface on the node.')]})
-        if self.is_server_enabled and self.server_edition != ServerEditionList.PYTHON:
-            raise ValidationError({
-                'is_server_enabled':
-                [_('is_server_enabled was set without Shadowsocks python edition.')]})
-
-    @property
-    def server(self):
-        return SSServer(self)
 
     @property
     def _ip(self):
@@ -808,25 +801,19 @@ class SSManager(models.Model):
         return self.ping_ex() is not None
 
     def on_update(self):
-        if self.server_edition != self._original_server_edition and self._original_server_edition == ServerEditionList.PYTHON:
-            self.server.stop()
-            self.clear_cache()
-            NodeAccount.clear_caches(node=self.node)
-        if self.server_edition == ServerEditionList.PYTHON:
-            if self.is_server_enabled:
-                self.server.restart()
-            else:
-                self.server.stop()
-            self.clear_cache()
-            NodeAccount.clear_caches(node=self.node)
+        self.clear_cache()
+        NodeAccount.clear_caches(node=self.node)
 
     def on_delete(self):
-        self.server.stop()
         self.clear_cache()
         NodeAccount.clear_caches(node=self.node)
 
 
-class SSServer(object):
+class SSServer(object):  # pragma: no cover
+    """
+    This class is used to manage the local Shadowsocks server python edition.
+    The usage of this class is removed from the SSManager model.
+    """
 
     def __init__(self, manager, *args, **kwargs):
         super(SSServer, self).__init__(*args, **kwargs)
