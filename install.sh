@@ -135,11 +135,11 @@ function main () {
     docker network create ssm-network
 
     echo "Running ssm-memcached ..."
-    docker run -d -p 11211:11211 --network ssm-network --name ssm-memcached memcached
+    docker run -d --network ssm-network --name ssm-memcached memcached
 
     echo "Running ssm-rabbitmq ..."
     # run rabbitmq, used by celery
-    docker run -d -p 5672:5672 --network ssm-network --name ssm-rabbitmq rabbitmq
+    docker run -d --network ssm-network --name ssm-rabbitmq rabbitmq
 
     # run shadowsocks-manager
     echo "Running ssm ..."

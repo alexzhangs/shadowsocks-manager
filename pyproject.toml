@@ -59,10 +59,11 @@ dependencies = [
     "pytz",
     "requests",
 
+    # 20240430 - removed. the installation of Shadowsocks service should be handled outside of this project.
     # 20240417 - workaround for: AttributeError: dlsym(0x8c358790, EVP_CIPHER_CTX_cleanup): symbol not found: File python3.12/site-packages/shadowsocks/crypto/openssl.py, line 52
     # 20240417 - py3.10+ - workaround for: AttributeError: module 'collections' has no attribute 'MutableMapping': File python3.12/site-packages/shadowsocks/lru_cache.py, line 34
     # "shadowsocks",
-    "shadowsocks-alexforks",
+    # "shadowsocks-alexforks",
 
     "uWSGI",
 ]

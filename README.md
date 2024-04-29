@@ -35,17 +35,18 @@ Features:
     * python edition:
         * Lacks the collection of traffic statistics.
         * Lacks the ability to test user port creation status.
-        * Pre-installed, and have a builtin service manager.
+        * ~~Pre-installed, and have a builtin service manager.~~
+        * No builtin service manager, you need to install it and start the service by yourself.
 
 Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 
 The development status can be found at: [project home](https://github.com/alexzhangs/shadowsocks-manager/projects/1).
 
 Node List:
-![Home › Shadowsocks › Shadowsocks Nodes](https://www.0xbeta.com/shadowsocks-manager/assets/images/shadowsocks-node-list.png)
+![Home › Shadowsocks › Shadowsocks Nodes](/assets/images/shadowsocks-node-list.png)
 
 Node's Shadowsocks Manager:
-![Home › Shadowsocks › Shadowsocks Nodes](https://www.0xbeta.com/shadowsocks-manager/assets/images/shadowsocks-node-ssmanager.png)
+![Home › Shadowsocks › Shadowsocks Nodes](/assets/images/shadowsocks-node-ssmanager.png)
 
 
 ## 1. Requirements
@@ -76,13 +77,15 @@ docker run -d --network ssm-network --name ssm-memcached memcached
 # run rabbitmq, used by celery
 docker run -d --network ssm-network --name ssm-rabbitmq rabbitmq
 
-# create a directory to store the data, it will be mounted to the container
+# create a directory to store the data, it will be mounted to the shadowsocks-manager container
 mkdir -p ~/ssm-volume
 
 # run the shadowsocks-manager
-docker run -d -p 80:80 --network ssm-network -v ~/ssm-volume:/var/local/ssm --name ssm alexzhangs/shadowsocks-manager \
-           -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False -e SSM_MEMCACHED_HOST=ssm-memcached -e SSM_RABBITMQ_HOST=ssm-rabbitmq \
-           -u admin -p yourpassword -M admin@yourdomain.com
+docker run -d -p 80:80 -v ~/ssm-volume:/var/local/ssm \
+    --network ssm-network --name ssm alexzhangs/shadowsocks-manager \
+    -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False \
+    -e SSM_MEMCACHED_HOST=ssm-memcached -e SSM_RABBITMQ_HOST=ssm-rabbitmq \
+    -u admin -p yourpassword -M admin@yourdomain.com
 ```
 
 ### 2.3. Install with script
@@ -113,15 +116,21 @@ If goes well, then congratulations! The installation has succeeded.
     First, you need to have a Shadowsocks server with the multi-user API
 enabled.
 
-    About how to install and configure Shadowsocks server in AWS, refer
-to the repo
-[aws-ec2-shadowsocks-libev](https://github.com/alexzhangs/aws-ec2-shadowsocks-libev)
+    Install it with docker on the same server with shadowsocks-manager.
 
-    After the server is installed and started, there should be a
-running process named `ss-manager`. Write down the IP address and
-the port that the `ss-manager` is listening on, and also the public IP
-address of the server, the encryption method that Shadowsocks is using,
-they are going to be used in the next step.
+    ```sh
+    # run shadowsocks-libev
+    MGR_PORT=6001
+    SS_PORTS=8381-8480
+    ENCRYPT=aes-256-cfb
+    docker run -d -p $SS_PORTS:$SS_PORTS/UDP -p $SS_PORTS:$SS_PORTS \
+        --network ssm-network --name ssm-ss-libev shadowsocks/shadowsocks-libev:edge \
+        ss-manager --manager-address 0.0.0.0:$MGR_PORT \
+        --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
+
+    # Use below command to get the private IP address of the shadowsocks-libev container for later configuration.
+    docker inspect ssm-ss-libev | grep IPAddress
+    ```
 
 1. Add Shadowsocks server to shadowsocks-manager
 
@@ -135,17 +144,6 @@ Shadowsocks Accounts` and assign the existing nodes to them.
 
     After a few seconds, the created user ports should be available to your
 Shadowsocks client.
-
-1. The builtin local service manager for Shadowsocks python edition
-
-    There's a builtin local service manager available for the Shadowsocks `python edition`. 
-
-    The `python edition` is pre-installed with `shadowsocks-manager`. With the service manager, you can start&stop
-the local service daemon on-the-fly. Check it out from the web admin console `Home › Shadowsocks › Shadowsocks Nodes`, 
-under the `SHADOWSOCKS MANAGERS` tab.
-
-    However the `traffice statistics` and `user port creation status` features are not available for the 
-`python edition`.
 
 
 ## 4. Sendmail (Optional)
@@ -196,15 +194,6 @@ supports the multi-user API, but it doesn't fit this project, here's why:
 * The Python edition's `ping` command has to be sent as the syntax: `ping:{}` in order to work if tested with `nc`. It caused by the tailing newline: `ping\n`.
 
 So either you get some change on your own or stick with the libev edition.
-
-### Update for Shadowsocks Python edition on 2024-04
-
-Both the pypi version (2.8.2) and the github master branch (3.0.0) failed to start `ssserver` due to the upstream and dependency changes.
-
-Since the Python edition is pre-installed in this project, mainly for running test cases, I have to make a patch to make it work.
-
-The fix based on github master branch 3.0.0, and would be minimal, just to make the `ssserver` start without any error, no more features added.
-After the fix, the pre-installed Python edition will be changed from the [original pypi version](https://pypi.org/project/shadowsocks/) to [my fork](https://pypi.org/project/shadowsocks-alexforks/).
 
 
 ## 7. Known Issues
@@ -275,10 +264,34 @@ The following files are kept only for installing the source distribution of the 
 
     ```sh
     # run memcached, used by django cache
-    docker run -d -p 11211:11211 --name ssm-memcached memcached
+    docker run -d -p 11211:11211 --name ssm-dev-memcached memcached
 
     # run rabbitmq, used by celery
-    docker run -d -p 5672:5672 --name ssm-rabbitmq rabbitmq
+    docker run -d -p 5672:5672 --name ssm-dev-rabbitmq rabbitmq
+
+    # run shadowsocks-libev, simulate localhost node
+    MGR_PORT=6001 SS_PORTS=8381-8479 ENCRYPT=aes-256-cfb
+    docker run -d -p 127.0.0.1:$MGR_PORT:$MGR_PORT/UDP \
+        -p 127.0.0.1:$SS_PORTS:$SS_PORTS/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS \
+        --name ssm-dev-ss-libev-localhost shadowsocks/shadowsocks-libev:edge \
+        ss-manager --manager-address 0.0.0.0:$MGR_PORT \
+        --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
+
+    # run shadowsocks-libev, simulate private IP node
+    MGR_PORT=6002 SS_PORTS=8381-8479 ENCRYPT=aes-256-cfb
+    docker run -d -p <private_ip>:$MGR_PORT:$MGR_PORT/UDP \
+        -p <private_ip>:$SS_PORTS:$SS_PORTS/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS \
+        --name ssm-dev-ss-libev-private shadowsocks/shadowsocks-libev:edge \
+        ss-manager --manager-address 0.0.0.0:$MGR_PORT \
+        --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
+        
+    # run shadowsocks-libev, simulate public IP node
+    MGR_PORT=6003 SS_PORTS=8480 ENCRYPT=aes-256-cfb
+    docker run -d -p <private_ip>:$MGR_PORT:$MGR_PORT/UDP \
+        -p <private_ip>:$SS_PORTS:$SS_PORTS/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS \
+        --name ssm-dev-ss-libev-public shadowsocks/shadowsocks-libev:edge \
+        ss-manager --manager-address 0.0.0.0:$MGR_PORT \
+        --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
     ```
 
 1. Link the project code in your workspace to the Python environment
@@ -296,6 +309,8 @@ The following files are kept only for installing the source distribution of the 
 
 1. Run the development server
 
+    Make sure the memcached and rabbitmq are running.
+
     ```sh
     ssm-dev-start
     ```
@@ -307,6 +322,8 @@ The following files are kept only for installing the source distribution of the 
     ```
 
 1. Test the Django code
+
+    Make sure the memcached and rabbitmq are running, and also the 3 shadowsocks-libev node are running.
 
     ```sh
     ssm-test -t
@@ -423,14 +440,30 @@ The CI/CD workflows are defined in the `.github/workflows` directory.
     # Celery
     supervisorctl start ssm-celery-worker
     supervisorctl start ssm-celery-beat
+
+    # Docker
+    docker ps
     ```
 
-1. Check the listening ports (Linux)
+1. Check the listening ports and processes (Linux)
 
     ```
     # TCP
-    netstat -tan
+    netstat -tanp
 
     # UDP
-    netstat -uan
+    netstat -uanp
+    ```
+
+1. Check the listening ports (MacOS)
+
+    ```
+    # TCP
+    netstat -anp tcp
+
+    # UDP
+    netstat -anp udp
+
+    # find the process by port
+    lsof -i :80 -P
     ```

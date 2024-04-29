@@ -22,7 +22,7 @@ logging.disable(logging.CRITICAL)
 
 
 import socket
-def get_ip():
+def get_local_ip():
     """
     Get the local ip address.
     https://github.com/mayermakes/Get_IP
@@ -32,11 +32,11 @@ def get_ip():
         ip.connect(('10.255.255.255', 1))
         IP = ip.getsockname()[0]
     except:
-        IP = '127.0.0.1'
+        raise
     finally:
         ip.close()
     return IP
-ip = get_ip()
+local_ip = get_local_ip()
 
 
 """
@@ -163,15 +163,14 @@ class AccountTestCase(AppTestCase):
 
         # generate 2 accounts
         for port in [config.port_begin, config.port_end]:
-            obj = models.Account(
+            models.Account(
                 username=port,
                 password='mock-password',
                 email='mock@mock-example.com',
                 first_name=str(port),
                 last_name='mock',
                 is_active=True,
-            )
-            obj.save()
+            ).save()
 
     @classmethod
     def setUpTestData(cls):
@@ -188,20 +187,34 @@ class AccountTestCase(AppTestCase):
         self.assertRaises(ValidationError, obj.clean)
 
     def test_account_port_accessible(self):
+        for accout in models.Account.objects.all():
+            for na in accout.nodes_ref.all():
+                self.assertTrue(na.is_accessible)
+
+    def test_account_port_accessible_ex(self):
         # The ssserver's live ports are affected by the ssmanager's restart comes from the other test cases.
         # Perform the heartbeat once to recreate the ssmanager ports.
         # Seems that the rollback performed by django.test.TestCase.setUpTestData() method's isolation mechanism
         # doesn't trigger the django's signal mechanism, so the ssserver ports are not created.
-        models.NodeAccount.heartbeat()
+        # models.NodeAccount.heartbeat()
 
-        for obj in models.Account.objects.all():
-            self.assertTrue(obj.nodes_ref.get(node__name='localhost').is_accessible_ex())
+        for accout in models.Account.objects.all():
+            for na in accout.nodes_ref.all():
+                self.assertTrue(na.is_accessible_ex())
 
     def test_account_port_accessible_after_update(self):
         obj = models.Account.objects.first()
         obj.username = str(int(obj.username) + 1)
         obj.save()
-        self.assertTrue(obj.nodes_ref.get(node__name='localhost').is_accessible_ex())
+        for na in obj.nodes_ref.all():
+            self.assertTrue(na.is_accessible)
+
+    def test_account_port_accessible_ex_after_update(self):
+        obj = models.Account.objects.first()
+        obj.username = str(int(obj.username) + 1)
+        obj.save()
+        for na in obj.nodes_ref.all():
+            self.assertTrue(na.is_accessible_ex())
 
     def test_account_notify(self):
         for obj in models.Account.objects.all():
@@ -216,29 +229,6 @@ class AccountTestCase(AppTestCase):
         obj = models.Account.objects.first()
         obj.is_active = False
         self.assertRaisesRegex(ValidationError, 'is_active', obj.notify, sender=obj)
-
-    def test_account_toggle_active(self):
-        # make all accounts inactive
-        for obj in models.Account.objects.all():
-            obj.toggle_active()
-            self.assertFalse(obj.is_active)
-
-        # all nas are inactive now
-        for na in models.NodeAccount.objects.all():
-            self.assertFalse(na.is_active)
-
-        # make all accounts active
-        for obj in models.Account.objects.all():
-            obj.toggle_active()
-            self.assertTrue(obj.is_active)
-
-        # all nas are active now
-        for na in models.NodeAccount.objects.all():
-            self.assertTrue(na.is_active)
-
-    def test_account_serializer(self):
-        obj = serializers.AccountSerializer()
-        json.loads(json.dumps(obj.to_representation(models.Account.objects.first())))
 
     def test_account_notify_validation_node(self):
         # make all nodes inactive
@@ -264,67 +254,91 @@ class AccountTestCase(AppTestCase):
         obj = models.Account.objects.first()
         self.assertTrue(obj.notify(sender=obj))
 
+    def test_account_toggle_active(self):
+        # make all accounts inactive
+        for obj in models.Account.objects.all():
+            obj.toggle_active()
+            self.assertFalse(obj.is_active)
+
+        # all nas are inactive now
+        for na in models.NodeAccount.objects.all():
+            self.assertFalse(na.is_active)
+
+        # make all accounts active
+        for obj in models.Account.objects.all():
+            obj.toggle_active()
+            self.assertTrue(obj.is_active)
+
+        # all nas are active now
+        for na in models.NodeAccount.objects.all():
+            self.assertTrue(na.is_active)
+
+    def test_account_serializer(self):
+        obj = serializers.AccountSerializer()
+        json.loads(json.dumps(obj.to_representation(models.Account.objects.first())))
+
 
 class NodeTestCase(AppTestCase):
     @classmethod
     def up(cls):
+        # add a ss-libev node for the ssmanager listening on localhost
+        models.Node(
+            name='ss-libev-localhost',
+            record=None,
+            public_ip='127.0.0.1',
+            private_ip='127.0.0.1',
+            location='Local',
+            sns_endpoint='arn:aws:sns:ap-northeast-1:0:topic', # mock sns endpoint
+            sns_access_key='mock-sns_access_key',
+            sns_secret_key='mock-sns_secret_key',
+            is_active=True,
+        ).save()
+
+        # add a ss-libev node for the ssmanager listening on private ip
+        models.Node(
+            name='ss-libev-private',
+            record=None,
+            public_ip=local_ip,
+            private_ip=local_ip,
+            location='Private',
+            sns_endpoint='arn:aws:sns:ap-northeast-1:0:topic', # mock sns endpoint
+            sns_access_key='mock-sns_access_key',
+            sns_secret_key='mock-sns_secret_key',
+            is_active=True,
+        ).save()
+
         DomainAppTestCase.allup()
         record = Record.objects.first()
-
-        # generate one localhost node
-        obj = models.Node(
-            name='localhost',
-            record=None,
-            public_ip=ip,
-            private_ip=ip,
-            location='Local',
-            sns_endpoint=None,
-            sns_access_key=None,
-            sns_secret_key=None,
+        # add a ss-libev node for the ssmanager listening on public ip
+        models.Node(
+            name='ss-libev-public',
+            record=record,
+            public_ip=local_ip,  # using private ip as public ip
+            private_ip=local_ip,
+            location='Public',
+            sns_endpoint='arn:aws:sns:ap-northeast-1:0:topic', # mock sns endpoint
+            sns_access_key='mock-sns_access_key',
+            sns_secret_key='mock-sns_secret_key',
             is_active=True,
-        )
-        obj.save()
-
-        # generate 2 mock nodes
-        for i in list(range(1, 3)):
-            obj = models.Node(
-                name='mock-node-{}'.format(i),
-                record=record,
-                public_ip='.'.join([str(i) for j in list(range(4))]), # mock ip address here
-                private_ip=ip,
-                location='mock-locaction-{}'.format(i),
-                sns_endpoint='arn:aws:sns:ap-northeast-1:{}:topic'.format(i), # mock sns endpoint
-                sns_access_key='mock-sns_access_key-{}'.format(i),
-                sns_secret_key='mock-sns_secret_key-{}'.format(i),
-                is_active=True,
-            )
-            obj.save()
+        ).save()
 
     @classmethod
     def setUpTestData(cls):
         cls.allup()
 
-    def test_node_is_matching_record(self):
-        for obj in models.Node.objects.all():
-            if obj.record:
-                self.assertTrue(obj.is_matching_record)
-            else:
-                self.assertFalse(obj.is_matching_record)
-
-    def test_node_is_matching_dns_query(self):
-        for obj in models.Node.objects.all():
-            self.assertFalse(obj.is_matching_dns_query)
-
-    def test_node_record_sync(self):
-        # ip addresses are synced between node and record
+    def test_node_is_matching_record_positive(self):
         for obj in models.Node.objects.filter(record__isnull=False):
             self.assertTrue(obj.is_matching_record)
 
-    def test_node_toggle_active(self):
-        # all nas are active before test
-        for na in models.NodeAccount.objects.all():
-            self.assertTrue(na.is_active)
+    def test_node_is_matching_record_negative(self):
+        for obj in models.Node.objects.filter(record__isnull=True):
+            self.assertFalse(obj.is_matching_record)
 
+    def test_node_is_matching_dns_query_negitive(self):
+        for obj in models.Node.objects.all():
+            self.assertFalse(obj.is_matching_dns_query)
+
+    def test_node_toggle_active(self):
         # make all nodes inactive
         for obj in models.Node.objects.all():
             obj.toggle_active()
@@ -346,7 +360,8 @@ class NodeTestCase(AppTestCase):
     def test_node_record_sync(self):
         # change nodes's public_ip
         for obj in models.Node.objects.filter(record__isnull=False):
-            obj.public_ip = '.'.join(str(int(part)+100) for part in obj.public_ip.split('.'))
+            # plus 1 to the last part of public ip address
+            obj.public_ip = '.'.join(obj.public_ip.split('.')[0:3] + [str(int(obj.public_ip.split('.')[-1]) + 1)])
             obj.save()
             self.assertTrue(obj.is_matching_record)
 
@@ -369,33 +384,40 @@ class NodeTestCase(AppTestCase):
 class NodeAccountTestCase(AppTestCase):
     @classmethod
     def up(cls):
-        # add the localhost node to all accounts
-        for account in models.Account.objects.all():
-            node = models.Node.objects.get(name='localhost')
-            if models.NodeAccount.objects.filter(node=node, account=account).count() == 0:
-                na = models.NodeAccount(node=node, account=account, is_active=(account.is_active and node.is_active))
-                na.save()
+        # Add the first account to the localhost node and the private node
+        account = models.Account.objects.all().first()
+        node = models.Node.objects.get(name='ss-libev-localhost')
+        na = models.NodeAccount(node=node, account=account, is_active=(account.is_active and node.is_active))
+        na.save()
+
+        node = models.Node.objects.get(name='ss-libev-private')
+        na = models.NodeAccount(node=node, account=account, is_active=(account.is_active and node.is_active))
+        na.save()
+        
+        # Add the last account to the public node
+        # The public node is using the private ip to mock public ip, using different account to avoid the port conflict
+        account = models.Account.objects.all().last()
+        node = models.Node.objects.get(name='ss-libev-public')
+        na = models.NodeAccount(node=node, account=account, is_active=(account.is_active and node.is_active))
+        na.save()
 
     @classmethod
     def setUpTestData(cls):
         cls.allup()
 
     def test_nodeaccount_is_accessible_positive(self):
-        models.NodeAccount.heartbeat()
-        # get the nas that have node.ssmanager listening on localhost
-        for obj in models.NodeAccount.objects.filter(node__ssmanagers__interface=models.InterfaceList.LOCALHOST):
+        #models.NodeAccount.heartbeat()
+        for obj in models.NodeAccount.objects.all():
+            self.assertTrue(obj.is_accessible)
+
+    def test_nodeaccount_is_accessible_ex_positive(self):
+        #models.NodeAccount.heartbeat()
+        for obj in models.NodeAccount.objects.all():
             self.assertTrue(obj.is_accessible_ex())
 
-    def test_nodeaccount_is_accessible_negative(self):
-        # get the nas that don't have node.ssmanager listening on localhost
-        for obj in models.NodeAccount.objects.exclude(node__ssmanagers__interface=models.InterfaceList.LOCALHOST):
-            self.assertFalse(obj.is_accessible_ex())
-
     def test_nodeaccount_is_created(self):
-        # get the nas that have node.ssmanager listening on localhost
-        for obj in models.NodeAccount.objects.filter(node__ssmanagers__interface=models.InterfaceList.LOCALHOST):
-            # the Shadowsocks python edition's list command doesn't work, so the is_created() method is always None
-            self.assertFalse(obj.is_created())
+        for obj in models.NodeAccount.objects.all():
+            self.assertTrue(obj.is_created())
 
     def test_nodeaccount_serializer(self):
         obj = serializers.NodeAccountSerializer()
@@ -405,57 +427,71 @@ class NodeAccountTestCase(AppTestCase):
 class SSManagerTestCase(AppTestCase):
     @classmethod
     def up(cls):
-        # add a ssmanager to localhost node, using python edition, auto install&start
-        obj = models.SSManager(
-            node=models.Node.objects.get(name='localhost'),
+        # Add a libev edition manager to the localhost node
+        # Make sure this manager is running and accessible at localhost before the test.
+        # Example command:
+        # MGR_PORT=6001 SS_PORTS=8381-8479 ENCRYPT=aes-256-cfb
+        # docker run -d -p 127.0.0.1:$MGR_PORT:$MGR_PORT/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS \
+        #   --name ssm-ss-libev-localhost shadowsocks/shadowsocks-libev:edge \
+        #   ss-manager --manager-address 0.0.0.0:$MGR_PORT --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
+
+        models.SSManager(
+            node=models.Node.objects.get(name='ss-libev-localhost'),
             interface=models.InterfaceList.LOCALHOST,
             port=6001,
             fastopen=False,
             encrypt='aes-256-cfb',
-            server_edition=models.ServerEditionList.PYTHON,
+            server_edition=models.ServerEditionList.LIBEV,
             is_v2ray_enabled=False,
-            is_server_enabled=True,
-        )
-        obj.save()
+        ).save()
 
-        # add a ssmanager to each mock node, using libev edition
-        for node in models.Node.objects.exclude(name='localhost'):
-            obj = models.SSManager(
-                node=node,
-                interface=node.pk % 2 + 2,  # limit the interface within: [2, 3]
-                port=6001,
-                fastopen=False,
-                encrypt='aes-256-cfb',
-                server_edition=models.ServerEditionList.LIBEV,
-                is_v2ray_enabled=False,
-            )
-            obj.save()
+        # Add a libev edition manager to the private node
+        # Make sure this manager is running and accessible at private ip before the test.
+        # Example command:
+        # MGR_PORT=6002 SS_PORTS=8381-8479 ENCRYPT=aes-256-cfb
+        # docker run -d -p <private_ip>:$MGR_PORT:$MGR_PORT/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS \
+        #   --name ssm-ss-libev-private shadowsocks/shadowsocks-libev:edge \
+        #   ss-manager --manager-address 0.0.0.0:$MGR_PORT --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
+        models.SSManager(
+            node=models.Node.objects.get(name='ss-libev-private'),
+            interface=models.InterfaceList.PRIVATE,
+            port=6002,
+            fastopen=False,
+            encrypt='aes-256-cfb',
+            server_edition=models.ServerEditionList.LIBEV,
+            is_v2ray_enabled=False,
+        ).save()
+
+        # Add a libev edition manager to the public node
+        # Make sure this manager is running and accessible at private ip before the test.
+        # Example command:
+        # MGR_PORT=6003 SS_PORTS=8480 ENCRYPT=aes-256-cfb
+        # docker run -d -p <private_ip>:$MGR_PORT:$MGR_PORT/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS \
+        #   --name ssm-ss-libev-public shadowsocks/shadowsocks-libev:edge \
+        #   ss-manager --manager-address 0.0.0.0:$MGR_PORT --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
+        models.SSManager(
+            node=models.Node.objects.get(name='ss-libev-public'),
+            interface=models.InterfaceList.PUBLIC,
+            port=6003,
+            fastopen=False,
+            encrypt='aes-256-cfb',
+            server_edition=models.ServerEditionList.LIBEV,
+            is_v2ray_enabled=False,
+        ).save()
 
     @classmethod
     def setUpTestData(cls):
         cls.allup()
 
     def test_ssmanager_is_accessible(self):
-        obj = models.SSManager.objects.filter(interface=models.InterfaceList.LOCALHOST).first()
-        self.assertTrue(obj.is_accessible)
-
-    def test_ssmanager_is_server_enabled(self):
-        obj = models.SSManager.objects.filter(interface=models.InterfaceList.LOCALHOST).first()
-        self.assertTrue(obj.is_server_enabled)
-
-    def test_ssmanager_server_version(self):
-        obj = models.SSManager.objects.filter(interface=models.InterfaceList.LOCALHOST).first()
-        #self.assertTrue(obj.server.version)
-
-    def test_ssmanager_server_status(self):
-        obj = models.SSManager.objects.filter(interface=models.InterfaceList.LOCALHOST).first()
-        self.assertTrue(re.match('(running|sleeping)', obj.server.status or ''))
+        for obj in models.SSManager.objects.all():
+            self.assertTrue(obj.is_accessible)
 
     def test_ssmanager_add_and_remove(self):
-        obj = models.SSManager.objects.filter(interface=models.InterfaceList.LOCALHOST).first()
-        port=8388
-        obj.add(port, 'mock-password')
-        self.assertTrue(obj.is_port_created_or_accessible(port))
+        for obj in models.SSManager.objects.all():
+            port=8388
+            obj.add(port, 'mock-password')
+            self.assertTrue(obj.is_port_created_or_accessible(port))
 
         obj.remove(port)
         self.assertFalse(obj.is_port_created_or_accessible(port))
