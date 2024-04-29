@@ -277,18 +277,22 @@ The following files are kept only for installing the source distribution of the 
         ss-manager --manager-address 0.0.0.0:$MGR_PORT \
         --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
 
+    # get the private IP address of the host, double check the result, it might not be correct
+    PRIVATE_IP=$(ipconfig getifaddr en0 2>/dev/null || hostname -i | awk '{print $1}' 2>/dev/null)
+    echo "PRIVATE_IP=$PRIVATE_IP"
+
     # run shadowsocks-libev, simulate private IP node
     MGR_PORT=6002 SS_PORTS=8381-8479 ENCRYPT=aes-256-cfb
-    docker run -d -p <private_ip>:$MGR_PORT:$MGR_PORT/UDP \
-        -p <private_ip>:$SS_PORTS:$SS_PORTS/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS \
+    docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
+        -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
         --name ssm-dev-ss-libev-private shadowsocks/shadowsocks-libev:edge \
         ss-manager --manager-address 0.0.0.0:$MGR_PORT \
         --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
         
     # run shadowsocks-libev, simulate public IP node
     MGR_PORT=6003 SS_PORTS=8480 ENCRYPT=aes-256-cfb
-    docker run -d -p <private_ip>:$MGR_PORT:$MGR_PORT/UDP \
-        -p <private_ip>:$SS_PORTS:$SS_PORTS/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS \
+    docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
+        -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
         --name ssm-dev-ss-libev-public shadowsocks/shadowsocks-libev:edge \
         ss-manager --manager-address 0.0.0.0:$MGR_PORT \
         --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
