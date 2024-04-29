@@ -8,7 +8,7 @@ import json
 from abc import abstractmethod
 from django.test import TestCase
 
-from shadowsocksz.tests import AppTestCase as ShadowsockszAppTestCase
+from shadowsocks.tests import AppTestCase as shadowsocksAppTestCase
 from statistic import models, serializers
 
 
@@ -73,7 +73,7 @@ class BaseTestCase(TestCase):
 
 
 class AppTestCase(BaseTestCase):
-    fixtures = ShadowsockszAppTestCase.fixtures
+    fixtures = shadowsocksAppTestCase.fixtures
     testcases = []
 
 
@@ -86,7 +86,7 @@ class PeriodTestCase(AppTestCase):
 class StatisticTestCase(AppTestCase):
     @classmethod
     def setUpTestData(cls):
-        ShadowsockszAppTestCase.allup()
+        shadowsocksAppTestCase.allup()
 
     def test_statistic_statistic(self):
         # no statistics data is asserted, cause there's no Manager API really called.
