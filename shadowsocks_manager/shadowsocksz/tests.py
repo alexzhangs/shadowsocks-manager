@@ -187,16 +187,17 @@ class AccountTestCase(AppTestCase):
         self.assertRaises(ValidationError, obj.clean)
 
     def test_account_port_accessible(self):
+        # Perform the heartbeat once to recreate the ssmanager ports.
+        # Seems that the rollback performed by django.test.TestCase.setUpTestData() method's isolation mechanism
+        # doesn't trigger the django's signal mechanism, so the shadowsocks ports are not created.
+        models.NodeAccount.heartbeat()
+
         for accout in models.Account.objects.all():
             for na in accout.nodes_ref.all():
                 self.assertTrue(na.is_accessible)
 
     def test_account_port_accessible_ex(self):
-        # The ssserver's live ports are affected by the ssmanager's restart comes from the other test cases.
-        # Perform the heartbeat once to recreate the ssmanager ports.
-        # Seems that the rollback performed by django.test.TestCase.setUpTestData() method's isolation mechanism
-        # doesn't trigger the django's signal mechanism, so the ssserver ports are not created.
-        # models.NodeAccount.heartbeat()
+        models.NodeAccount.heartbeat()
 
         for accout in models.Account.objects.all():
             for na in accout.nodes_ref.all():
