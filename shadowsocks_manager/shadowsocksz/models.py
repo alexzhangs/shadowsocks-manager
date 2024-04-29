@@ -843,7 +843,8 @@ class SSServer(object):
     @classmethod
     def lift_pip_shadowsocks(cls):
         """
-        Workaround for the package naming conflict between the Django app `shadowsocks` and the pip package `shadowsocks`.
+        Workaround for the package naming conflict between the Django app `shadowsocks` and the Shadowsocks
+        python editon installed with pip package `shadowsocks`.
         Lower the searching priority of the Django project app home dir in sys.path.
         """
         import shadowsocks
@@ -878,6 +879,14 @@ class SSServer(object):
 
         # unimport the package
         del sys.modules['shadowsocks']
+
+    @classmethod
+    def random_password(cls, length=16):
+        """
+        Return a random password string.
+        """
+        import random, string
+        return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
     def call(self, command, *args, **kwargs):
         """
@@ -954,7 +963,11 @@ class SSServer(object):
             '--log-file', self.logfile(),
             '-d', 'start',
             '--manager-address', '{}:{}'.format(self.manager._ip, self.manager.port),  # the options order matters
-            '-k', 'passw0rd',
+            # The shadowsocks python edition does not support to run the manager without a server port.
+            # So, the server port is set to 65500, which is not supposed to be used by any client.
+            # And the password is set to a random string, which is not supposed to be known by any client.
+            '-p 65500',  
+            '-k', self.random_password(),
             '-m', self.manager.encrypt,
             '-t', str(self.manager.timeout),
             '--fast-open', str(self.manager.fastopen),
