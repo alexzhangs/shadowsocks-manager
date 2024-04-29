@@ -11,7 +11,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from django_lock import lock
 
-from shadowsocksz.models import Node, Account, NodeAccount
+from shadowsocks.models import Node, Account, NodeAccount
 
 
 logger = logging.getLogger('django')

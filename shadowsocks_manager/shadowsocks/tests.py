@@ -13,7 +13,7 @@ from django.core.exceptions import ValidationError
 from domain.models import Record
 from domain.tests import AppTestCase as DomainAppTestCase
 from notification.tests import AppTestCase as NotificationAppTestCase
-from shadowsocksz import models, serializers
+from shadowsocks import models, serializers
 
 
 import logging
