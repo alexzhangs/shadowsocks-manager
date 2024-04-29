@@ -71,10 +71,10 @@ Assume you have installed the [Docker](https://www.docker.com/) on your host.
 docker network create ssm-network
 
 # run memcached, used by django cache
-docker run -d -p 11211:11211 --network ssm-network --name ssm-memcached memcached
+docker run -d --network ssm-network --name ssm-memcached memcached
 
 # run rabbitmq, used by celery
-docker run -d -p 5672:5672 --network ssm-network --name ssm-rabbitmq rabbitmq
+docker run -d --network ssm-network --name ssm-rabbitmq rabbitmq
 
 # create a directory to store the data, it will be mounted to the container
 mkdir -p ~/ssm-volume
