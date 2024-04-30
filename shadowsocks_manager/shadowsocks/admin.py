@@ -56,7 +56,7 @@ class SSManagerInline(admin.TabularInline):
     extra = 1
     max_num = 1
 
-    fields = ('interface', 'port', 'encrypt', 'timeout', 'fastopen', 'is_accessible',
+    fields = ('interface', 'port', 'encrypt', 'is_accessible',
               'server_edition', 'is_v2ray_enabled',)
     readonly_fields = ('is_accessible', 'is_v2ray_enabled', 'dt_created', 'dt_updated')
 
