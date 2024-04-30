@@ -6,7 +6,7 @@ name: ci-unittest
 # This workflow is triggered by:
 #   - a manual trigger
 #   - a push to the repository with changes in the certain paths
-#   - a pull request
+#   - a pull request to the master branch
 #   - a monthly schedule
 
 on:
