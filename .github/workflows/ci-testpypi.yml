@@ -36,17 +36,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          run_history=$(gh api repos/:owner/:repo/actions/workflows/ci-testpypi.yml/runs --jq '.workflow_runs[] | select(.event == "push" and .head_sha == "${{ github.sha }}") | .id' | wc -l)
+          run_history=$(gh api repos/:owner/:repo/actions/workflows/ci-testpypi.yml/runs --jq '.workflow_runs | map(select(.head_sha == "${{ github.sha }}")) | length')
+          echo "$run_history run(s) found."
           echo "RUN_HISTORY=$run_history" >> $GITHUB_OUTPUT
 
   testpypi-py3-build-and-upload:
     runs-on: ubuntu-latest
     needs: check-run-history
-    if: ${{ github.event_name == 'workflow_dispatch'
-            || github.event_name == 'push'
-            || (github.event_name == 'workflow_run' 
-                && github.event.workflow_run.conclusion == 'success' 
-                && needs.check-run-history.outputs.RUN_HISTORY == '0') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.check-run-history.outputs.RUN_HISTORY == '0') }}
     outputs:
       NEW_VERSION: ${{ steps.bump-version.outputs.NEW_VERSION }}
     strategy:
