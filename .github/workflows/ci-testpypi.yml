@@ -44,7 +44,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          run_history=$(gh api repos/:owner/:repo/actions/workflows/ci-testpypi.yml/runs --jq '.workflow_runs | map(select(.head_sha == "${{ github.sha }}")) | length')
+          run_history=$(gh api repos/:owner/:repo/actions/workflows/ci-testpypi.yml/runs --jq '.workflow_runs | map(select(.head_sha == "${{ github.sha }}" and .id != '${{ github.run_id }}')) | length')
           echo "$run_history run(s) found."
           echo "RUN_HISTORY=$run_history" >> $GITHUB_OUTPUT
 
