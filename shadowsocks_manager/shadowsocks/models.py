@@ -547,11 +547,6 @@ class SSManager(models.Model):
             'camellia-128-cfb, camellia-192-cfb, camellia-256-cfb, bf-cfb, chacha20-ietf-poly1305, '
             'xchacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf. '
             'The changes made here will not affect the plugin status on server.')
-    timeout = models.PositiveIntegerField(default=30,
-        help_text='Socket timeout in seconds for Shadowsocks client. '
-            'The changes made here will not affect the plugin status on server.')
-    fastopen = models.BooleanField('Fast Open', default=False,
-        help_text='Enable TCP fast open, with Linux kernel > 3.7.0.')
     server_edition = enum.EnumField(ServerEditionList, default=ServerEditionList.LIBEV,
         help_text='The Shadowsocks server edition. The libev edition is recommended.')
     is_v2ray_enabled = models.BooleanField(default=False,
@@ -955,8 +950,6 @@ class SSServer(object):  # pragma: no cover
             '-p 65500',  
             '-k', self.random_password(),
             '-m', self.manager.encrypt,
-            '-t', str(self.manager.timeout),
-            '--fast-open', str(self.manager.fastopen),
         ]
         """
         * close_fds=True: For Python 2.7, should not inherit the parent process's fds. The inherit fds won't be released
