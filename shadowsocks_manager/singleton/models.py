@@ -8,7 +8,7 @@ from django.db import models
 from django.core.cache import cache
 
 
-logger = logging.getLogger('django')
+logger = logging.getLogger(__name__)
 
 
 # Create your models here.

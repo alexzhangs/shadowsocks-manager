@@ -13,7 +13,7 @@ from django.contrib.sites.models import Site
 from django.conf import settings
 
 
-logger = logging.getLogger('django')
+logger = logging.getLogger(__name__)
 
 
 # Create your models here.
@@ -35,10 +35,15 @@ class BaseNsApi(object):
         self.credential = credential
 
     def call_api(self, url, method='get', data=None):
+        if not self.user or not self.credential:
+            logger.error('{0}: User and Credential are required.'.format(self.__class__.__name__))
+            return
+
         response = getattr(requests, method)(
             url,
             auth=(self.user, self.credential),
-            json=data
+            json=data,
+            timeout=30
         )
         return response.json()
 

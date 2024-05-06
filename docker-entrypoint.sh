@@ -3,23 +3,31 @@
 #? Description:
 #?   This script is the entrypoint for the shadowsocks-manager container.
 #?   It will:
-#?   - Setup the shadowsocks-manager
+#?   - Setup the shadowsocks-manager (if the setup done file does not exist):
+#?     - Copy the .ssm-env file
+#?     - Setup the required directories
+#?     - Run the ssm-setup script
+#?     - Create the setup done file
 #?   - Start the uWSGI and celery services
 #?   - Start the nginx service
 #?
 #?   This script should be called by user root.
 #?
 #? Usage:
-#?   docker-entrypoint.sh [OPTIONS]
+#?   docker-entrypoint.sh [SSM_SETUP_OPTIONS]
 #?
 #? Options:
-#?   [OPTIONS]
+#?   [SSM_SETUP_OPTIONS]
 #?
 #?   Options are the same as the ssm-setup script.
-#?   If any option is provided, the ssm-setup will be executed with the provided options.
+#?   If any option is provided, the options will pass along with the default options to the ssm-setup script.
+#?   The default options are:
+#?
+#?     -c -m -l
+#?     -u admin -p passw0rd
 #?
 #? Environment:
-#?   The following environment variables are used by this script:
+#?   The following environment variables are used by this script and being set by the Dockerfile:
 #?
 #?   - SSM_USER
 #?
@@ -30,12 +38,9 @@
 #?   - SSM_DATA_HOME
 #?
 #?     Required.
-#?     Set the base directory for the Django database and static files.
+#?     Set the base directory for .ssm-env file and the Django database and static files.
 #?     The path should exist in the container and should be writable by the SSM_USER.
 #?     It should be mounted as a volume in the container while running the docker image.
-#?
-#?     Django collectstatic will be executed if the path `$SSM_DATA_HOME/static` is empty.
-#?     Django migrate, loaddata and createsuperuser will be executed if the path `$SSM_DATA_HOME/db` is empty.
 #?
 #? Example:
 #?   # for the development environment
@@ -70,25 +75,27 @@ function main () {
         exit 1
     fi
 
-    # Create the required directories
-    mkdir -p "$SSM_DATA_HOME/db" "$SSM_DATA_HOME/static"
+    declare setup_done_file="$SSM_DATA_HOME/.ssm-setup-done"
 
-    # Set the owner of the SSM_DATA_HOME to the SSM_USER
-    chown -R "$SSM_USER:$SSM_USER" "$SSM_DATA_HOME"
+    # Run the initial setup if the setup_done_file does not exist
+    if [[ ! -e $setup_done_file ]]; then
+        # Copy the .ssm-env file to the SSM_DATA_HOME if it does not exist
+        /usr/bin/cp -n /shadowsocks-manager/.ssm-env-example "$SSM_DATA_HOME/.ssm-env"
 
-    # Setup the shadowsocks-manager with default options and the provided options
-    sudo -H -u "$SSM_USER" ssm-setup -e SSM_DATA_HOME="$SSM_DATA_HOME" "$@"
+        # Create the required directories
+        mkdir -p "$SSM_DATA_HOME/db" "$SSM_DATA_HOME/static"
 
-    # Check if the static files are collected
-    if [[ -z "$(ls -A "$SSM_DATA_HOME"/static)" ]]; then
-        # Collect the static files
-        sudo -H -u "$SSM_USER" ssm-setup -c
-    fi
+        # Set the owner of the SSM_DATA_HOME to the SSM_USER
+        chown -R "$SSM_USER:$SSM_USER" "$SSM_DATA_HOME"
 
-    # Check if the database is migrated
-    if [[ -z "$(ls -A "$SSM_DATA_HOME"/db)" ]]; then
-        # Migrate the database, loaddata and createsuperuser
-        sudo -H -u "$SSM_USER" ssm-setup -m -l -u admin -p passw0rd
+        # Set the default options
+        declare -a default_options=(-c -m -l -u admin -p passw0rd)
+
+        # Run the initial setup, the explicit options may override the default options
+        sudo -HE -u "$SSM_USER" ssm-setup "${default_options[@]}" "$@"
+
+        # Create the initial setup signature file
+        touch "$setup_done_file" && chown "$SSM_USER:$SSM_USER" "$setup_done_file"
     fi
 
     # Start the uWSGI and celery services

@@ -12,8 +12,10 @@ from domain import models, serializers
 
 
 import logging
-# disable logging for the test module to make the output clean
-logging.disable(logging.CRITICAL)
+# Get a logger for this module
+logger = logging.getLogger(__name__)
+# Set the logging level to make the output clean
+logger.setLevel(logging.ERROR)
 
 
 class BaseTestCase(TestCase):

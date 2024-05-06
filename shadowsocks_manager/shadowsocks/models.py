@@ -31,7 +31,7 @@ from notification.models import Template, Notify
 from domain.models import Record
 
 
-logger = logging.getLogger('django')
+logger = logging.getLogger(__name__)
 
 
 # Create your models here.

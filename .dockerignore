@@ -9,8 +9,11 @@ shadowsocks_manager/*/migrations/*
 !shadowsocks_manager/*/migrations/__init__.py
 shadowsocks_manager/.coverage
 shadowsocks_manager/coverage*.xml
+shadowsocks_manager/.ssm-env
 .idea
 build
 dist
 install.sh
+_config.yml
 .git
+.github

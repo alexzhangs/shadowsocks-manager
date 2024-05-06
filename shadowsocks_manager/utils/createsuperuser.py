@@ -16,7 +16,7 @@ Returns:
     None
 
 Example:
-    ssm-createsuperuser -u admin -p admin123 -e admin@example.com
+    $ ssm-createsuperuser -u admin -p admin123 -e admin@example.com
 """
 import os
 import sys
@@ -40,7 +40,7 @@ def create_superuser(username, password, email):
     User.objects.filter(username=username).delete()
     User.objects.create_superuser(username, email, password)
 
-    print("Superuser '{username}' created successfully.")
+    print("Superuser '{0}' created successfully.".format(username))
 
 
 def main():

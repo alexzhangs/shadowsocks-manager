@@ -14,7 +14,7 @@ from django_lock import lock
 from shadowsocks.models import Node, Account, NodeAccount
 
 
-logger = logging.getLogger('django')
+logger = logging.getLogger(__name__)
 
 
 # Create your models here.
