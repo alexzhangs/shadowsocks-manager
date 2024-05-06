@@ -87,15 +87,15 @@ function main () {
     docker network create ssm-network
 
     echo "Running ssm-memcached ..."
-    docker run -d --network ssm-network --name ssm-memcached memcached
+    docker run --restart=always -d --network ssm-network --name ssm-memcached memcached
 
     echo "Running ssm-rabbitmq ..."
     # run rabbitmq, used by celery
-    docker run -d --network ssm-network --name ssm-rabbitmq rabbitmq
+    docker run --restart=always -d --network ssm-network --name ssm-rabbitmq rabbitmq
 
     # run shadowsocks-manager
     echo "Running ssm ..."
-    docker run -d -p 80:80 --network ssm-network -v $volume_path:/var/local/ssm \
+    docker run --restart=always -d -p 80:80 --network ssm-network -v $volume_path:/var/local/ssm \
         --name ssm alexzhangs/shadowsocks-manager "${default_options[@]}" "$@"
 }
 
