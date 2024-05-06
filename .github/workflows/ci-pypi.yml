@@ -46,7 +46,7 @@ jobs:
               version_part=${{ github.event.inputs.VERSION_PART }}
               ;;
             push)
-              version_part=$(echo "${{ github.ref_name }}" | awk -F- '{print $NF}')
+              version_part=$(echo "${{ github.ref_name }}" | awk -F- '{print $3}')
               version_part=${version_part:-patch}
               ;;
           esac
