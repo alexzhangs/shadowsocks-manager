@@ -14,4 +14,6 @@ shadowsocks_manager/.ssm-env
 build
 dist
 install.sh
+_config.yml
 .git
+.github
