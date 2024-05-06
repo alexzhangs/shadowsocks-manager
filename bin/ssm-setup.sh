@@ -12,8 +12,8 @@
 #? Options:
 #?   [-e ENV ...]
 #?
-#?   Set the environment variables in KEY=VALUE format for .env file.
-#?   The .env file is used by Django settings.
+#?   Set the environment variables in KEY=VALUE format for .ssm-env file.
+#?   The .ssm-env file is used by Django settings.
 #?   This option can be used multiple times.
 #?
 #?   The valid KEYs are:
@@ -21,7 +21,7 @@
 #?   - SSM_SECRET_KEY
 #?
 #?     Set Django's SECRET_KEY.
-#?     The default value is hardcoded in the .env file and Django's settings.
+#?     The default value is hardcoded in the .ssm-env file and Django's settings.
 #?     Do not use the default value in production environment.
 #?     Below command will generate a random SECRET_KEY:
 #?     ```sh
@@ -32,29 +32,24 @@
 #?
 #?     Set Django's DEBUG.
 #?     The value can be 'True' or 'False'.
-#?     The default value depends on the .env file and Django's settings.
+#?     The default value depends on the .ssm-env file and Django's settings.
 #?     Do not use value SSM_DEBUG=True in production environment.
 #?
 #?   - SSM_TIME_ZONE
 #?
 #?     Set Django's TIME_ZONE.
 #?     The value can be any valid timezone name.
-#?     The default value depends on the .env file and Django's settings.
-#?
-#?   - SSM_DATA_HOME
-#?
-#?     Set the base directory for the Django database and static files.
-#?     The default value depends on the .env file and Django's settings.
+#?     The default value depends on the .ssm-env file and Django's settings.
 #?
 #?   - SSM_MEMCACHED_HOST, SSM_MEMCACHED_PORT
 #?
 #?     Set the Memcached server's host and port which are used by Django cache.
-#?     The default value depends on the .env file and Django's settings.
+#?     The default value depends on the .ssm-env file and Django's settings.
 #? 
 #?   - SSM_RABBITMQ_HOST, SSM_RABBITMQ_PORT
 #?
 #?     Set the RabbitMQ server's host and port which are used by Celery.
-#?     The default value depends on the .env file and Django's settings.
+#?     The default value depends on the .ssm-env file and Django's settings.
 #?
 #?   However, this script will not check the validity of the KEYs and VALUEs.
 #?

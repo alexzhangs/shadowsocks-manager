@@ -61,6 +61,7 @@ RUN apt-get update && apt-get install -y supervisor
 
 # Copy supervisor config file
 COPY deploy/supervisor/vendors/* /etc/supervisor/conf.d/
+COPY deploy/supervisor/default/supervisor /etc/default/supervisor
 
 # Install nginx
 RUN apt-get install -y nginx

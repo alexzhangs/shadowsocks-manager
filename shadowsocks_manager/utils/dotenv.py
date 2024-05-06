@@ -8,27 +8,46 @@ Usage:
     ssm-dotenv [-w ENVS ...]
 
 Options:
-    [-w ENVS ...]   Write enviaronment variables in KEY=VALUE format for .env file.
-                    The .env file is used by django settings.
+    [-w ENVS ...]   Write enviaronment variables in KEY=VALUE format for .ssm-env file.
+                    The .ssm-env file is used by django settings.
+
+Environment:
+    The following environment variables are used by this script to determine the location of the .ssm-env file:
+
+    - SSM_DATA_HOME
+    
+      If the SSM_DATA_HOME is not set, Django root directory is used as the default location for the .ssm-env file.
 
 Returns:
     None
 
 Example:
-    ssm-dotenv -w SSM_SECRET_KEY=yourkey SSM_DEBUG=False
+    $ ssm-dotenv -w SSM_SECRET_KEY=yourkey SSM_DEBUG=False
 """
 import os
 import sys
 from docopt import docopt
 
 
-def get_env_file():
-    django_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(django_root, '.env')
+def get_env_file(ssm_data_home):
+    env_file = os.path.join(ssm_data_home, '.ssm-env')
+    if not os.path.exists(env_file):
+        # create the .ssm-env file if it does not exist
+        with open(env_file, 'w') as f:
+            f.write('')
+    return env_file
 
 
 def main():
-    env_file = get_env_file()
+    # get SSM_DATA_HOME from environment, or use Django root directory as default
+    ssm_data_home = os.getenv('SSM_DATA_HOME') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # create the ssm_data_home directory if it does not exist
+    if not os.path.exists(ssm_data_home):
+        os.makedirs(ssm_data_home)
+
+    # get the .ssm-env file
+    env_file = get_env_file(ssm_data_home)
 
     arguments = docopt(__doc__)
 
@@ -58,12 +77,12 @@ def main():
                 if line.startswith(key + '='):
                     f.write(new_line)
                     key_found = True
-                    print(f"Updated environment variable '{key}' in .env file.")
+                    print("Updated environment variable '{0}' in .ssm-env file.".format(key))
                 else:
                     f.write(line)
             if not key_found:
                 f.write('\n' + new_line)
-                print(f"Added environment variable '{key}' to .env file.")
+                print("Added environment variable '{0}' to .ssm-env file.".format(key))
 
 
 if __name__ == "__main__":

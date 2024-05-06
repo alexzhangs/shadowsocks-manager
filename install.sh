@@ -5,46 +5,23 @@
 #?   Assume the Docker is installed.
 #? 
 #? Usage:
-#?   install.sh [-e ENVS ...] [-u USERNAME] [-p PASSWORD] [-M EMAIL] [-r PORT_BEGIN] [-R PORT_END] [-h]
+#?   install.sh [SSM_SETUP_OPTIONS]
 #?
 #? Options:
-#?   [-e ENVS ...]
+#?   [SSM_SETUP_OPTIONS]
 #?
-#?   Set the environment variables in KEY=VALUE format for .env file.
-#?   The .env file is used by Django settings.
-#?   This option can be used multiple times.
+#?   Options are the same as the ssm-setup script.
+#?   If any option is provided, the options will pass along with the default options to the `docker run` command.
+#?   The default options are:
 #?
-#?   below environment variables are set by default, they can be overridden by this option.
+#?     -e SSM_SECRET_KEY=$(guid)
+#?     -e SSM_DEBUG=False
+#?     -e SSM_MEMCACHED_HOST=ssm-memcached
+#?     -e SSM_RABBITMQ_HOST=ssm-rabbitmq
 #?
-#?   - SSM_SECRET_KEY=$(guid)
-#?   - SSM_DEBUG=False
-#?   - SSM_MEMCACHED_HOST=ssm-memcached
-#?   - SSM_RABBITMQ_HOST=ssm-rabbitmq
-#?
-#?   [-u USERNAME]
-#?   
-#?   Username for shadowsocks-manager administrator, default is 'admin'.
-#?   
-#?   [-p PASSWORD]
-#?   
-#?   Password for shadowsocks-manager administrator, default is 'passw0rd'.
-#?   
-#?   [-M EMAIL]
-#?   
-#?   Email for the shadowsocks-manager administrator.
-#?   Also, be used as the sender of the account notification Email.
-#?   
-#?   [-r PORT_BEGIN]
-#?   
-#?   Port range allowed for all Shadowsocks nodes.
-#?   
-#?   [-R PORT_END]
-#?   
-#?   Port range allowed for all Shadowsocks nodes.
-#?
-#?   [-h]
-#?
-#?   This help.
+#? Example:
+#?   # quick start with default options
+#?   $ bash install.sh
 #?
 
 # exit on any error
@@ -75,36 +52,11 @@ function guid () {
 }
 
 function main () {
-    declare -a env_options=("-e" "SSM_SECRET_KEY=$(guid)" "-e" "SSM_DEBUG=False" "-e" "SSM_MEMCACHED_HOST=ssm-memcached" "-e" "SSM_RABBITMQ_HOST=ssm-rabbitmq")
-    declare username password email port_begin port_end \
-            OPTIND OPTARG opt
-
-    while getopts e:u:p:M:r:R:h opt; do
-        case $opt in
-            e)
-                env_options+=("-e" "$OPTARG")
-                ;;
-            u)
-                username=$OPTARG
-                ;;
-            p)
-                password=$OPTARG
-                ;;
-            M)
-                email=$OPTARG
-                ;;
-            r)
-                port_begin=$OPTARG
-                ;;
-            R)
-                port_end=$OPTARG
-                ;;
-            *)
-                usage
-                exit 255
-                ;;
-        esac
-    done
+    declare -a default_options=(
+        -e "SSM_SECRET_KEY=$(guid)"
+        -e "SSM_DEBUG=False"
+        -e "SSM_MEMCACHED_HOST=ssm-memcached"
+        -e "SSM_RABBITMQ_HOST=ssm-rabbitmq")
 
     check-os
     check-docker
@@ -143,8 +95,8 @@ function main () {
 
     # run shadowsocks-manager
     echo "Running ssm ..."
-    docker run -d -p 80:80 --network ssm-network -v $volume_path:/var/local/ssm --name ssm alexzhangs/shadowsocks-manager \
-               "${env_options[@]}" -u "$username" -p "$password" -M "$email" -r "$port_begin" -R "$port_end"
+    docker run -d -p 80:80 --network ssm-network -v $volume_path:/var/local/ssm \
+        --name ssm alexzhangs/shadowsocks-manager "${default_options[@]}" "$@"
 }
 
 main "$@"

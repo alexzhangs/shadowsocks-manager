@@ -13,15 +13,28 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
 
-from decouple import config
+from decouple import Config, RepositoryEnv
 
 import os
 
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def get_env_file(ssm_data_home):
+    env_file = os.path.join(ssm_data_home, '.ssm-env')
+    if not os.path.exists(env_file):
+        # create the .ssm-env file if it does not exist
+        with open(env_file, 'w') as f:
+            f.write('')
+    return env_file
 
-DATA_HOME = config('SSM_DATA_HOME', default=BASE_DIR)
+
+# get SSM_DATA_HOME from environment, or use Django root directory as default
+DATA_HOME = os.getenv('SSM_DATA_HOME') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# create the DATA_HOME directory if it does not exist
+if not os.path.exists(DATA_HOME):
+    os.makedirs(DATA_HOME)
+
+config = Config(RepositoryEnv(get_env_file(DATA_HOME)))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/

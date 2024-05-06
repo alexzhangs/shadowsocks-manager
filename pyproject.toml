@@ -134,7 +134,7 @@ script-files = [
 find = {}
 
 [tool.setuptools.package-data]
-shadowsocks_manager = ["fixtures/*", "**/fixtures/*", ".env"]
+shadowsocks_manager = ["fixtures/*", "**/fixtures/*"]
 
 [tool.distutils.bdist_wheel]
 universal = true
