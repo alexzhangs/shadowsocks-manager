@@ -13,7 +13,7 @@ from django.contrib.sites.models import Site
 from django.conf import settings
 
 
-logger = logging.getLogger('django')
+logger = logging.getLogger(__name__)
 
 
 # Create your models here.

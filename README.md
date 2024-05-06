@@ -337,6 +337,9 @@ The following files are kept only for installing the source distribution of the 
 
     ```sh
     ssm-test -t
+
+    # or use the django test command directly for more options
+    ssm-manage test --no-input -v 2
     ```
 
 1. Test the Django code with coverage

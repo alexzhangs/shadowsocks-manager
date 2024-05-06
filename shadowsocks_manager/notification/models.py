@@ -12,7 +12,7 @@ from django.db import models
 from django.template import engines
 
 
-logger = logging.getLogger('django')
+logger = logging.getLogger(__name__)
 
 
 # Create your models here.

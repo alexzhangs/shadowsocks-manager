@@ -10,8 +10,10 @@ from retry import retry
 
 
 import logging
-# disable logging for the test module to make the output clean
-logging.disable(logging.CRITICAL)
+# Get a logger for this module
+logger = logging.getLogger(__name__)
+# Set the logging level to make the output clean
+logger.setLevel(logging.CRITICAL)
 
 
 # Create your tests here.
@@ -31,7 +33,7 @@ class RetryTestCase(TestCase):
         # reset the global counter before calling retryee()
         self.RETRYING = 0
 
-        @retry(count=count, delay=0.1)
+        @retry(count=count, delay=0.1, logger=logger)
         def retryee(n):
             """
             Return True on the Nth time call of this function, return False on otherwise.
