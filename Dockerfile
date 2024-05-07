@@ -15,11 +15,11 @@
 #   - 80: The port for the shadowsocks-manager web interface.
 #
 # Build:
-#   $ docker build -t shadowsocks-manager .
+#   $ docker build -t alexzhangs/shadowsocks-manager .
 #
 # Run:
 #   # for development environment
-#   $ docker run -d -p 80 shadowsocks-manager
+#   $ docker run -d -p 80 alexzhangs/shadowsocks-manager
 #
 #   # for production environment
 #   $ docker run -d -p 80 -v /path/on/your/host:/var/local/ssm alexzhangs/shadowsocks-manager \
@@ -28,10 +28,6 @@
 # For more information, please refer to the project repository:
 #   https://github.com/alexzhangs/shadowsocks-manager
 #
-# Maintainer: Alex Zhang <alexzhangs@gamil.com>
-#
-# Version: 1.0
-# 
 FROM python:3.12
 
 # Set environment variables
