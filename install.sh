@@ -19,9 +19,21 @@
 #?     -e SSM_MEMCACHED_HOST=ssm-memcached
 #?     -e SSM_RABBITMQ_HOST=ssm-rabbitmq
 #?
+#? Environment:
+#?   The following environment variables are used by this script:
+#?
+#?   - SSM_VERSION
+#?
+#?     Optional.
+#?     Set the version of the shadowsocks-manager Docker image.
+#?     The default value is `latest`.
+#?
 #? Example:
 #?   # quick start with default options
 #?   $ bash install.sh
+#?
+#?   # install a specific version of shadowsocks-manager
+#?   $ SSM_VERSION=0.1.5 bash install.sh
 #?
 
 # exit on any error
@@ -52,51 +64,64 @@ function guid () {
 }
 
 function main () {
+
+    if [[ $1 == '-h' || $1 == '--help' ]]; then
+        usage
+        exit 0
+    fi
+
+    check-os
+    check-docker
+
     declare -a default_options=(
         -e "SSM_SECRET_KEY=$(guid)"
         -e "SSM_DEBUG=False"
         -e "SSM_MEMCACHED_HOST=ssm-memcached"
         -e "SSM_RABBITMQ_HOST=ssm-rabbitmq")
 
-    check-os
-    check-docker
+    declare SSM_VERSION=${SSM_VERSION:-latest}
+    declare ssm_image="alexzhangs/shadowsocks-manager:$SSM_VERSION"
+    declare ssm_container_name="ssm-$SSM_VERSION"
+    declare ssm_network_name="${ssm_container_name}-network"
+    declare memcached_container_name="${ssm_container_name}-memcached"
+    declare rabbitmq_container_name="${ssm_container_name}-rabbitmq"
 
-    declare volume_path=~/ssm-volume
+    declare ssm_volume_path=~/"${ssm_container_name}-volume"
 
     # create volume path on host
-    mkdir -p "$volume_path"
+    mkdir -p "$ssm_volume_path"
 
     echo "Removing the existing container and network if any ..."
-    if docker ps -a --format '{{.Names}}' | grep -q '^ssm-memcached$'; then
-        docker rm -f ssm-memcached
+    if docker ps -a --format '{{.Names}}' | grep -q "^${memcached_container_name}$"; then
+        docker rm -f "$memcached_container_name"
     fi
 
-    if docker ps -a --format '{{.Names}}' | grep -q '^ssm-rabbitmq$'; then
-        docker rm -f ssm-rabbitmq
+    if docker ps -a --format '{{.Names}}' | grep -q "^${rabbitmq_container_name}$"; then
+        docker rm -f "$rabbitmq_container_name"
     fi
 
-    if docker ps -a --format '{{.Names}}' | grep -q '^ssm$'; then
-        docker rm -f ssm
+    if docker ps -a --format '{{.Names}}' | grep -q "^${ssm_container_name}$"; then
+        docker rm -f "$ssm_container_name"
     fi
 
-    if docker network inspect ssm-network &>/dev/null; then
-        docker network rm ssm-network
+    if docker network inspect "$ssm_network_name" &>/dev/null; then
+        docker network rm "$ssm_network_name"
     fi
 
-    echo "Creating ssm-network ..."
-    docker network create ssm-network
+    echo "Creating $ssm_network_name ..."
+    docker network create "$ssm_network_name"
 
-    echo "Running ssm-memcached ..."
-    docker run --restart=always -d --network ssm-network --name ssm-memcached memcached
+    echo "Running $memcached_container_name ..."
+    docker run --restart=always -d --network "$ssm_network_name" --name "$memcached_container_name" memcached
 
-    echo "Running ssm-rabbitmq ..."
+    echo "Running $rabbitmq_container_name ..."
     # run rabbitmq, used by celery
-    docker run --restart=always -d --network ssm-network --name ssm-rabbitmq rabbitmq
+    docker run --restart=always -d --network "$ssm_network_name" --name "$rabbitmq_container_name" rabbitmq
 
     # run shadowsocks-manager
-    echo "Running ssm ..."
-    docker run --restart=always -d -p 80:80 --network ssm-network -v $volume_path:/var/local/ssm \
-        --name ssm alexzhangs/shadowsocks-manager "${default_options[@]}" "$@"
+    echo "Running $ssm_container_name ..."
+    docker run --restart=always -d -p 80:80 --network "$ssm_network_name" -v "$ssm_volume_path:/var/local/ssm" \
+        --name "$ssm_container_name" "$ssm_image" "${default_options[@]}" "$@"
 }
 
 main "$@"
