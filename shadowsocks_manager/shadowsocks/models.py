@@ -134,7 +134,7 @@ class Account(User, StatisticMethod):
 
         return ret
 
-    def notify(self, sender=None):
+    def notify(self, sender=User()):
         """
         Send account owner the account information by email.
         """
