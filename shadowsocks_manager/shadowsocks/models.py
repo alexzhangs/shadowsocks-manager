@@ -536,7 +536,7 @@ class ServerEditionList(enum.Enum):
 
 class SSManager(models.Model):
     node = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='ssmanagers')
-    interface = enum.EnumField(InterfaceList, default=InterfaceList.LOCALHOST,
+    interface = enum.EnumField(InterfaceList, default=InterfaceList.PRIVATE,
         help_text='Network interface bound to Manager API on the node, use an internal '
             'interface if possible.')
     port = models.PositiveIntegerField(default=6001,
