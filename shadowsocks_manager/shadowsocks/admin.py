@@ -58,7 +58,7 @@ class SSManagerInline(admin.TabularInline):
 
     fields = ('interface', 'port', 'encrypt', 'is_accessible',
               'server_edition', 'is_v2ray_enabled',)
-    readonly_fields = ('is_accessible', 'is_v2ray_enabled', 'dt_created', 'dt_updated')
+    readonly_fields = ('is_accessible', 'dt_created', 'dt_updated')
 
     def is_accessible(self, obj):
         return obj.is_accessible

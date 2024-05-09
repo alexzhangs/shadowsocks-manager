@@ -16,12 +16,12 @@ jobs:
   docker-build-and-push:
     runs-on: ubuntu-latest
     outputs:
-      VERSION: ${{ steps.get_version.outputs.VERSION }}
+      VERSION: ${{ steps.get-version.outputs.VERSION }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Get version
-        id: get_version
+        id: get-version
         run: |
           version=$(awk -F\" '/^version = / {print $2}' pyproject.toml)
           echo "VERSION=$version" >> $GITHUB_ENV
@@ -58,5 +58,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run Docker container
+        env:
+          SSM_VERSION: ${{ needs.docker-build-and-push.outputs.VERSION }}
         run: |
           bash install.sh

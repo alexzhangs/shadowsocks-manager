@@ -27,8 +27,6 @@ on:
     - cron: '23 11 1 * *'
 
 env:
-  TWINE_USERNAME: __token__
-  TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
   PROJECT_NAME_FOR_TESTPYPI: shadowsocks-manager-alexzhangs
 
 jobs:
@@ -82,6 +80,9 @@ jobs:
       - name: Build source and binary distributions
         run: python -m build
       - name: Upload to TestPyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}        
         run: twine upload --repository testpypi dist/*
     
   testpypi-py3-install:

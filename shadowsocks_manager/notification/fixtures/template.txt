@@ -1,0 +1,25 @@
+Subject: CREDENTIAL: VPN Account (Shadowsocks)
+To: {{ account.email }}
+Dear {{ account.first_name }},
+
+Your VPN account is setup as below.
+
+* Port: {{ account.username }}
+* Password: {{ account.password }}
+
+It's available on {{ node_accounts|length }} node(s):
+{% for obj in node_accounts %}
+Node #{{ forloop.counter }}:
+------
+{% ifchanged %}
+* VPN Server: {% if obj.node.record.fqdn %}{{ obj.node.record.fqdn }}{% else %}{{ obj.node.public_ip }}{% endif %}
+* Location: {{ obj.node.location }}
+* Encrypt: {{ obj.node.ssmanager.encrypt }}{% if obj.node.ssmanager.is_v2ray_enabled %}
+* V2Ray: Required
+    * Plugin: v2ray-plugin
+    * Plugin Options: tls;host={{ obj.node.record.fqdn }}
+    * Mode: Websocket (HTTPS){% endif %}
+{% else %}
+This node shares the same settings with above.{%endifchanged%}{% endfor %}
+{% if sender.get_full_name %}
+{{ sender.get_full_name }}{% endif %}

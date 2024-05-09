@@ -24,10 +24,6 @@ on:
       - 'ci-pypi'
       - 'ci-pypi-(major|minor|patch|suffix)'
 
-env:
-  TWINE_USERNAME: __token__
-  TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-
 jobs:
   pypi-py3-build-and-upload:
     runs-on: ubuntu-latest
@@ -39,7 +35,6 @@ jobs:
       NEW_VERSION: ${{ steps.bump-version.outputs.NEW_VERSION }}
     steps:
       - name: Get version part
-        id: get_version_part
         run: |
           case ${{ github.event_name }} in
             workflow_dispatch)
@@ -70,13 +65,17 @@ jobs:
         run: |
           bump-my-version bump --verbose "${{ env.VERSION_PART }}"
           current_version=$(bump-my-version show-bump | awk 'NR==1 {print $1}')
+          echo "NEW_VERSION=${current_version}" >> $GITHUB_ENV
           echo "NEW_VERSION=${current_version}" >> $GITHUB_OUTPUT
       - name: Build source and binary distributions
         run: python -m build
       - name: Upload to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: twine upload dist/*
       - name: Push commit and tag
-        run: git push origin HEAD:master refs/tags/${{ steps.bump-version.outputs.NEW_VERSION }}
+        run: git push origin HEAD:master refs/tags/${{ env.NEW_VERSION }}
 
   pypi-py3-install:
     runs-on: ubuntu-latest
