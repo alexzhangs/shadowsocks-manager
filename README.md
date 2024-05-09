@@ -42,11 +42,17 @@ Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 
 The development status can be found at: [project home](https://github.com/alexzhangs/shadowsocks-manager/projects/1).
 
+
+## Screenshots
+
 Shadowsocks Node List:
 ![Home › Shadowsocks › Shadowsocks Nodes](https://www.0xbeta.com/shadowsocks-manager/assets/images/shadowsocks-node-list.png)
 
 Add Shadowsocks Node:
 ![Home › Shadowsocks › Shadowsocks Nodes](https://www.0xbeta.com/shadowsocks-manager/assets/images/shadowsocks-node-add.png)
+
+Add Shadowsocks Account:
+![Home › Shadowsocks › Shadowsocks Accounts](https://www.0xbeta.com/shadowsocks-manager/assets/images/shadowsocks-account-add.png)
 
 
 ## 1. Requirements
