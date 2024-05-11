@@ -73,12 +73,6 @@ function main () {
     check-os
     check-docker
 
-    declare -a default_options=(
-        -e "SSM_SECRET_KEY=$(guid)"
-        -e "SSM_DEBUG=False"
-        -e "SSM_MEMCACHED_HOST=ssm-memcached"
-        -e "SSM_RABBITMQ_HOST=ssm-rabbitmq")
-
     declare SSM_VERSION=${SSM_VERSION:-latest}
     declare ssm_image="alexzhangs/shadowsocks-manager:$SSM_VERSION"
     declare ssm_container_name="ssm-$SSM_VERSION"
@@ -87,6 +81,13 @@ function main () {
     declare rabbitmq_container_name="${ssm_container_name}-rabbitmq"
 
     declare ssm_volume_path=~/"${ssm_container_name}-volume"
+
+    declare -a default_options=(
+        -e "SSM_SECRET_KEY=$(guid)"
+        -e "SSM_DEBUG=False"
+        -e "SSM_MEMCACHED_HOST=$memcached_container_name"
+        -e "SSM_RABBITMQ_HOST=$rabbitmq_container_name"
+    )
 
     # create volume path on host
     mkdir -p "$ssm_volume_path"
