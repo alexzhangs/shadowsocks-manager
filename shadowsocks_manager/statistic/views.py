@@ -3,14 +3,14 @@
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
 
-from rest_framework import viewsets
+from shadowsocks_manager.utils.viewsets import CompatModelViewSet
 
 from . import models, serializers
 
 
 # Create your views here.
 
-class PeriodViewSet(viewsets.ModelViewSet):
+class PeriodViewSet(CompatModelViewSet):
     """
     This viewset automatically provides `list` and `detail` actions.
     """
@@ -18,7 +18,7 @@ class PeriodViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.PeriodSerializer
 
 
-class StatisticViewSet(viewsets.ModelViewSet):
+class StatisticViewSet(CompatModelViewSet):
     """
     This viewset automatically provides `list` and `detail` actions.
     """

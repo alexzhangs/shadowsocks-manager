@@ -4,14 +4,14 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from rest_framework import viewsets
+from shadowsocks_manager.utils.viewsets import CompatModelViewSet
 
 from . import models, serializers
 
 
 # Create your views here.
 
-class TemplateViewSet(viewsets.ModelViewSet):
+class TemplateViewSet(CompatModelViewSet):
     """
     This viewset automatically provides `list` and `detail` actions.
     """

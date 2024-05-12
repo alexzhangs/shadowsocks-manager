@@ -4,14 +4,14 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from rest_framework import viewsets
+from shadowsocks_manager.utils.viewsets import CompatModelViewSet
 
 from . import models, serializers
 
 
 # Create your views here.
 
-class ConfigViewSet(viewsets.ModelViewSet):
+class ConfigViewSet(CompatModelViewSet):
     """
     This viewset automatically provides `list` and `detail` actions.
     """
@@ -19,7 +19,7 @@ class ConfigViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.ConfigSerializer
 
 
-class AccountViewSet(viewsets.ModelViewSet):
+class AccountViewSet(CompatModelViewSet):
     """
     This viewset automatically provides `list` and `detail` actions.
     """
@@ -27,7 +27,7 @@ class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.AccountSerializer
 
 
-class NodeViewSet(viewsets.ModelViewSet):
+class NodeViewSet(CompatModelViewSet):
     """
     This viewset automatically provides `list` and `detail` actions.
     """
@@ -36,7 +36,7 @@ class NodeViewSet(viewsets.ModelViewSet):
     filter_fields = ['name']
 
 
-class NodeAccountViewSet(viewsets.ModelViewSet):
+class NodeAccountViewSet(CompatModelViewSet):
     """
     This viewset automatically provides `list` and `detail` actions.
     """
@@ -44,7 +44,7 @@ class NodeAccountViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.NodeAccountSerializer
 
 
-class SSManagerViewSet(viewsets.ModelViewSet):
+class SSManagerViewSet(CompatModelViewSet):
     """
     This viewset automatically provides `list` and `detail` actions.
     """
