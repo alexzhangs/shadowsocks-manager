@@ -7,7 +7,8 @@
 #?
 #? Usage:
 #?   ssm-setup.sh [-e ENV ...]
-#?                [-c] [-m] [-l] [-u USERNAME -p PASSWORD [-M EMAIL]] [-r PORT_BEGIN] [-R PORT_END] [-h]
+#?                [-c] [-m] [-l] [-u USERNAME -p PASSWORD [-M EMAIL]] [-r PORT_BEGIN] [-R PORT_END]
+#?                [-d DOMAIN [[-t TYPE] -a ANSWER]] [-E DNS_ENV [-n DNS_NAME]] [-S] [-h]
 #?
 #? Options:
 #?   [-e ENV ...]
@@ -96,6 +97,60 @@
 #?   The ending port number for Shadowsocks nodes.
 #?   The default value depends on the Django fixture data.
 #?
+#?   [-d DOMAIN]
+#?
+#?   The domain name (FQDN) for the shadowsocks-manager.
+#?   No default value.
+#?
+#?   The zone name of the DOMAIN will be automatically resolved.
+#?   Below table shows the example of the automatic resolution:
+#?
+#?   +-----------------------------+----+-------------------------+-----------------------+------------------------+
+#?   | Domain to Resolve           | To | Resolved Zone Name      | Resolved by tools     | Resolved Reason        |
+#?   +=============================+====+=========================+=======================+========================+
+#?   | www.example.com             | => | example.com             | dnspython             | Root domain            |
+#?   +-----------------------------+----+-------------------------+-----------------------+------------------------+
+#?   | www.zone1.example.com       | => | zone1.example.com       | dnspython             | Delegated subdomain    |
+#?   +-----------------------------+----+-------------------------+-----------------------+------------------------+
+#?   | www.zone2.zone1.example.com | => | zone2.zone1.example.com | dnspython             | Delegated subdomain    |
+#?   +-----------------------------+----+-------------------------+-----------------------+------------------------+
+#?   | www.rootDomainNotExist.com  | => | rootDomainNotExist.com  | dnspython, TLDExtract | Fallback to TLDExtract |
+#?   +-----------------------------+----+-------------------------+-----------------------+------------------------+
+#?
+#?   [-t TYPE]
+#?
+#?   The DNS record type for the domain name.
+#?   The default value is `A`.
+#?   This option is ignored if the DOMAIN or the ANSWER is not provided.
+#?
+#?   [-a ANSWER]
+#?
+#?   The DNS record answer for the domain name.
+#?   No default value.
+#?   This option is ignored if the DOMAIN is not provided.
+#?
+#?   [-n DNS_NAME]
+#?
+#?   The DNS_NAME names the NameServer for the DNS_ENV, and will be associated with the DOMAIN if provided.
+#?   The default value is `nameserver`.
+#?   This option is ignored if the DNS_ENV is not provided.
+#?
+#?   [-E DNS_ENV]
+#?
+#?   The DNS_ENV specifies the environment variables required to use the DNS API service.
+#?   No default value.
+#?
+#?   Syntax: `PROVIDER={dns_provider},LEXICON_PROVIDER_NAME={dns_provider},LEXICON_{DNS_PROVIDER}_{OPTION}={value}[,...]`
+#?
+#?   The Python library `dns-lexicon` is leveraged to parse the DNS_ENV and access the DNS API.
+#?   The required {OPTION} depends on the {dns_provider} that you use.
+#?   For the list of supported {dns_provider} and {OPTION} please refer to:
+#?   * https://dns-lexicon.readthedocs.io/en/latest/configuration_reference.html
+#?
+#?   [-S]
+#?
+#?   This option is ignored as it is processed by the docker-entrypoint.sh script.
+#?
 #?   [-h]
 #?
 #?   This help.
@@ -128,10 +183,12 @@ function check-os () {
 
 function main () {
     declare -a envs
-    declare collect_flag migrate_flag loaddata_flag username password email port_begin port_end \
+    declare collect_flag=0 migrate_flag=0 loaddata_flag=0 \
+            username password email port_begin port_end domain \
+            type='A' answer dns_name='nameserver' dns_env \
             OPTIND OPTARG opt
 
-    while getopts e:cmlu:p:M:r:R:h opt; do
+    while getopts e:cmlu:p:M:r:R:d:t:a:n:E:Sh opt; do
         case $opt in
             e)
                 envs+=("$OPTARG")
@@ -160,19 +217,37 @@ function main () {
             R)
                 port_end=$OPTARG
                 ;;
+            d)
+                domain=$OPTARG
+                ;;
+            t)
+                type=$OPTARG
+                ;;
+            a) 
+                answer=$OPTARG
+                ;;
+            n)
+                dns_name=$OPTARG
+                ;;
+            E)
+                dns_env=$OPTARG
+                ;;
+            S)
+                # ignored
+                ;;
             *)
                 usage
-                exit 255
+                return 255
                 ;;
         esac
     done
 
-    check-os
-
     if [[ $# -eq 0 ]]; then
         usage
-        exit 255
+        return 255
     fi
+
+    check-os
 
     if [[ -n ${envs[*]} ]]; then
         ssm-dotenv -w "${envs[@]}"
@@ -207,6 +282,18 @@ function main () {
 
     if [[ -n $port_end ]]; then
         ssm-manage shadowsocks_config --port-end "$port_end"
+    fi
+
+    if [[ -n $dns_env ]]; then
+        ssm-manage domain_nameserver --name "$dns_name" --env "$dns_env"
+    fi
+
+    if [[ -n $domain ]]; then
+        ssm-manage domain_domain --name "$domain" --nameserver "$dns_name"
+
+        if [[ -n $type && -n $answer ]]; then
+            ssm-manage domain_record --fqdn "$domain" --type "$type" --answer "$answer" --site
+        fi
     fi
 }
 
