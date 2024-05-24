@@ -344,8 +344,8 @@ The following files are kept only for installing the source distribution of the 
     ```sh
     ssm-test -t
 
-    # or use the django test command directly for more options
-    ssm-manage test --no-input -v 2
+    # or use the django test command directly for more options, use the `-t .` for the Python 2.7 compatibility
+    ssm-manage test --no-input -v 2 -t .
     ```
 
 1. Test the Django code with coverage
@@ -411,7 +411,10 @@ The following files are kept only for installing the source distribution of the 
 1. Build the docker image
 
     ```sh
-    docker build -t alexzhangs/shadowsocks-manager .
+    docker build -t alexzhangs/shadowsocks-manager -f docker/debian/Dockerfile .
+
+    # or use:
+    bash docker/docker-build-and-run.sh
     ```
 
 ### 8.2. CI/CD
@@ -429,11 +432,27 @@ The CI/CD workflows are defined in the `.github/workflows` directory.
 
 ## 9. Troubleshooting
 
-1. Check the logs
+1. Docker
 
     ```
-    # supervisor
-    cat /var/log/supervisor/supervisord.log
+    # containers
+    docker ps -a
+
+    # network
+    docker network ls
+
+    # logs
+    docker logs <container_id>
+    ```
+
+1. Check the logs (inside container)
+
+    ```
+    # supervisor (debian)
+    cat /var/log/supervisor/supervisord.log 
+
+    # supervisor (alpine)
+    cat /var/log/supervisord.log
 
     # uWSGI
     cat /var/log/ssm-uwsgi.log
@@ -442,14 +461,13 @@ The CI/CD workflows are defined in the `.github/workflows` directory.
     cat /var/log/ssm-cerlery*
     ```
 
-1. Check the services
+1. Check the services (inside container)
 
     ```
     # nginx
-    service nginx {status|start|stop|reload}
+    nginx -s {stop|quit|reopen|reload}
 
     # supervisor
-    service supervisord {status|start|stop|restart}
     supervisorctl reload
     supervisorctl start all
 
@@ -460,8 +478,17 @@ The CI/CD workflows are defined in the `.github/workflows` directory.
     supervisorctl start ssm-celery-worker
     supervisorctl start ssm-celery-beat
 
-    # Docker
-    docker ps
+    # acme.sh
+    acme.sh --list
+    crontab -l
+    ls -l /root/.acme.sh
+
+    # volume data
+    ls -la /var/local/ssm
+
+    # setup done files
+    ls -la /var/local/ssm/.*done
+    ls -la /root/.*done
     ```
 
 1. Check the listening ports and processes (Linux)
