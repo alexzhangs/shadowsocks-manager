@@ -13,19 +13,13 @@ from .models import NameServer, Domain, Record
 
 @admin.register(NameServer)
 class NameServerAdmin(admin.ModelAdmin):
-    fields = ('name', 'api_cls_name', 'user', 'credential',
+    fields = ('name', 'env',
                   'dt_created', 'dt_updated')
 
     readonly_fields = ('dt_created', 'dt_updated')
 
-    list_display = ('name', 'api_cls_name', 'user', 'is_api_accessible',
+    list_display = ('name', 'env',
                         'dt_created', 'dt_updated')
-
-    def is_api_accessible(self, obj):
-        return obj.is_api_accessible
-
-    is_api_accessible.boolean = True
-    is_api_accessible.short_description = 'API'
 
 
 @admin.register(Domain)
@@ -35,8 +29,14 @@ class DomainAdmin(admin.ModelAdmin):
 
     readonly_fields = ('dt_created', 'dt_updated')
 
-    list_display = ('name', 'nameserver',
+    list_display = ('name', 'nameserver', 'is_api_accessible',
                         'dt_created', 'dt_updated')
+
+    def is_api_accessible(self, obj):
+        return obj.is_api_accessible
+
+    is_api_accessible.boolean = True
+    is_api_accessible.short_description = 'API'
 
 
 @admin.register(Record)
@@ -46,7 +46,7 @@ class RecordAdmin(admin.ModelAdmin):
 
     readonly_fields = ('dt_created', 'dt_updated')
 
-    list_display = ('host', 'domain', 'type', 'answer', 'answer_from_dns_api', 'is_matching_dns_api',
+    list_display = ('fqdn', 'host', 'domain', 'type', 'answer', 'answer_from_dns_api', 'is_matching_dns_api',
                         'answer_from_dns_query', 'is_matching_dns_query', 'site',
                         'dt_created', 'dt_updated')
 

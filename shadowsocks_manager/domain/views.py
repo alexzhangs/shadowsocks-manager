@@ -4,6 +4,8 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
+import django_filters
+
 from utils.viewsets import CompatModelViewSet
 
 from . import models, serializers
@@ -17,8 +19,19 @@ class NameServerViewSet(CompatModelViewSet):
     """
     queryset = models.NameServer.objects.all()
     serializer_class = serializers.NameServerSerializer
-    filter_fields = ['name', 'api_cls_name', 'user']
+    filter_fields = ['name', 'env']
 
+
+class CustomDomainFilter(django_filters.FilterSet):
+    name = django_filters.CharFilter(method='filter_by_name')
+
+    class Meta:
+        model = models.Domain
+        fields = ['name', 'nameserver', 'nameserver__name']
+
+    def filter_by_name(self, queryset, name, value):
+        zone = models.get_zone_name(value)
+        return queryset.filter(name=zone)
 
 class DomainViewSet(CompatModelViewSet):
     """
@@ -26,7 +39,7 @@ class DomainViewSet(CompatModelViewSet):
     """
     queryset = models.Domain.objects.all()
     serializer_class = serializers.DomainSerializer
-    filter_fields = ['name', 'nameserver', 'nameserver__name']
+    filterset_class = CustomDomainFilter
 
 
 class RecordViewSet(CompatModelViewSet):
@@ -35,4 +48,4 @@ class RecordViewSet(CompatModelViewSet):
     """
     queryset = models.Record.objects.all()
     serializer_class = serializers.RecordSerializer
-    filter_fields = ['host', 'domain', 'domain__name', 'type', 'answer', 'site', 'site__name', 'site__domain']
+    filter_fields = ['fqdn', 'host', 'domain', 'domain__name', 'type', 'answer', 'site', 'site__name', 'site__domain']

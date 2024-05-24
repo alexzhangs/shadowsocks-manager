@@ -74,28 +74,20 @@ class BaseTestCase(TestCase):
 
 
 class AppTestCase(BaseTestCase):
-    fixtures = ['nameserver.json']
+    fixtures = []
     testcases = ['NameServerTestCase', 'DomainTestCase', 'RecordTestCase']
 
 
 class NameServerTestCase(AppTestCase):
     @classmethod
     def up(cls):
-        # add mock username and credential to nameserver
-        for obj in models.NameServer.objects.all():
-            if not obj.user:
-                obj.user = 'mock-user'
-            if not obj.credential:
-                obj.credential = 'mock-credential'
-            obj.save()
+        # add nameserver
+        obj = models.NameServer(name='mocknameserver', env='PROVIDER=mockprovider,LEXICON_PROVIDER_NAME=mockprovider,LEXICON_MOCKPROVIDER_MOCKUSER=mockuser,LEXICON_MOCKPROVIDER_MOCKTOKEN=mocktoken')
+        obj.save()
 
     @classmethod
     def setUpTestData(cls):
         cls.allup()
-
-    def test_nameserver_is_api_accessible_negative(self):
-        for obj in models.NameServer.objects.all():
-            self.assertFalse(obj.is_api_accessible)
 
     def test_nameserver_serializer(self):
         obj = serializers.NameServerSerializer()
@@ -107,12 +99,16 @@ class DomainTestCase(AppTestCase):
     def up(cls):
         # add mock domain
         for ns in models.NameServer.objects.all():
-            obj = models.Domain(name='mock-example-{}.com'.format(ns.pk), nameserver=ns)
+            obj = models.Domain(name='mock-{}.example.com'.format(ns.pk), nameserver=ns)
             obj.save()
 
     @classmethod
     def setUpTestData(cls):
         cls.allup()
+
+    def test_domain_is_api_accessible_negative(self):
+        for obj in models.Domain.objects.all():
+            self.assertFalse(obj.is_api_accessible)
 
     def test_domain_serializer(self):
         obj = serializers.DomainSerializer()

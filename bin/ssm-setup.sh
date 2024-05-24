@@ -194,8 +194,7 @@ function main () {
                fixtures/django_celery_beat.intervalschedule.json \
                fixtures/django_celery_beat.periodictask.json \
                config.json \
-               template.json \
-               nameserver.json
+               template.json
     fi
 
     if [[ -n $username && -n $password ]]; then

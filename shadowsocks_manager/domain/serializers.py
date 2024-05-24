@@ -10,7 +10,7 @@ from . import models
 class NameServerSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.NameServer
-        fields = ('id', 'name', 'api_cls_name', 'user', 'credential', 'dt_created', 'dt_updated')
+        fields = ('id', 'name', 'env', 'dt_created', 'dt_updated')
 
 
 class DomainSerializer(serializers.ModelSerializer):
@@ -22,4 +22,9 @@ class DomainSerializer(serializers.ModelSerializer):
 class RecordSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Record
-        fields = ('id', 'host', 'domain', 'type', 'answer', 'site', 'dt_created', 'dt_updated')
+        fields = ('id', 'fqdn', 'host', 'domain', 'type', 'answer', 'site', 'dt_created', 'dt_updated')
+        extra_kwargs = {
+            'fqdn': {'required': False, 'allow_null': True, 'allow_blank': True},
+            'host': {'required': False, 'allow_null': True, 'allow_blank': True},
+            'domain': {'required': False, 'allow_null': True},
+        }
