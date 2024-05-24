@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     'statistic',
     'notification',
     'domain',
+    'utils',
 ]
 
 MIDDLEWARE = [
