@@ -10,8 +10,8 @@ from retry import retry
 
 
 import logging
-# Get a logger for this module
-logger = logging.getLogger(__name__)
+# Get a logger for this django app
+logger = logging.getLogger(__name__.split('.')[0])
 # Set the logging level to make the output clean
 logger.setLevel(logging.CRITICAL)
 

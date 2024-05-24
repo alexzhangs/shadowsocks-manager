@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 import json
-import re
 from abc import abstractmethod
 from django.test import TestCase
 from django.core.exceptions import ValidationError
@@ -17,8 +16,8 @@ from shadowsocks import models, serializers
 
 
 import logging
-# Get a logger for this module
-logger = logging.getLogger(__name__)
+# Get a logger for this django app
+logger = logging.getLogger(__name__.split('.')[0])
 # Set the logging level to make the output clean
 logger.setLevel(logging.ERROR)
 
