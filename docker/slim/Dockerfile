@@ -10,12 +10,14 @@
 #
 #   - SSM_USER:         The user name for running the shadowsocks-manager. 
 #   - SSM_DATA_HOME:    The data home directory for shadowsocks-manager in the container.
+#   - SSM_ENV:          Expose environment variables to supervisord.
 #
 # Expose:
 #   - 80: The port for the shadowsocks-manager web interface.
+#   - 443: The port for the shadowsocks-manager web interface.
 #
 # Build:
-#   $ docker build -t alexzhangs/shadowsocks-manager .
+#   $ docker build -t alexzhangs/shadowsocks-manager ../..
 #
 # Run:
 #   # for development environment
@@ -28,11 +30,43 @@
 # For more information, please refer to the project repository:
 #   https://github.com/alexzhangs/shadowsocks-manager
 #
-FROM python:3.12
+FROM python:slim
+
+ENV DIST slim
+
+# To enable proxy at build time, use:
+# docker build --build-arg https_proxy=http://host.docker.internal:$PROXY_HTTP_PORT_ON_HOST ...
+ARG http_proxy https_proxy all_proxy
+
+# Install supervisor nginx
+RUN apt-get update && \
+    apt-get install -y supervisor nginx \
+        # ps, netstat
+        procps net-tools \
+        # gcc is used by uwsgi
+        build-essential \
+        # used by docker-entrypoint.sh
+        sudo \
+        # used by acme.sh
+        curl cron socat && \
+    # Remove the default nginx site file
+    rm /etc/nginx/sites-enabled/default \
+    # Clean up
+    rm -rf /var/lib/apt/lists/*
+
+# Install acme.sh
+RUN curl -sL https://get.acme.sh | sh
+
+# Set the PATH for acme.sh
+ENV PATH=$PATH:/root/.acme.sh
+
+# Verify that acme.sh is installed
+RUN acme.sh --version
 
 # Set environment variables
 ENV SSM_USER=ssm
 ENV SSM_DATA_HOME=/var/local/ssm
+ENV SSM_ENV=SSM_DATA_HOME=$SSM_DATA_HOME
 
 # Create user
 RUN useradd -m "${SSM_USER}"
@@ -43,39 +77,23 @@ WORKDIR /shadowsocks-manager
 # Copy the current directory contents at local into the container
 COPY . .
 
-RUN chmod +x docker-entrypoint.sh
+# Copy supervisor config file
+COPY deploy/supervisor/vendors/* /etc/supervisor/conf.d/
 
-# Install shadowsocks-manager
-RUN pip install -e . && chown -R ${SSM_USER}:${SSM_USER} .
+# Copy nginx config file
+COPY deploy/nginx /etc/nginx/
+
+RUN chmod +x docker/*.sh
 
 # Set VOLUME
 RUN mkdir -p "${SSM_DATA_HOME}"
 VOLUME [ "${SSM_DATA_HOME}" ]
 
-# Install supervisor
-RUN apt-get update && apt-get install -y supervisor
-
-# Copy supervisor config file
-COPY deploy/supervisor/vendors/* /etc/supervisor/conf.d/
-COPY deploy/supervisor/default/supervisor /etc/default/supervisor
-
-# Install nginx
-RUN apt-get install -y nginx
-
-# Copy nginx config file
-COPY deploy/nginx/conf.d/* /etc/nginx/sites-available/
-
-# Link the nginx config file
-RUN ln -s /etc/nginx/sites-available/shadowsocks-manager.conf /etc/nginx/sites-enabled/
-
-# Remove the default nginx config file
-RUN rm /etc/nginx/sites-enabled/default
-
-# Install sudo, used by docker-entrypoint.sh
-RUN apt-get install -y sudo
+# Install shadowsocks-manager
+RUN pip install -e . && chown -R ${SSM_USER}:${SSM_USER} .
 
 # Expose the nginx port
-EXPOSE 80
+EXPOSE 80 443
 
 # Start supervisord
-ENTRYPOINT [ "./docker-entrypoint.sh" ]
+ENTRYPOINT [ "./docker/docker-entrypoint.sh" ]
