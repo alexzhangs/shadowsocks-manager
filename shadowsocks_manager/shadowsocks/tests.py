@@ -160,6 +160,7 @@ class AccountTestCase(AppTestCase):
     @classmethod
     def up(cls):
         config = models.Config.load()
+        config.port_end=8385
 
         # generate 2 accounts
         for port in [config.port_begin, config.port_end]:
