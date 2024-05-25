@@ -162,7 +162,7 @@ class Account(User, StatisticMethod):
 
         message = template.render(kwargs)
 
-        logger.info("Sending VPN account Email to %s(%s) on port %s" % (self.email, \
+        logger.info("Sending VPN account Email to %s(%s) on port %s" % (self.email,
             self.get_full_name(), self.username))
         return Notify.sendmail(message, sender.get_full_name(), sender.email)
 
@@ -265,7 +265,7 @@ class Node(StatisticMethod):
             s.connect((ip, int(port)))
             s.shutdown(socket.SHUT_RDWR)
             return True
-        except:
+        except Exception:
             return False
         finally:
             s.close()
@@ -484,7 +484,7 @@ class NodeAccount(StatisticMethod):
                 self.node.ssmanager.add(port=self.account.username, password=self.account.password)
                 self.clear_cache()
             else:
-                logger.error('%s: creation eror: ssmanager %s currently is not available.' \
+                logger.error('%s: creation eror: ssmanager %s currently is not available.'
                     % (self, self.node.ssmanager))
         else:
             self.on_delete()
@@ -498,7 +498,7 @@ class NodeAccount(StatisticMethod):
             self.node.ssmanager.remove(port=getattr(self.account, port))
             self.clear_cache()
         else:
-            logger.error('%s: deletion eror: ssmanager %s currently is not available.' % (self, \
+            logger.error('%s: deletion eror: ssmanager %s currently is not available.' % (self,
                 self.node.ssmanager))
 
     @classmethod
@@ -907,7 +907,7 @@ class SSServer(object):  # pragma: no cover
                 pid = int(f.read())
             p = psutil.Process(pid=pid).as_dict(['pid', 'status'])
             return '{status}({pid})'.format(**p)
-        except:
+        except (FileNotFoundError, psutil.NoSuchProcess):
             pass
 
     '''
