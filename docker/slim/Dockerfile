@@ -90,7 +90,7 @@ RUN mkdir -p "${SSM_DATA_HOME}"
 VOLUME [ "${SSM_DATA_HOME}" ]
 
 # Install shadowsocks-manager
-RUN pip install -e . && chown -R ${SSM_USER}:${SSM_USER} .
+RUN pip install --no-cache-dir -e . && chown -R ${SSM_USER}:${SSM_USER} .
 
 # Expose the nginx port
 EXPOSE 80 443

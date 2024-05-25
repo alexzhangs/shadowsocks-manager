@@ -39,8 +39,7 @@ ENV DIST alpine
 ARG http_proxy https_proxy all_proxy
 
 # Install supervisor nginx
-RUN apk update && \
-    apk add supervisor nginx \
+RUN apk --no-cache add supervisor nginx \
         # used by uwsgi
         gcc linux-headers libc-dev \
         # used by cffi
@@ -92,7 +91,7 @@ RUN mkdir -p "${SSM_DATA_HOME}"
 VOLUME [ "${SSM_DATA_HOME}" ]
 
 # Install shadowsocks-manager
-RUN pip install -e . && chown -R ${SSM_USER}:${SSM_USER} .
+RUN pip install --no-cache-dir -e . && chown -R ${SSM_USER}:${SSM_USER} .
 
 # Expose the nginx port
 EXPOSE 80 443
