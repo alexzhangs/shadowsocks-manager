@@ -28,14 +28,12 @@ def get_local_ip():
     Get the local ip address.
     https://github.com/mayermakes/Get_IP
     """
-    ip = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        ip.connect(('10.255.255.255', 1))
-        IP = ip.getsockname()[0]
-    except:
-        raise
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
     finally:
-        ip.close()
+        s.close()
     return IP
 local_ip = get_local_ip()
 
@@ -141,6 +139,7 @@ class ConfigTestCase(AppTestCase):
     @classmethod
     def up(cls):
         obj = models.Config.load()
+        obj.port_end=8385
         obj.timeout_local=0.3
         obj.timeout_remote=1  # minimal the waiting time with mock public ip address
         obj.save()
@@ -432,7 +431,7 @@ class SSManagerTestCase(AppTestCase):
         # Add a libev edition manager to the localhost node
         # Make sure this manager is running and accessible at localhost before the test.
         # Example command:
-        # MGR_PORT=6001 SS_PORTS=8381-8479 ENCRYPT=aes-256-cfb
+        # MGR_PORT=6001 SS_PORTS=8381-8384 ENCRYPT=aes-256-cfb
         # docker run -d -p 127.0.0.1:$MGR_PORT:$MGR_PORT/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS \
         #   --name ssm-ss-libev-localhost shadowsocks/shadowsocks-libev:edge \
         #   ss-manager --manager-address 0.0.0.0:$MGR_PORT --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
@@ -449,7 +448,7 @@ class SSManagerTestCase(AppTestCase):
         # Add a libev edition manager to the private node
         # Make sure this manager is running and accessible at private ip before the test.
         # Example command:
-        # MGR_PORT=6002 SS_PORTS=8381-8479 ENCRYPT=aes-256-cfb
+        # MGR_PORT=6002 SS_PORTS=8381-8384 ENCRYPT=aes-256-cfb
         # docker run -d -p <private_ip>:$MGR_PORT:$MGR_PORT/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS \
         #   --name ssm-ss-libev-private shadowsocks/shadowsocks-libev:edge \
         #   ss-manager --manager-address 0.0.0.0:$MGR_PORT --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
@@ -465,7 +464,7 @@ class SSManagerTestCase(AppTestCase):
         # Add a libev edition manager to the public node
         # Make sure this manager is running and accessible at private ip before the test.
         # Example command:
-        # MGR_PORT=6003 SS_PORTS=8480 ENCRYPT=aes-256-cfb
+        # MGR_PORT=6003 SS_PORTS=8385 ENCRYPT=aes-256-cfb
         # docker run -d -p <private_ip>:$MGR_PORT:$MGR_PORT/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS \
         #   --name ssm-ss-libev-public shadowsocks/shadowsocks-libev:edge \
         #   ss-manager --manager-address 0.0.0.0:$MGR_PORT --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u

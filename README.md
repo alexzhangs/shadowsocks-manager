@@ -276,7 +276,7 @@ The following files are kept only for installing the source distribution of the 
     docker run -d -p 5672:5672 --name ssm-dev-rabbitmq rabbitmq
 
     # run shadowsocks-libev, simulate localhost node
-    MGR_PORT=6001 SS_PORTS=8381-8479 ENCRYPT=aes-256-cfb
+    MGR_PORT=6001 SS_PORTS=8381-8384 ENCRYPT=aes-256-cfb
     docker run -d -p 127.0.0.1:$MGR_PORT:$MGR_PORT/UDP \
         -p 127.0.0.1:$SS_PORTS:$SS_PORTS/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS \
         --name ssm-dev-ss-libev-localhost shadowsocks/shadowsocks-libev:edge \
@@ -288,7 +288,7 @@ The following files are kept only for installing the source distribution of the 
     echo "PRIVATE_IP=$PRIVATE_IP"
 
     # run shadowsocks-libev, simulate private IP node
-    MGR_PORT=6002 SS_PORTS=8381-8479 ENCRYPT=aes-256-cfb
+    MGR_PORT=6002 SS_PORTS=8381-8384 ENCRYPT=aes-256-cfb
     docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
         -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
         --name ssm-dev-ss-libev-private shadowsocks/shadowsocks-libev:edge \
@@ -296,7 +296,7 @@ The following files are kept only for installing the source distribution of the 
         --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
         
     # run shadowsocks-libev, simulate public IP node
-    MGR_PORT=6003 SS_PORTS=8480 ENCRYPT=aes-256-cfb
+    MGR_PORT=6003 SS_PORTS=8385 ENCRYPT=aes-256-cfb
     docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
         -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
         --name ssm-dev-ss-libev-public shadowsocks/shadowsocks-libev:edge \

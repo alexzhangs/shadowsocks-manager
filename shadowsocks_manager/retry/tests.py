@@ -18,27 +18,36 @@ logger.setLevel(logging.CRITICAL)
 
 # Create your tests here.
 class RetryTestCase(TestCase):
+    def setUp(self):
+        self.retryee = Retryee()
+
     def test_retry_positive(self):
-        self.assertTrue(self.call_retryee(n=1, count=0))
-        self.assertTrue(self.call_retryee(n=4, count=3))
+        self.assertTrue(self.retryee.call(success_on_retry=0, retry_count=0))
+        self.assertTrue(self.retryee.call(success_on_retry=1, retry_count=3))
+        self.assertTrue(self.retryee.call(success_on_retry=2, retry_count=3))
+        self.assertTrue(self.retryee.call(success_on_retry=3, retry_count=3))
 
     def test_retry_negative(self):
-        self.assertFalse(self.call_retryee(n=2, count=0))
-        self.assertFalse(self.call_retryee(n=5, count=3))
 
-    def call_retryee(self, n, count):
+        self.assertFalse(self.retryee.call(success_on_retry=1, retry_count=0))
+        self.assertFalse(self.retryee.call(success_on_retry=4, retry_count=3))
+
+class Retryee:
+    def call(self, success_on_retry, retry_count):
         """
-        Set the decorator @retry(count=count) on retryee(). Call the retryee(n=n).
+        Set the decorator @retry(count=retry_count) on retryee().
+        Call with: retryee(success_on_retry=success_on_retry).
         """
         # reset the global counter before calling retryee()
-        self.RETRYING = 0
+        self.RETRIED = 0
 
-        @retry(count=count, delay=0.1, logger=logger)
-        def retryee(n):
+        @retry(count=retry_count, delay=0.1, logger=logger)
+        def retryee(success_on_retry):
             """
-            Return True on the Nth time call of this function, return False on otherwise.
+            Return True if the retried times is equal to the success_on_retry.
             """
-            self.RETRYING += 1
-            return True if self.RETRYING == n else False
+            result = self.RETRIED == success_on_retry
+            self.RETRIED += 1
+            return result
 
-        return retryee(n)
+        return retryee(success_on_retry)
