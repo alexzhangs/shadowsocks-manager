@@ -276,7 +276,7 @@ The following files are kept only for installing the source distribution of the 
     docker run -d -p 5672:5672 --name ssm-dev-rabbitmq rabbitmq
 
     # run shadowsocks-libev, simulate localhost node
-    MGR_PORT=6001 SS_PORTS=8381-8479 ENCRYPT=aes-256-cfb
+    MGR_PORT=6001 SS_PORTS=8381-8384 ENCRYPT=aes-256-cfb
     docker run -d -p 127.0.0.1:$MGR_PORT:$MGR_PORT/UDP \
         -p 127.0.0.1:$SS_PORTS:$SS_PORTS/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS \
         --name ssm-dev-ss-libev-localhost shadowsocks/shadowsocks-libev:edge \
@@ -288,7 +288,7 @@ The following files are kept only for installing the source distribution of the 
     echo "PRIVATE_IP=$PRIVATE_IP"
 
     # run shadowsocks-libev, simulate private IP node
-    MGR_PORT=6002 SS_PORTS=8381-8479 ENCRYPT=aes-256-cfb
+    MGR_PORT=6002 SS_PORTS=8381-8384 ENCRYPT=aes-256-cfb
     docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
         -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
         --name ssm-dev-ss-libev-private shadowsocks/shadowsocks-libev:edge \
@@ -296,7 +296,7 @@ The following files are kept only for installing the source distribution of the 
         --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
         
     # run shadowsocks-libev, simulate public IP node
-    MGR_PORT=6003 SS_PORTS=8480 ENCRYPT=aes-256-cfb
+    MGR_PORT=6003 SS_PORTS=8385 ENCRYPT=aes-256-cfb
     docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
         -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
         --name ssm-dev-ss-libev-public shadowsocks/shadowsocks-libev:edge \
@@ -344,8 +344,8 @@ The following files are kept only for installing the source distribution of the 
     ```sh
     ssm-test -t
 
-    # or use the django test command directly for more options
-    ssm-manage test --no-input -v 2
+    # or use the django test command directly for more options, use the `-t .` for the Python 2.7 compatibility
+    ssm-manage test --no-input -v 2 -t .
     ```
 
 1. Test the Django code with coverage
@@ -411,7 +411,10 @@ The following files are kept only for installing the source distribution of the 
 1. Build the docker image
 
     ```sh
-    docker build -t alexzhangs/shadowsocks-manager .
+    docker build -t alexzhangs/shadowsocks-manager -f docker/debian/Dockerfile .
+
+    # or use:
+    bash docker/docker-build-and-run.sh
     ```
 
 ### 8.2. CI/CD
@@ -429,11 +432,27 @@ The CI/CD workflows are defined in the `.github/workflows` directory.
 
 ## 9. Troubleshooting
 
-1. Check the logs
+1. Docker
 
     ```
-    # supervisor
-    cat /var/log/supervisor/supervisord.log
+    # containers
+    docker ps -a
+
+    # network
+    docker network ls
+
+    # logs
+    docker logs <container_id>
+    ```
+
+1. Check the logs (inside container)
+
+    ```
+    # supervisor (debian)
+    cat /var/log/supervisor/supervisord.log 
+
+    # supervisor (alpine)
+    cat /var/log/supervisord.log
 
     # uWSGI
     cat /var/log/ssm-uwsgi.log
@@ -442,14 +461,13 @@ The CI/CD workflows are defined in the `.github/workflows` directory.
     cat /var/log/ssm-cerlery*
     ```
 
-1. Check the services
+1. Check the services (inside container)
 
     ```
     # nginx
-    service nginx {status|start|stop|reload}
+    nginx -s {stop|quit|reopen|reload}
 
     # supervisor
-    service supervisord {status|start|stop|restart}
     supervisorctl reload
     supervisorctl start all
 
@@ -460,8 +478,17 @@ The CI/CD workflows are defined in the `.github/workflows` directory.
     supervisorctl start ssm-celery-worker
     supervisorctl start ssm-celery-beat
 
-    # Docker
-    docker ps
+    # acme.sh
+    acme.sh --list
+    crontab -l
+    ls -l /root/.acme.sh
+
+    # volume data
+    ls -la /var/local/ssm
+
+    # setup done files
+    ls -la /var/local/ssm/.*done
+    ls -la /root/.*done
     ```
 
 1. Check the listening ports and processes (Linux)

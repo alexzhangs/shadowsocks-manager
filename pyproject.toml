@@ -38,6 +38,8 @@ dependencies = [
 
     "django-import-export",
     "djangorestframework",
+    "dns-lexicon[full]",
+    "dnspython",
     "docopt",
 
     # ipaddress is available since Python 3.3
@@ -65,6 +67,7 @@ dependencies = [
     # "shadowsocks",
     # "shadowsocks-alexforks",
 
+    "tldextract",
     "uWSGI",
 ]
 authors = [{name = "Alex", email = "alexzhangs@gmail.com"}]

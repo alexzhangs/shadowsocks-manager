@@ -3,7 +3,7 @@
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
 
-from shadowsocks_manager.utils.viewsets import CompatModelViewSet
+from utils.viewsets import CompatModelViewSet
 
 from . import models, serializers
 

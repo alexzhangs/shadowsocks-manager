@@ -1,23 +1,24 @@
 #!/usr/bin/env bash
 
 #? Description:
-#?   Deploy shadowsocks-manager with Docker.
+#?   Deploy shadowsocks-manager with Docker containers.
+#?   Any existing network and containers with the same name will be removed.
 #?   Assume the Docker is installed.
 #? 
 #? Usage:
-#?   install.sh [SSM_SETUP_OPTIONS]
+#?   install.sh [OPTIONS]
 #?
 #? Options:
-#?   [SSM_SETUP_OPTIONS]
+#?   [OPTIONS]
 #?
-#?   Options are the same as the ssm-setup script.
+#?   Options are the same as the docker-entrypoint.sh script.
 #?   If any option is provided, the options will pass along with the default options to the `docker run` command.
 #?   The default options are:
 #?
 #?     -e SSM_SECRET_KEY=$(guid)
 #?     -e SSM_DEBUG=False
-#?     -e SSM_MEMCACHED_HOST=ssm-memcached
-#?     -e SSM_RABBITMQ_HOST=ssm-rabbitmq
+#?     -e SSM_MEMCACHED_HOST=ssm-{SSM_VERSION}-memcached
+#?     -e SSM_RABBITMQ_HOST=ssm-{SSM_VERSION}-rabbitmq
 #?
 #? Environment:
 #?   The following environment variables are used by this script:
@@ -67,7 +68,7 @@ function main () {
 
     if [[ $1 == '-h' || $1 == '--help' ]]; then
         usage
-        exit 0
+        return
     fi
 
     check-os

@@ -77,24 +77,25 @@ function main () {
                 ;;
             *)
                 usage
-                exit 255
+                return 255
                 ;;
         esac
     done
 
     if [[ $# -eq 0 ]]; then
         usage
-        exit 255
+        return 255
     fi
 
     # run the test
     if [[ ${test} -eq 1 ]]; then
-        ssm-manage test --no-input -v 2
+        # use `-t .` for the Python 2.7 compatibility
+        ssm-manage test --no-input -v 2 -t .
     fi
 
     # run the test with coverage
     if [[ ${coverage} -eq 1 ]]; then
-        ssm coverage run manage.py test --no-input -v 2
+        ssm coverage run manage.py test --no-input -v 2 -t .
     fi
 
     # generate coverage report
