@@ -46,9 +46,16 @@ jobs:
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/shadowsocks-manager:${{ matrix.dist }}-latest
             ${{ vars.DOCKERHUB_USERNAME }}/shadowsocks-manager:${{ matrix.dist }}-${{ env.VERSION }}
-            ${{ vars.DOCKERHUB_USERNAME }}/shadowsocks-manager:latest
-            ${{ vars.DOCKERHUB_USERNAME }}/shadowsocks-manager:${{ env.VERSION }}
+            ${{ matrix.dist == 'alpine' && format('{0}/shadowsocks-manager:latest', vars.DOCKERHUB_USERNAME) || null }}
+            ${{ matrix.dist == 'alpine' && format('{0}/shadowsocks-manager:{1}', vars.DOCKERHUB_USERNAME, env.VERSION) || null }}
           platforms: ${{ matrix.platform }}
+
+  tag-commit:
+    runs-on: ubuntu-latest
+    needs: docker-build-and-push
+    env:
+      SSM_VERSION: ${{ needs.docker-build-and-push.outputs.VERSION }}
+    steps:
       - name: Set up git user
         run: |
           git config --global user.name "ci-docker.github-actions[bot]"
