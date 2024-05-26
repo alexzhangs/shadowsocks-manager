@@ -17,7 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform: [linux/amd64, linux/arm64]
         dist: [debian, slim, alpine]
     outputs:
       VERSION: ${{ steps.get-version.outputs.VERSION }}
@@ -48,7 +47,7 @@ jobs:
             ${{ vars.DOCKERHUB_USERNAME }}/shadowsocks-manager:${{ matrix.dist }}-${{ env.VERSION }}
             ${{ matrix.dist == 'alpine' && format('{0}/shadowsocks-manager:latest', vars.DOCKERHUB_USERNAME) || null }}
             ${{ matrix.dist == 'alpine' && format('{0}/shadowsocks-manager:{1}', vars.DOCKERHUB_USERNAME, env.VERSION) || null }}
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/arm64
 
   tag-commit:
     runs-on: ubuntu-latest
