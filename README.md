@@ -252,6 +252,47 @@ while multiple IP addresses were configured for the domain.
     pip install --no-build-isolation .
     ```
 
+1. Install the project with pip under python 2.7 get error:
+    ```
+    python --version
+    Python 2.7.18
+
+    pip install .
+    ```
+
+    Error message:
+    ```
+    ...
+    Building wheels for collected packages: cryptography
+        Building wheel for cryptography (PEP 517) ... error
+        ERROR: Command errored out with exit status 1:
+
+        build/temp.macosx-14.2-arm64-2.7/_openssl.c:18674:10: error: call to undeclared function 'ERR_GET_FUNC'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+            return ERR_GET_FUNC(x0);
+            ^
+        build/temp.macosx-14.2-arm64-2.7/_openssl.c:18690:14: error: call to undeclared function 'ERR_GET_FUNC'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+            { result = ERR_GET_FUNC(x0); }
+                    ^
+        build/temp.macosx-14.2-arm64-2.7/_openssl.c:23389:10: error: call to undeclared function 'FIPS_mode'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+            return FIPS_mode();
+                ^
+        build/temp.macosx-14.2-arm64-2.7/_openssl.c:23400:14: error: call to undeclared function 'FIPS_mode'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+            { result = FIPS_mode(); }
+                    ^
+        build/temp.macosx-14.2-arm64-2.7/_openssl.c:23415:10: error: call to undeclared function 'FIPS_mode_set'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+            return FIPS_mode_set(x0);
+            ^
+        build/temp.macosx-14.2-arm64-2.7/_openssl.c:23431:14: error: call to undeclared function 'FIPS_mode_set'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+            { result = FIPS_mode_set(x0); }
+    ...
+    ERROR: Failed building wheel for cryptography
+    ```
+
+    Solution:
+    ```sh
+    brew install openssl@1.1
+    ```
+
 
 ## 8. Development
 
