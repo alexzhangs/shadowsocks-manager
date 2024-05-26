@@ -55,6 +55,8 @@ jobs:
     env:
       SSM_VERSION: ${{ needs.docker-build-and-push.outputs.VERSION }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Set up git user
         run: |
           git config --global user.name "ci-docker.github-actions[bot]"
