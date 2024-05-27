@@ -73,6 +73,9 @@ class Site(Site):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        super(Site, self).save(*args, **kwargs)
+        settings.ALLOWED_HOSTS.update_cache()
 
 class DnsApi:
     """
@@ -242,7 +245,6 @@ class Record(models.Model):
         if self.site:
             self.site.domain = self.fqdn
             self.site.save()
-            settings.ALLOWED_HOSTS.update_cache()
 
     def auto_resolve(self):
         """
