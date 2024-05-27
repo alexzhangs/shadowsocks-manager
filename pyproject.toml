@@ -11,10 +11,13 @@ dependencies = [
     "six",
     "boto3",
     "celery",
+
+    # required by dns-lexicon
+    # 20240526 - py2.7 - cryptography==3.3.2 (latest version for py2.7) requires openssl 1.1 on os.
+    # "cryptography",
+
     "Django<4",
-
     "django-allowedsites-dynamic",
-
     "django-cache-lock",
 
     # 20210314 - py2.7 - workaround for: ERROR: Could not find a version that satisfies the requirement django-timezone-field<5.0,>=4.1.0 (from django-celery-beat->-r requirements.txt (line 10)) (from versions: 0.3.1, 0.3.2, 0.4, 1.0, 1.1, 1.2, 1.3, 2.0rc1, 2.0, 2.1, 3.0rc1, 3.0, 3.1)
@@ -66,6 +69,11 @@ dependencies = [
     # 20240417 - py3.10+ - workaround for: AttributeError: module 'collections' has no attribute 'MutableMapping': File python3.12/site-packages/shadowsocks/lru_cache.py, line 34
     # "shadowsocks",
     # "shadowsocks-alexforks",
+
+    # required by dns-lexicon[full]
+    # 20240526 - py2.7 - workaround for: ERROR: Could not find a version that satisfies the requirement prettytable>=2.0.0
+    "Softlayer==5.8.0; python_version <= '2.7'",
+    "Softlayer; python_version > '2.7'",
 
     "tldextract",
     "uWSGI",

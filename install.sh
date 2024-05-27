@@ -122,7 +122,7 @@ function main () {
 
     # run shadowsocks-manager
     echo "Running $ssm_container_name ..."
-    docker run --restart=always -d -p 80:80 --network "$ssm_network_name" -v "$ssm_volume_path:/var/local/ssm" \
+    docker run --restart=always -d -p 80:80 -p 443:443 --network "$ssm_network_name" -v "$ssm_volume_path:/var/local/ssm" \
         --name "$ssm_container_name" "$ssm_image" "${default_options[@]}" "$@"
 }
 

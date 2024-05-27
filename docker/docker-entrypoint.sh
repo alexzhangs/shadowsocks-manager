@@ -242,7 +242,8 @@ function main () {
     declare domain dns_env https_flag=0 \
             OPTIND OPTARG opt
 
-    while getopts d:E:Sh opt; do
+    # ignoring the unknown options
+    while getopts :d:E:Sh opt; do
         case $opt in
             d)
                 domain=$OPTARG
