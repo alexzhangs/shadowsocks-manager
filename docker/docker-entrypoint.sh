@@ -242,26 +242,29 @@ function main () {
     declare domain dns_env https_flag=0 \
             OPTIND OPTARG opt
 
-    # ignoring the unknown options
-    while getopts :d:E:Sh opt; do
-        case $opt in
-            d)
-                domain=$OPTARG
-                ;;
-            E)
-                dns_env=$OPTARG
-                ;;
-            S)
-                https_flag=1
-                ;;
-            h)
-                usage
-                return
-                ;;
-            *)
-                # ignored as they are processed by the docker-ssm-setup.sh
-                ;;
-        esac
+    # Combine the outer while loop and the leading colon to ignore the unknown options
+    while [[ $OPTIND -le $# ]]; do
+        while getopts :d:E:Sh opt; do
+            case $opt in
+                d)
+                    domain=$OPTARG
+                    ;;
+                E)
+                    dns_env=$OPTARG
+                    ;;
+                S)
+                    https_flag=1
+                    ;;
+                h)
+                    usage
+                    return
+                    ;;
+                *)
+                    # ignored as they are processed by the docker-ssm-setup.sh
+                    ;;
+            esac
+        done
+        ((OPTIND++))
     done
 
     if [[ $# -eq 0 ]]; then
