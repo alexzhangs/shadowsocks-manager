@@ -253,16 +253,16 @@ function main () {
         ssm-dotenv -w "${envs[@]}"
     fi
 
-    if [[ -n $collect_flag ]]; then
+    if [[ $collect_flag -eq 1 ]]; then
         ssm-manage collectstatic --no-input -c
     fi
 
-    if [[ -n $migrate_flag ]]; then
+    if [[ $migrate_flag -eq 1 ]]; then
         ssm-manage makemigrations
         ssm-manage migrate
     fi
 
-    if [[ -n $loaddata_flag ]]; then
+    if [[ $loaddata_flag -eq 1 ]]; then
         ssm-manage loaddata fixtures/auth.group.json \
                fixtures/sites.site.json \
                fixtures/django_celery_beat.crontabschedule.json \
@@ -290,9 +290,10 @@ function main () {
 
     if [[ -n $domain ]]; then
         ssm-manage domain_domain --name "$domain" --nameserver "$dns_name"
+        ssm-manage domain_site --name "shadowsocks-manager" --domain "$domain"
 
         if [[ -n $type && -n $answer ]]; then
-            ssm-manage domain_record --fqdn "$domain" --type "$type" --answer "$answer" --site
+            ssm-manage domain_record --fqdn "$domain" --type "$type" --answer "$answer" --site "shadowsocks-manager"
         fi
     fi
 }
