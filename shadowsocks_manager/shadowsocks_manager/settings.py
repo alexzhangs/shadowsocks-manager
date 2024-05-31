@@ -55,6 +55,7 @@ ALLOWED_HOSTS = CachedAllowedSites(
     cache_timeout=30
 )
 
+# set the SITE_ID, make sure there's a fixture for the site
 SITE_ID = 1
 
 

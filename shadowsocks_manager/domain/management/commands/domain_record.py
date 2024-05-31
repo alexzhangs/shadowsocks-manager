@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-import dns.resolver
+from django.conf import settings
 from domain.models import Record, Domain, Site
 
 class Command(BaseCommand):
@@ -25,8 +25,8 @@ class Command(BaseCommand):
                             help='Record type. Default: `A`.')
         parser.add_argument('--answer', type=str, nargs='?',
                             help='Answer for the host name, comma "," is the delimiter for multiple answers.')
-        parser.add_argument('--site', type=str, nargs='?',
-                            help='Site name. Associate this record to the Django Site. '
+        parser.add_argument('--site', action='store_true',
+                            help='Associate this record to the active django.contrib.sites.models.Site. '
                             'If the site does not exist, the command will raise an error.')
 
     def handle(self, *args, **options):
@@ -34,9 +34,8 @@ class Command(BaseCommand):
         fqdn = fields.get('fqdn')
         host = fields.get('host')
         domain = fields.get('domain')
-        site = fields.get('site')
 
-        fields['site'] = Site.objects.get(name=site) if site else None
+        fields['site'] = Site.objects.get(pk=settings.SITE_ID) if fields['site'] else None
 
         if host and domain:
             fields['domain'] = Domain.objects.get(name=domain)
@@ -49,7 +48,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('Successfully {0} record: {1} {2} {3}, with site: {4}'.format(
             'created' if created else 'updated', record.type, record.host, record.domain.name,
-            record.site.name if record.site else 'NULL')))
+            record.site.id if record.site else 'NULL')))
 
     @classmethod
     def get_fields(cls, options):

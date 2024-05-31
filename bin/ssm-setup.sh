@@ -290,10 +290,10 @@ function main () {
 
     if [[ -n $domain ]]; then
         ssm-manage domain_domain --name "$domain" --nameserver "$dns_name"
-        ssm-manage domain_site --name "shadowsocks-manager" --domain "$domain"
+        ssm-manage domain_site --domain "$domain"
 
         if [[ -n $type && -n $answer ]]; then
-            ssm-manage domain_record --fqdn "$domain" --type "$type" --answer "$answer" --site "shadowsocks-manager"
+            ssm-manage domain_record --fqdn "$domain" --type "$type" --answer "$answer" --site
         fi
     fi
 }
