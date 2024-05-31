@@ -77,12 +77,12 @@ def main():
                 if line.startswith(key + '='):
                     f.write(new_line)
                     key_found = True
-                    print("Updated environment variable '{0}' in .ssm-env file.".format(key))
+                    print("Updated environment variable '{0}' in '{1}'.".format(key, env_file))
                 else:
                     f.write(line)
             if not key_found:
                 f.write('\n' + new_line)
-                print("Added environment variable '{0}' to .ssm-env file.".format(key))
+                print("Added environment variable '{0}' to '{1}'.".format(key, env_file))
 
 
 if __name__ == "__main__":
