@@ -2,12 +2,14 @@
 
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
+from __future__ import absolute_import
 
 import os
 import re
+import copy
 import logging
 import dns.resolver, tldextract
-import lexicon
+from lexicon import config, client
 from collections import defaultdict
 from django.db import models
 from django.db.models.signals import post_save, post_delete
@@ -65,24 +67,12 @@ def get_zone_name(domain):
         return zone
 
 
-class Site(Site):
-
-    class Meta:
-        proxy = True
-
-    def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        super(Site, self).save(*args, **kwargs)
-        settings.ALLOWED_HOSTS.update_cache()
-
-class DnsApi:
+class DnsApi(object):
     """
     https://dns-lexicon.readthedocs.io/en/latest/provider_conventions.html
     """
     def __init__(self, env, domain):
-        self.config = lexicon.config.ConfigResolver()
+        self.config = config.ConfigResolver()
 
         # export the environment variables
         for item in env.split(','):
@@ -96,22 +86,49 @@ class DnsApi:
 
     def call(self, method, *args):
         try:
-            with lexicon.client.Client(self.config) as operations:
+            with client.Client(self.config) as operations:
                 return getattr(operations, method)(*args)
         except Exception as e:
             logger.error(e)
             return None
     
     def list_records(self, type, name=None, content=None):
+        """
+        Normal Behaviour: List all records. If filters are provided, send to the API if possible, else apply filter locally. Return value should be a list of records.
+        Record Sets: Ungroup record sets into individual records. Eg: If a record set contains 3 values, provider ungroup them into 3 different records.
+        Linked Records: For services that support some form of linked record, do not resolve, treat as CNAME.
+        """
         return self.call('list_records', type, name, content)
 
     def create_record(self, type, name, content):
+        """
+        Normal Behavior: Create a new DNS record. Return a boolean True if successful.
+        If Record Already Exists: Do nothing. DO NOT throw exception.
+        TTL: If not specified or set to 0, use reasonable default.
+        Record Sets: If service supports record sets, create new record set or append value to existing record set as required.
+        """
         return self.call('create_record', type, name, content)
 
     def update_record(self, type, name, content):
+        """
+        Normal Behaviour: Update a record. Record to be updated can be specified by providing id OR name, type and content. Return a boolean True if successful.
+        Record Sets: If matched record is part of a record set, only update the record that matches. Update the record set so that records other than the matched one are unmodified.
+        TTL:
+            If not specified, do not modify ttl.
+            If set to 0, reset to reasonable default.
+        No Match: Throw exception?
+        """
         return self.call('update_record', None, type, name, content)
 
     def delete_record(self, type, name, content=None):
+        """
+        Normal Behaviour: Remove a record. Record to be deleted can be specified by providing id OR name, type and content. Return a boolean True if successful.
+        Record sets: Remove only the record that matches all the filters.
+            If content is not specified, remove the record set.
+            If length of record set becomes 0 after removing record, remove the record set.
+            Otherwise, remove only the value that matches and leave other records as-is.
+        No Match: Do nothing. DO NOT throw exception
+        """
         return self.call('delete_record', None, type, name, content)
 
     @property
@@ -140,7 +157,7 @@ class NameServer(models.Model):
         return self.name
 
 
-class DomainManager(models.Manager):
+class CustomDomainManager(models.Manager):
     def resolve_name(self, kwargs):
         if 'name' in kwargs:
             kwargs['name'] = get_zone_name(kwargs['name'])
@@ -148,19 +165,19 @@ class DomainManager(models.Manager):
 
     def get(self, *args, **kwargs):
         kwargs = self.resolve_name(kwargs)
-        return super(DomainManager, self).get(*args, **kwargs)
+        return super(CustomDomainManager, self).get(*args, **kwargs)
 
     def filter(self, *args, **kwargs):
         kwargs = self.resolve_name(kwargs)
-        return super(DomainManager, self).filter(*args, **kwargs)
+        return super(CustomDomainManager, self).filter(*args, **kwargs)
 
     def get_or_create(self, *args, **kwargs):
         kwargs = self.resolve_name(kwargs)
-        return super(DomainManager, self).get_or_create(*args, **kwargs)
+        return super(CustomDomainManager, self).get_or_create(*args, **kwargs)
 
     def update_or_create(self, *args, **kwargs):
         kwargs = self.resolve_name(kwargs)
-        return super(DomainManager, self).update_or_create(*args, **kwargs)
+        return super(CustomDomainManager, self).update_or_create(*args, **kwargs)
     
 
 class Domain(models.Model):
@@ -171,20 +188,20 @@ class Domain(models.Model):
     dt_created = models.DateTimeField('Created', auto_now_add=True)
     dt_updated = models.DateTimeField('Updated', auto_now=True)
 
-    objects = DomainManager()
+    objects = CustomDomainManager()
 
     def __str__(self):
         return self.name
 
-    def __init__(self, *args, **kwargs):
-        super(Domain, self).__init__(*args, **kwargs)
-
-        self.api = None
+    @property
+    def api(self):
         if self.nameserver and self.nameserver.env:
             try:
-                self.api = DnsApi(self.nameserver.env, self.name)
+                return DnsApi(self.nameserver.env, self.name)
             except Exception as e:
                 logger.error('DnsApi: domain ({0}), env ({1}): {2}'.format(self.name, self.nameserver.env, e))
+        else:
+            logger.warning('{0}: please configure nameserver properly for the domain to enable DnsApi.'.format(self.name))
 
     def save(self, *args, **kwargs):
         self.auto_resolve()
@@ -233,18 +250,22 @@ class Record(models.Model):
     class Meta:
         unique_together = ('host', 'domain')
 
+    def __init__(self, *args, **kwargs):
+        super(Record, self).__init__(*args, **kwargs)
+        self.auto_resolve()
+        # take a snapshot of the original record
+        self.origin = copy.deepcopy(self)
+
     def __str__(self):
         return self.fqdn
+    
+    @property
+    def entity(self):
+        return {key: value for key, value in self.__dict__.items() if key in ['fqdn', 'type', 'answer']}
 
     def save(self, *args, **kwargs):
         self.auto_resolve()
-
         super(Record, self).save(*args, **kwargs)
-
-        # update the site domain
-        if self.site:
-            self.site.domain = self.fqdn
-            self.site.save()
 
     def auto_resolve(self):
         """
@@ -257,6 +278,14 @@ class Record(models.Model):
             self.host = get_host_name(self.fqdn)
             self.domain = Domain.objects.get(name=get_zone_name(self.fqdn))
 
+    def update_site_domain(self):
+        """
+        Update the associated site domain with the record fqdn.
+        """
+        if self.site:
+            self.site.domain = self.fqdn
+            self.site.save()
+
     @property
     def answers(self):
         """
@@ -268,14 +297,18 @@ class Record(models.Model):
         }
 
     @property
+    def dnsapi(self):
+        return self.domain.api if self.domain else None
+
+    @property
     def answer_from_dns_api(self):
         """
         Return the answers from DNS API, in lowercase and as Set.
         """
-        if self.domain.api:
+        if self.dnsapi:
             return {
                 record.get('content').lower()
-                for record in self.domain.api.list_records(self.type, self.host) or []
+                for record in self.dnsapi.list_records(self.type, self.host) or []
             }
 
     @property
@@ -309,37 +342,84 @@ class Record(models.Model):
         """
         return self.answers == self.answer_from_dns_query
 
-    def sync_to_dns(self):
+    def on_update(self):
+        """
+        The matrix of rules for the update event:
+        +--------+--------------+-------------------------------------------------+
+        |  field |       /      |                   TYPE or HOST                  |
+        +========+==============+========================+========================+
+        |    /   | change state |            X           |            √           |
+        +--------+--------------+------------------------+------------------------+
+        |        |              | rs.dns_delete()        | rs.origin.dns_delete() |
+        |        |       X      | rs.dns_create()        | rs.dns_delete()        |
+        |        |              |                        | rs.dns_create()        |
+        | DOMAIN +--------------+------------------------+------------------------+
+        |        |              | rs.origin.dns_delete() | rs.origin.dns_delete() |
+        |        |       √      | rs.dns_delete()        | rs.dns_delete()        |
+        |        |              | rs.dns_create()        | rs.dns_create()        |
+        +--------+--------------+------------------------+------------------------+
+        """
+        self.update_site_domain()
+
+        try:
+            if self.domain != self.origin.domain or self.host != self.origin.host or self.type != self.origin.type:
+                # clean up the old record
+                self.origin.dns_delete()
+        except models.ObjectDoesNotExist:
+            # ignore an empty record without domain
+            pass
+
+        return self.dns_sync()
+
+    def on_delete(self):
+        return self.dns_delete()
+
+    def dns_sync(self):
         """
         Sync the record to DNS server through DNS API.
         """
         ret = defaultdict(list)
-        if self.domain.api:
+        
+        if self.dnsapi:
             if self.is_matching_dns_api:
                 ret['message'] = 'No need to synchronize.'
                 return ret
 
-            ret['deleted'] = self.delete_from_dns()
-            for answer in (self.answer or '').split(','):
-                ret['created'].append(self.domain.api.create_record(self.type, self.host, answer))
+            ret['deleted'] = self.dns_delete()
+            ret['created'] = self.dns_create()
         else:
             ret['message'] = 'Please configure Nameserver properly for the domain first.'
 
         return ret
 
-    def delete_from_dns(self):
+    def dns_create(self):
         """
-        Delete the record from DNS server through DNS API.
+        Create the recordset to DNS server through DNS API.
         """
-        if self.domain.api:
-            return self.domain.api.delete_record(self.type, self.host)
+        created = False
+        if self.dnsapi and not self.is_matching_dns_api:
+            for answer in self.answers:
+                created = (created or self.dnsapi.create_record(self.type, self.host, answer))
+        if created:
+            return self.entity
 
+    def dns_delete(self):
+        """
+        Delete the recordset from DNS server through DNS API.
+        """
+        if self.dnsapi and self.dnsapi.list_records(self.type, self.host):
+            if self.dnsapi.delete_record(self.type, self.host):
+                return self.entity
+
+
+@receiver(post_save, sender=Site)
+def allowedsites_update_cache(sender, instance, **kwargs):
+    settings.ALLOWED_HOSTS.update_cache()
 
 @receiver(post_save, sender=Record)
-def record_sync_to_dns(sender, instance, **kwargs):
-    instance.sync_to_dns()
-
+def record_on_update(sender, instance, **kwargs):
+    instance.on_update()
 
 @receiver(post_delete, sender=Record)
-def record_delete_from_dns(sender, instance, **kwargs):
-    instance.delete_from_dns()
+def record_on_delete(sender, instance, **kwargs):
+    instance.on_delete()
