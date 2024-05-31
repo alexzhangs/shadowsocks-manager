@@ -204,10 +204,6 @@ So either you get some change on your own or stick with the libev edition.
 
 ## 7. Known Issues
 
-1. DNS records matching for Node may not be accurate on macOS.
-    For unknown reason sometimes DNS query returns only one IP address
-while multiple IP addresses were configured for the domain.
-
 1. The Shadowsocks Python edition's ssserver won't start on macOS.
     The error message is like:
     ```
@@ -292,6 +288,15 @@ while multiple IP addresses were configured for the domain.
     ```sh
     brew install openssl@1.1
     ```
+
+1. Domain record is not synced into DNS provider as expected.
+
+    There might be a conflict record in the DNS provider. For example, a record with the same name but different type, such as CNAME.
+    The sync process will be limited to the records with same type and name, it won't touched any other records.
+
+    Solution:
+    1. Remove the conflict record from the DNS provider by yourself.
+    1. Run the sync process again.
 
 
 ## 8. Development
