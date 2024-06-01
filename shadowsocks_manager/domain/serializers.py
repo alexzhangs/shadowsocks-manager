@@ -24,7 +24,7 @@ class RecordSerializer(serializers.ModelSerializer):
         model = models.Record
         fields = ('id', 'fqdn', 'host', 'domain', 'type', 'answer', 'site', 'dt_created', 'dt_updated')
         extra_kwargs = {
-            'fqdn': {'required': False, 'allow_null': True, 'allow_blank': True},
-            'host': {'required': False, 'allow_null': True, 'allow_blank': True},
-            'domain': {'required': False, 'allow_null': True},
+            'fqdn': {'required': False, 'allow_null': True, 'default': None},
+            'host': {'required': False, 'allow_null': True, 'default': None},
+            'domain': {'required': False, 'allow_null': True, 'default': None},
         }
