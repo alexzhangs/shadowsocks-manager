@@ -239,8 +239,8 @@ class Record(models.Model):
     host = models.CharField(max_length=64,
         help_text='Host name without domain name. Example: `vpn`.')
     domain = models.ForeignKey(Domain, on_delete=models.PROTECT)
-    type = models.CharField(max_length=8, null=True, blank=True, choices=TYPE)
-    answer = models.CharField(max_length=512, null=True, blank=True,
+    type = models.CharField(max_length=8, choices=TYPE)
+    answer = models.CharField(max_length=512,
         help_text='Answer for the host name, comma "," is the delimiter for multiple answers.')
     site = models.ForeignKey(Site, null=True, blank=True, on_delete=models.SET_NULL, related_name='records',
         help_text="The record with a site will be dynamically added to Django's ALLOWED_HOSTS.")
