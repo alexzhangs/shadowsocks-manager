@@ -54,7 +54,7 @@ class RecordAdmin(admin.ModelAdmin):
         return list(obj.answer_from_dns_api) if obj.answer_from_dns_api is not None else obj.answer_from_dns_api
 
     def answer_from_dns_query(self, obj):
-        return list(obj.answer_from_dns_query) if obj.answer_from_dns_query is not None else obj.answer_from_dns_query
+        return obj.answer_from_dns_query
 
     def is_matching_dns_api(self, obj):
         return obj.is_matching_dns_api
