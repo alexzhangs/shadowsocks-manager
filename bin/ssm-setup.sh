@@ -42,6 +42,34 @@
 #?     The value can be any valid timezone name.
 #?     The default value depends on the .ssm-env file and Django's settings.
 #?
+#?   - SSM_ALLOWED_SITES_DEFAULTS
+#?
+#?     Set the default allowed sites for the shadowsocks-manager.
+#?     The value can be any valid domain name and ip address, separated by comma.
+#?     The default value depends on the .ssm-env file and Django's settings.
+#?
+#?   - SSM_ALLOWED_SITES_DEFAULTS_PLUS
+#?
+#?     Set the additional allowed sites for the shadowsocks-manager.
+#?     The value can be any valid domain name and ip address, separated by comma.
+#?     The default value depends on the .ssm-env file and Django's settings.
+#?
+#?   - SSM_ALLOWED_SITES_DYNAMIC_PUBLIC_IP
+#?
+#?     If set True, the server's public IP address is set for ALLOWED_HOSTS at runtime.
+#?     The value can be 'True' or 'False'.
+#?     The default value depends on the .ssm-env file and Django's settings.
+#?
+#?   - SSM_ALLOWED_SITES_NET_TIMEOUT
+#?
+#?     Set the timeout (in seconds) for the network request to get the server's public IP address.
+#?     The default value depends on the .ssm-env file and Django's settings.
+#?
+#?   - SSM_ALLOWED_SITES_CACHE_TIMEOUT
+#?
+#?     Set the cache timeout (in seconds) for the site.domain and server's public IP address.
+#?     The default value depends on the .ssm-env file and Django's settings.
+#?
 #?   - SSM_MEMCACHED_HOST, SSM_MEMCACHED_PORT
 #?
 #?     Set the Memcached server's host and port which are used by Django cache.
@@ -253,16 +281,16 @@ function main () {
         ssm-dotenv -w "${envs[@]}"
     fi
 
-    if [[ -n $collect_flag ]]; then
+    if [[ $collect_flag -eq 1 ]]; then
         ssm-manage collectstatic --no-input -c
     fi
 
-    if [[ -n $migrate_flag ]]; then
+    if [[ $migrate_flag -eq 1 ]]; then
         ssm-manage makemigrations
         ssm-manage migrate
     fi
 
-    if [[ -n $loaddata_flag ]]; then
+    if [[ $loaddata_flag -eq 1 ]]; then
         ssm-manage loaddata fixtures/auth.group.json \
                fixtures/sites.site.json \
                fixtures/django_celery_beat.crontabschedule.json \
@@ -290,6 +318,7 @@ function main () {
 
     if [[ -n $domain ]]; then
         ssm-manage domain_domain --name "$domain" --nameserver "$dns_name"
+        ssm-manage domain_site --domain "$domain"
 
         if [[ -n $type && -n $answer ]]; then
             ssm-manage domain_record --fqdn "$domain" --type "$type" --answer "$answer" --site

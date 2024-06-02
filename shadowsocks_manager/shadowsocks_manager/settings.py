@@ -47,14 +47,26 @@ DEBUG = config('SSM_DEBUG', default=True, cast=bool)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
+# set ALLOWED_HOSTS
+ALLOWED_SITES_DEFAULTS = config('SSM_ALLOWED_SITES_DEFAULTS', default='localhost,127.0.0.1')
+ALLOWED_SITES_DEFAULTS = {item.lower() for item in ALLOWED_SITES_DEFAULTS.split(',') if item}
+
+ALLOWED_SITES_DEFAULTS_PLUS = config('SSM_ALLOWED_SITES_DEFAULTS_PLUS', default='')
+ALLOWED_SITES_DEFAULTS_PLUS = {item.lower() for item in ALLOWED_SITES_DEFAULTS_PLUS.split(',') if item}
+
+ALLOWED_SITES_DYNAMIC_PUBLIC_IP = config('SSM_ALLOWED_SITES_DYNAMIC_PUBLIC_IP', default=False, cast=bool)
+ALLOWED_SITES_NET_TIMEOUT = config('SSM_ALLOWED_SITES_NET_TIMEOUT', default=5, cast=int)
+ALLOWED_SITES_CACHE_TIMEOUT = config('SSM_ALLOWED_SITES_CACHE_TIMEOUT', default=180, cast=int)
+
 from allowedsites import CachedAllowedSites
 ALLOWED_HOSTS = CachedAllowedSites(
-    defaults=('localhost', '127.0.0.1',),
-    dynamic_public_ip=True,
-    net_timeout=3,
-    cache_timeout=30
+    defaults=ALLOWED_SITES_DEFAULTS.union(ALLOWED_SITES_DEFAULTS_PLUS),
+    dynamic_public_ip=ALLOWED_SITES_DYNAMIC_PUBLIC_IP,
+    net_timeout=ALLOWED_SITES_NET_TIMEOUT,
+    cache_timeout=ALLOWED_SITES_CACHE_TIMEOUT,
 )
 
+# set the SITE_ID, make sure there's a fixture for the site
 SITE_ID = 1
 
 
@@ -198,11 +210,9 @@ LOGGING = {
             'class': 'logging.StreamHandler',
         },
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
     },
 }
 

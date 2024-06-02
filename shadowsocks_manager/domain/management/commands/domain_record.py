@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-import dns.resolver
+from django.conf import settings
 from domain.models import Record, Domain, Site
 
 class Command(BaseCommand):
@@ -26,7 +26,8 @@ class Command(BaseCommand):
         parser.add_argument('--answer', type=str, nargs='?',
                             help='Answer for the host name, comma "," is the delimiter for multiple answers.')
         parser.add_argument('--site', action='store_true',
-                    help='Associate this record to the Django Site.')
+                            help='Associate this record to the active django.contrib.sites.models.Site. '
+                            'If the site does not exist, the command will raise an error.')
 
     def handle(self, *args, **options):
         fields = self.get_fields(options)
@@ -34,20 +35,20 @@ class Command(BaseCommand):
         host = fields.get('host')
         domain = fields.get('domain')
 
-        if fields['site']:
-            fields['site'] = Site.objects.get(name="shadowsocks-manager")
-        else:
-            fields['site'] = None
+        fields['site'] = Site.objects.get(pk=settings.SITE_ID) if fields['site'] else None
 
         if host and domain:
             fields['domain'] = Domain.objects.get(name=domain)
-            _, created = Record.objects.update_or_create(host=host, domain=fields["domain"], defaults=fields)
-            self.stdout.write(self.style.SUCCESS('Successfully {0} record: {1}.{2}'.format('created' if created else 'updated', host, domain)))
+            record, created = Record.objects.update_or_create(host=host, domain=fields["domain"], defaults=fields)
         elif fqdn:
-            _, created = Record.objects.update_or_create(fqdn=fqdn, defaults=fields)
-            self.stdout.write(self.style.SUCCESS('Successfully {0} record: {1}'.format('created' if created else 'updated', fqdn)))
+            record, created = Record.objects.update_or_create(fqdn=fqdn, defaults=fields)
         else:
             self.print_help('manage.py', 'domain_record')
+            return
+
+        self.stdout.write(self.style.SUCCESS('Successfully {0} record: {1} {2} {3}, with site: {4}'.format(
+            'created' if created else 'updated', record.type, record.host, record.domain.name,
+            record.site.id if record.site else 'NULL')))
 
     @classmethod
     def get_fields(cls, options):

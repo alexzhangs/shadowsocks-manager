@@ -17,6 +17,26 @@ SSM_DEBUG=True
 #   TIME_ZONE = SSM_TIME_ZONE
 SSM_TIME_ZONE=UTC
 
+# Django settings, used as (presudo code):
+#   ALLOWED_HOSTS += SSM_ALLOWED_SITES_DEFAULTS.split(',')
+SSM_ALLOWED_SITES_DEFAULTS=
+
+# Django settings, used as (presudo code):
+#   ALLOWED_HOSTS += SSM_ALLOWED_SITES_DEFAULTS_PLUS.split(',')
+SSM_ALLOWED_SITES_DEFAULTS_PLUS=
+
+# Django settings, used as (presudo code):
+#   ALLOWED_HOSTS += {dyanmic_public_ip} if SSM_ALLOWED_SITES_DYNAMIC_PUBLIC_IP else []
+SSM_ALLOWED_SITES_DYNAMIC_PUBLIC_IP=False
+
+# Django settings for CachedAllowedSites, used as:
+#   CachedAllowedSites.net_timeout = SSM_ALLOWED_SITES_NET_TIMEOUT
+SSM_ALLOWED_SITES_NET_TIMEOUT=5
+
+# Django settings for CachedAllowedSites, used as:
+#   CachedAllowedSites.cache_timeout = SSM_ALLOWED_SITES_CACHE_TIMEOUT
+SSM_ALLOWED_SITES_CACHE_TIMEOUT=180
+
 # Django settings, used as:
 #   CACHES.default.location = SSM_MEMCACHED_HOST:SSM_MEMCACHED_PORT
 SSM_MEMCACHED_HOST=localhost

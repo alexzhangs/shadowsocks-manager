@@ -68,11 +68,11 @@ class RecordAdmin(admin.ModelAdmin):
     is_matching_dns_query.boolean = True
     is_matching_dns_query.short_description = 'DNS Query'
 
-    def sync_to_dns(self, request, queryset):
+    def dns_sync(self, request, queryset):
         for obj in queryset:
-            result = obj.sync_to_dns()
-            messages.info(request, '{0}: {1}'.format(obj.host, json.dumps(result)))
+            result = obj.dns_sync()
+            messages.info(request, '{0}: {1}'.format(obj.fqdn, json.dumps(result)))
 
-    sync_to_dns.short_description = 'Synchronize DNS records to DNS server for Selected Domain'
+    dns_sync.short_description = 'Synchronize DNS records to DNS server for Selected Domain'
 
-    actions = (sync_to_dns,)
+    actions = (dns_sync,)

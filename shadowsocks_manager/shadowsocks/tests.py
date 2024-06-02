@@ -139,7 +139,6 @@ class ConfigTestCase(AppTestCase):
     @classmethod
     def up(cls):
         obj = models.Config.load()
-        obj.port_end=8385
         obj.timeout_local=0.3
         obj.timeout_remote=1  # minimal the waiting time with mock public ip address
         obj.save()
@@ -160,7 +159,6 @@ class AccountTestCase(AppTestCase):
     @classmethod
     def up(cls):
         config = models.Config.load()
-        config.port_end=8385
 
         # generate 2 accounts
         for port in [config.port_begin, config.port_end]:
