@@ -42,7 +42,7 @@ dependencies = [
     # 20240602 - py3.12 - v4.0.7 - import ERROR: module 'django.utils.formats' has no attribute 'sanitize_strftime_format'
     # 20240602 - py3.12 - v4.0.0 - export ERROR: AttributeError: 'AccountAdmin' object has no attribute 'search_help_text': File import_export/admin.py, line 670: changelist_kwargs["search_help_text"] = self.search_help_text
     # "django-import-export",
-    "django-import-export==3.3.9; python_version >= '3.8'",
+    "django-import-export<=3.3.9",
 
     "djangorestframework",
     "dns-lexicon[full]",
