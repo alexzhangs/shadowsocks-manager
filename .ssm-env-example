@@ -19,11 +19,11 @@ SSM_TIME_ZONE=UTC
 
 # Django settings, used as (presudo code):
 #   ALLOWED_HOSTS += SSM_ALLOWED_SITES_DEFAULTS.split(',')
-SSM_ALLOWED_SITES_DEFAULTS
+SSM_ALLOWED_SITES_DEFAULTS=
 
 # Django settings, used as (presudo code):
 #   ALLOWED_HOSTS += SSM_ALLOWED_SITES_DEFAULTS_PLUS.split(',')
-SSM_ALLOWED_SITES_DEFAULTS_PLUS
+SSM_ALLOWED_SITES_DEFAULTS_PLUS=
 
 # Django settings, used as (presudo code):
 #   ALLOWED_HOSTS += {dyanmic_public_ip} if SSM_ALLOWED_SITES_DYNAMIC_PUBLIC_IP else []
