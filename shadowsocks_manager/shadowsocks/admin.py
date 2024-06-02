@@ -7,11 +7,20 @@ from django.contrib import admin, messages
 from django.template.defaultfilters import filesizeformat
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
+from admin_lazy_load import LazyLoadAdminMixin
 
 from .models import Config, Node, Account, NodeAccount, SSManager
 
 
 # Register your models here.
+
+class HiddenModelAdmin(admin.ModelAdmin):
+    def get_model_perms(self, request):
+        """
+        Return empty perms dict thus hiding the model from admin interface.
+        """
+        return {}
+
 
 @admin.register(Config)
 class ConfigAdmin(admin.ModelAdmin):
@@ -27,18 +36,27 @@ class ConfigAdmin(admin.ModelAdmin):
         return None
 
 
-class ReadonlyNodeAccountInline(admin.TabularInline):
-    model = NodeAccount
-    extra = 1
-    readonly_fields = ('is_created', 'is_accessible_ex', 'transferred_totally',
-                       'dt_collected', 'dt_created', 'dt_updated')
-    fields = ('node', 'account',) + readonly_fields + ('is_active',)
+class NodeAccountLazyMixin(LazyLoadAdminMixin):
+    lazy_loaded_fields = ('is_created', 'is_accessible_ex',)
+
+    def is_created(self, obj):
+        return obj.is_created()
+
+    is_created.boolean = True
 
     def is_accessible_ex(self, obj):
         return obj.is_accessible_ex()
 
     is_accessible_ex.boolean = True
     is_accessible_ex.short_description = 'Is Accessible'
+
+
+class ReadonlyNodeAccountInline(NodeAccountLazyMixin, admin.TabularInline):
+    model = NodeAccount
+    extra = 1
+    readonly_fields = ('is_created_lazy', 'is_accessible_ex_lazy', 'transferred_totally',
+                       'dt_collected', 'dt_created', 'dt_updated')
+    fields = ('node', 'account',) + readonly_fields + ('is_active',)
 
     def transferred_totally(self, obj):
         return filesizeformat(obj.transferred_totally)
@@ -51,14 +69,17 @@ class ReadonlyNodeAccountInline(admin.TabularInline):
     dt_collected.short_description = 'Collected'
 
 
-class SSManagerInline(admin.TabularInline):
-    model = SSManager
-    extra = 1
-    max_num = 1
+@admin.register(NodeAccount)
+class NodeAccountAdmin(NodeAccountLazyMixin, HiddenModelAdmin):
+    """
+    This model is registered as hidden for the sake of lazy loading with TabularInline.
+    The LazyLoadAdminMixin requires this for the URL reversing.
+    """
+    pass
 
-    fields = ('interface', 'port', 'encrypt', 'is_accessible',
-              'server_edition', 'is_v2ray_enabled',)
-    readonly_fields = ('is_accessible', 'dt_created', 'dt_updated')
+
+class SSManagerLazyMixin(LazyLoadAdminMixin):
+    lazy_loaded_fields = ('is_accessible',)
 
     def is_accessible(self, obj):
         return obj.is_accessible
@@ -66,12 +87,32 @@ class SSManagerInline(admin.TabularInline):
     is_accessible.boolean = True
 
 
+class SSManagerInline(SSManagerLazyMixin, admin.TabularInline):
+    model = SSManager
+    extra = 1
+    max_num = 1
+
+    readonly_fields = ('is_accessible_lazy', 'dt_created', 'dt_updated')
+    fields = ('interface', 'port', 'encrypt', 'is_accessible_lazy',
+              'server_edition', 'is_v2ray_enabled',)
+
+
+@admin.register(SSManager)
+class SSManagerAdmin(SSManagerLazyMixin, HiddenModelAdmin):
+    """
+    This model is registered as hidden for the sake of lazy loading with TabularInline.
+    The LazyLoadAdminMixin requires this for the URL reversing.
+    """
+    pass
+
+
 @admin.register(Node)
-class NodeAdmin(admin.ModelAdmin):
+class NodeAdmin(LazyLoadAdminMixin, admin.ModelAdmin):
     readonly_fields = ('transferred_totally', 'dt_collected', 'dt_created', 'dt_updated')
     fields = ('name', 'record', 'public_ip', 'private_ip', 'is_active', 'location',)
-    list_display = fields + ('is_matching_dns_query',) + readonly_fields
+    list_display = fields + ('is_matching_dns_query_lazy',) + readonly_fields
     fields = fields + ('sns_endpoint', 'sns_access_key', 'sns_secret_key',) + readonly_fields
+    lazy_loaded_fields = ('is_matching_dns_query',)
 
     def is_matching_dns_query(self, obj):
         return obj.is_matching_dns_query

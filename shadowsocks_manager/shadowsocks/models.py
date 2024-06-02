@@ -428,8 +428,6 @@ class NodeAccount(StatisticMethod):
         else:
             return self.node.ssmanager.is_port_created(self.account.username)
 
-    is_created.boolean = True
-
     @property
     def is_accessible(self):
         """

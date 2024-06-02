@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django_celery_beat',
     'django_celery_results',
+    'admin_lazy_load',
     'import_export',
     'rest_framework',
     'django_filters',

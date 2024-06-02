@@ -17,6 +17,17 @@ dependencies = [
     # "cryptography",
 
     "Django<4",
+
+    # required by django-admin-lazy-load
+    # 20240531 - py2.7
+    "django-admin-easy==0.4.1; python_version <= '2.7'",
+    "django-admin-easy; python_version > '2.7'",
+
+    # 20240531 - py2.7
+    # 20240531 - enhancement and fix
+    # "django-admin-lazy-load",
+    "django-admin-lazy-load @ git+https://github.com/alexforks/django-admin-lazy-load",
+
     "django-allowedsites-dynamic",
     "django-cache-lock",
 
