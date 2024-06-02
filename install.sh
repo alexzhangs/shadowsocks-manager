@@ -120,13 +120,10 @@ function main () {
     # run rabbitmq, used by celery
     docker run --restart=always -d --network "$ssm_network_name" --name "$rabbitmq_container_name" rabbitmq
 
-    # run shadowsocks-manager wihtout --detach in background
+    # run shadowsocks-manager
     echo "Running $ssm_container_name ..."
-    docker run --restart=always -p 80:80 -p 443:443 --network "$ssm_network_name" -v "$ssm_volume_path:/var/local/ssm" \
-        --name "$ssm_container_name" "$ssm_image" "${default_options[@]}" "$@" &
-
-    # wait for the shadowsocks-manager to start
-    wait
+    docker run --restart=always -d -p 80:80 -p 443:443 --network "$ssm_network_name" -v "$ssm_volume_path:/var/local/ssm" \
+        --name "$ssm_container_name" "$ssm_image" "${default_options[@]}" "$@"
 }
 
 main "$@"
