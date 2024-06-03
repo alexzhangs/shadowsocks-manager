@@ -10,7 +10,7 @@
 #?   - In order to proceed to run the next container, you need to stop or remove the current container manually.
 #?
 #? Usage:
-#?   docker-build-and-run.sh [-p] [-d] [-P] [DISTRIBUTION ..] -- [RUN_CMD_OPTIONS ..]
+#?   docker-build-and-run.sh [-p] [-P] [-m] [-d] [DISTRIBUTION ..] [-- RUN_CMD_OPTIONS ..]
 #?   docker-build-and-run.sh [-h]
 #?
 #? Options:
@@ -20,24 +20,40 @@
 #?   This option implies `build --quiet` and `run --detach` to avoid the output mess.
 #?   This option implies `run --publish-all` to avoid the port conflict.
 #?
-#?   [-d]
-#?
-#?   Run the container in the detach mode: `run --detach`
-#?   This option implies `run --publish-all` to avoid the port conflict.
-#?
 #?   [-P]
 #?
 #?   Enable to fetch the env `DOCKER_BUILD_ARGS_PROXY` and pass to docker build command.
 #?   If the env `DOCKER_BUILD_ARGS_PROXY` is not set or empty, exit with error.
+#?
+#?   [-m]
+#?
+#?   Enable the multi-platform build for: linux/amd64, linux/arm64.
+#?   This option implies `build --push --platform linux/amd64,linux/arm64`.
+#?   WARNING: The images will be PUSHED to Docker Hub after the build.
+#?
+#?   As of the nature of the multi-platform build, at local, the multi-platform images
+#?   will remain in the build cache, and won't be listed in the `docker images`.
+#?   However, the image will be pulled as single-platform image from the registry in
+#?   the subsequent `docker run` command.
+#?   This option requires the non-default Docker builder driver: docker-container.
+#?     * https://docs.docker.com/build/building/multi-platform/
+#?     * docker buildx create --name container --driver=docker-container --use
+#?
+#?   [-d]
+#?
+#?   Run the container in the detach mode: `run --detach`
+#?   This option implies `run --publish-all` to avoid the port conflict.
 #?
 #?   [DISTRIBUTION ..]
 #?
 #?   The distributions to build the Docker images for.
 #?   The default is to build for all distributions: debian, slim, alpine.
 #?
-#?   -- [RUN_CMD_OPTIONS ..]
+#?   [-- RUN_CMD_OPTIONS ..]
 #?
+#?   The option `--` ends the options for this script and enables the run command options.
 #?   All the options after `--` are passed to the docker-entrypoint.sh.
+#?   If the option `--` is not present, the run command is not executed.
 #?
 #?   [-h]
 #?
@@ -72,11 +88,12 @@ function check-vars () {
 }
 
 function main () {
-    declare build_parallel_flag=0 run_detach_flag=0 proxy_flag=0 \
-            build_quiet_flag=0 run_publish_all_flag=0 \
+    declare build_parallel_flag=0 build_proxy_flag=0 build_multiple_platform_flag=0 \
+            run_detach_flag=0 \
+            build_quiet_flag=0 run_publish_all_flag=0 run_flag=0 \
             OPTIND OPTARG opt
 
-    while getopts pdPh opt; do
+    while getopts pPmdh opt; do
         case $opt in
             p)
                 build_parallel_flag=1
@@ -85,13 +102,16 @@ function main () {
                 run_detach_flag=1
                 run_publish_all_flag=1
                 ;;
+            P)
+                build_proxy_flag=1
+                ;;
+            m)
+                build_multiple_platform_flag=1
+                ;;
             d)
                 run_detach_flag=1
                 # implied options
                 run_publish_all_flag=1
-                ;;
-            P)
-                proxy_flag=1
                 ;;
             *)
                 usage
@@ -113,6 +133,7 @@ function main () {
     # shift off the '--' delimiter
     if [[ $# -gt 0 && $1 == "--" ]]; then
         shift
+        run_flag=1
     fi
 
     # The rest are docker run cmd options
@@ -125,7 +146,12 @@ function main () {
     declare -a build_opts \
                run_opts=(--restart=always) \
                run_env_opts \
-               run_port_opts=(-p 80:80 -p 443:443) \
+               run_port_opts=(-p 80:80 -p 443:443)
+
+    if [[ $build_multiple_platform_flag -eq 1 ]]; then
+        build_opts+=(--push --platform "linux/amd64,linux/arm64")
+        echo "WARNING: The multi-platform build is enabled, the images will be PUSHED to Docker Hub after the build."
+    fi
 
     if [[ $build_quiet_flag -eq 1 ]]; then
         build_opts+=(--quiet)
@@ -139,7 +165,7 @@ function main () {
         run_port_opts=(--publish-all)
     fi
 
-    if [[ $proxy_flag -eq 1 ]]; then
+    if [[ $build_proxy_flag -eq 1 ]]; then
         check-vars DOCKER_BUILD_ARGS_PROXY
         # do not quote it
         # shellcheck disable=SC2206
@@ -156,8 +182,12 @@ function main () {
     function __build_and_run__ () {
         # build the image
         echo ""
-        echo "INFO: docker build ${BUILD_OPTS[*]}"
-        docker build "${BUILD_OPTS[@]}"
+        echo "INFO: docker buildx build ${BUILD_OPTS[*]}"
+        docker buildx build "${BUILD_OPTS[@]}"
+
+        if [[ $run_flag -eq 0 ]]; then
+            return
+        fi
 
         # run the container
         echo ""
@@ -170,7 +200,7 @@ function main () {
         image_tag=$dist-dev-$(date +%Y%m%d-%H%M)
         image="$image_name:$image_tag"
         container="ssm-$image_tag"
-        BUILD_OPTS=( "${build_opts[@]}" -t "$image" -f "$script_dir/$dist/Dockerfile" "$script_dir/.." )
+        BUILD_OPTS=( "${build_opts[@]}" -t "$image" -f "$script_dir/docker/$dist/Dockerfile" . )
         RUN_OPTS=( "${run_opts[@]}" "${run_env_opts[@]}" "${run_port_opts[@]}" --name "$container" "$image" "${run_cmd_opts[@]}" )
         if [[ $build_parallel_flag -eq 1 ]]; then
             __build_and_run__ &

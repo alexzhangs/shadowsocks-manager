@@ -13,7 +13,7 @@ shadowsocks_manager/.ssm-env
 .idea
 build
 dist
-install.sh
+*.sh
 _config.yml
 .git
 .github
