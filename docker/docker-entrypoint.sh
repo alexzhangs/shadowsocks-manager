@@ -267,11 +267,6 @@ function main () {
         ((OPTIND++))
     done
 
-    if [[ $# -eq 0 ]]; then
-        usage
-        return 255
-    fi
-
     # Check if the SSM_USER and SSM_DATA_HOME are set
 
     if [[ -z $SSM_USER ]]; then
