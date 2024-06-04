@@ -37,7 +37,7 @@ Features:
 
 Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 
-The development status can be found at: [project home](https://github.com/alexzhangs/shadowsocks-manager/projects/1).
+The development status can be found at: [project home](https://github.com/users/alexzhangs/projects/6).
 
 
 ## Screenshots
