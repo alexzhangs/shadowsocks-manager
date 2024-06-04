@@ -117,17 +117,17 @@
 #?   $ docker-entrypoint.sh
 #?
 #?   # for the production environment
-#?   $ docker-entrypoint.sh -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False -u admin -p yourpassword -M admin@yourdomain.com
+#?   $ docker-entrypoint.sh -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False -u admin -p yourpassword -M admin@example.com
 #?
 #?   # using domain name without enabling DNS API and HTTPS
-#?   $ docker-entrypoint.sh -d admin.ss.dev.yourdomain.com
+#?   $ docker-entrypoint.sh -d admin.ss.dev.example.com
 #?
 #?   # using domain name with enabling DNS API but not HTTPS
-#?   $ docker-entrypoint.sh -d admin.ss.dev.yourdomain.com \
+#?   $ docker-entrypoint.sh -d admin.ss.dev.example.com \
 #?       -E PROVIDER=namecom,LEXICON_PROVIDER_NAME=namecom,LEXICON_NAMECOM_AUTH_USERNAME=$Namecom_Username,LEXICON_NAMECOM_AUTH_TOKEN=$Namecom_Token
 #?
 #?   # using domain name with enabling both DNS API and HTTPS
-#?   $ docker-entrypoint.sh -d admin.ss.dev.yourdomain.com -S \
+#?   $ docker-entrypoint.sh -d admin.ss.dev.example.com -S \
 #?       -E SSM_DNS_ENV=PROVIDER=namecom,LEXICON_PROVIDER_NAME=namecom,LEXICON_NAMECOM_AUTH_USERNAME=$Namecom_Username,LEXICON_NAMECOM_AUTH_TOKEN=$Namecom_Token \
 #?
 

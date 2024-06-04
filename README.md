@@ -25,18 +25,15 @@ Features:
 * Shadowsocks node cluster
 * Statistic for network traffic usage
 * Scheduled jobs
-* name.com API
+* dns-lexicon API
 * Auto-creating DNS records
 * Production deployment ready
 * How's the Shadowsocks supported:
     * libev edition:
         * Full functional.
-        * No builtin service manager, you need to install it and start the service by yourself.
     * python edition:
         * Lacks the collection of traffic statistics.
         * Lacks the ability to test user port creation status.
-        * ~~Pre-installed, and have a builtin service manager.~~
-        * No builtin service manager, you need to install it and start the service by yourself.
 
 Code in Python, base on Django, Django REST framework, Celery, and SQLite.
 
@@ -91,14 +88,14 @@ docker run -d -p 80:80 -v ~/ssm-volume:/var/local/ssm \
     --network ssm-network --name ssm alexzhangs/shadowsocks-manager \
     -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False \
     -e SSM_MEMCACHED_HOST=ssm-memcached -e SSM_RABBITMQ_HOST=ssm-rabbitmq \
-    -u admin -p yourpassword -M admin@yourdomain.com
+    -u admin -p yourpassword -M admin@example.com
 ```
 
 ### 2.3. Install with script
 
 ```sh
 git clone https://github.com/alexzhangs/shadowsocks-manager
-bash shadowsocks-manager/install.sh -u admin -p yourpassword -M admin@yourdomain.com
+bash shadowsocks-manager/install.sh -u admin -p yourpassword -M admin@example.com
 ```
 
 ### 2.4. Verify the installation
@@ -128,7 +125,7 @@ enabled.
     # run shadowsocks-libev
     MGR_PORT=6001
     SS_PORTS=8381-8480
-    ENCRYPT=aes-256-cfb
+    ENCRYPT=aes-256-gcm
     docker run -d -p $SS_PORTS:$SS_PORTS/UDP -p $SS_PORTS:$SS_PORTS \
         --network ssm-network --name ssm-ss-libev shadowsocks/shadowsocks-libev:edge \
         ss-manager --manager-address 0.0.0.0:$MGR_PORT \
@@ -322,7 +319,7 @@ The following files are kept only for installing the source distribution of the 
     docker run -d -p 5672:5672 --name ssm-dev-rabbitmq rabbitmq
 
     # run shadowsocks-libev, simulate localhost node
-    MGR_PORT=6001 SS_PORTS=8381-8384 ENCRYPT=aes-256-cfb
+    MGR_PORT=6001 SS_PORTS=8381-8384 ENCRYPT=aes-256-gcm
     docker run -d -p 127.0.0.1:$MGR_PORT:$MGR_PORT/UDP \
         -p 127.0.0.1:$SS_PORTS:$SS_PORTS/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS \
         --name ssm-dev-ss-libev-localhost shadowsocks/shadowsocks-libev:edge \
@@ -334,7 +331,7 @@ The following files are kept only for installing the source distribution of the 
     echo "PRIVATE_IP=$PRIVATE_IP"
 
     # run shadowsocks-libev, simulate private IP node
-    MGR_PORT=6002 SS_PORTS=8381-8384 ENCRYPT=aes-256-cfb
+    MGR_PORT=6002 SS_PORTS=8381-8384 ENCRYPT=aes-256-gcm
     docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
         -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
         --name ssm-dev-ss-libev-private shadowsocks/shadowsocks-libev:edge \
@@ -342,7 +339,7 @@ The following files are kept only for installing the source distribution of the 
         --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
         
     # run shadowsocks-libev, simulate public IP node
-    MGR_PORT=6003 SS_PORTS=8385 ENCRYPT=aes-256-cfb
+    MGR_PORT=6003 SS_PORTS=8385 ENCRYPT=aes-256-gcm
     docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
         -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
         --name ssm-dev-ss-libev-public shadowsocks/shadowsocks-libev:edge \
