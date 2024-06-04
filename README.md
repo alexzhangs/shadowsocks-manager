@@ -83,34 +83,61 @@ docker run -d --network ssm-network --name ssm-rabbitmq rabbitmq
 # create a directory to store the data, it will be mounted to the shadowsocks-manager container
 mkdir -p ~/ssm-volume
 
-# run the shadowsocks-manager
-docker run -d -p 80:80 -v ~/ssm-volume:/var/local/ssm \
+# run the shadowsocks-manager with HTTPS and DNS API enabled
+# please replace the options with your own settings
+docker run -d -p 80:80 -p 443:443 -v ~/ssm-volume:/var/local/ssm \
     --network ssm-network --name ssm alexzhangs/shadowsocks-manager \
     -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False \
     -e SSM_MEMCACHED_HOST=ssm-memcached -e SSM_RABBITMQ_HOST=ssm-rabbitmq \
-    -u admin -p yourpassword -M admin@example.com
+    -u admin -p yourpassword -M admin@example.com \
+    -d admin.ss.example.com -a 127.0.0.1 -S
+    -E PROVIDER=namecom,LEXICON_PROVIDER_NAME=namecom,LEXICON_NAMECOM_AUTH_USERNAME=your_username,LEXICON_NAMECOM_AUTH_TOKEN=your_token
 ```
 
 ### 2.3. Install with script
 
 ```sh
 git clone https://github.com/alexzhangs/shadowsocks-manager
-bash shadowsocks-manager/install.sh -u admin -p yourpassword -M admin@example.com
+bash shadowsocks-manager/install.sh -u admin -p yourpassword -M admin@example.com \
+    -d admin.ss.example.com -a 127.0.0.1 -S \
+    -E PROVIDER=namecom,LEXICON_PROVIDER_NAME=namecom,LEXICON_NAMECOM_AUTH_USERNAME=your_username,LEXICON_NAMECOM_AUTH_TOKEN=your_token
 ```
 
 ### 2.4. Verify the installation
 
 If all go smoothly, the shadowsocks-manager services should have been all started. Open the web admin console in a web browser, and log on with the admin user.
 
-Use:
-```
-http://<your_server_ip>/admin
-or 
-http://localhost/admin
-```
+Use (depends on your settings):
+
+`https://admin.ss.example.com/admin`
+
+or:
+
+`https://localhost/admin`
+
+or fall back to HTTP:
+
+`http://localhost/admin`
 
 If goes well, then congratulations! The installation has succeeded.
 
+By default, the following entries are added to Django's ALLOWED_HOSTS setting:
+
+* localhost
+* 127.0.0.1
+* admin.ss.example.com (whatever provided with `-d` option)
+
+Use `-e SSM_ALLOWED_SITES_DEFAULTS_PLUS=$ip_address` to add the additional IP address (such as the private IP address of your server) to the ALLOWED_HOSTS setting.
+
+Use `-e SSM_ALLOWED_SITES_DYNAMIC_PUBLIC_IP=True` to allow the dynamic public IP address to be added to the ALLOWED_HOSTS setting.
+
+For more options, refer to the help message of the scripts:
+
+```sh
+bash shadowsocks-manager/install.sh -h
+bash shadowsocks-manager/docker/docker-entrypoint.sh -h
+bash shadowsocks-manager/bin/ssm-setup.sh -h
+```
 
 ## 3. Using shadowsocks-manager
 
@@ -119,7 +146,7 @@ If goes well, then congratulations! The installation has succeeded.
     First, you need to have a Shadowsocks server with the multi-user API
 enabled.
 
-    Install it with docker on the same server with shadowsocks-manager.
+    Install it with docker on the same docker network with shadowsocks-manager.
 
     ```sh
     # run shadowsocks-libev
@@ -139,6 +166,9 @@ enabled.
 
     Add the Shadowsocks server as a Node of shadowsocks-manager from
 web admin console: `Home › Shadowsocks › Shadowsocks Nodes`.
+
+    For the field `Private IP`, use the IP address abtained from the previous step.
+    For the field `Interface` for the Shadowsocks manager, choose `Private`.
 
 1. Create users(ports) and assign Shadowsocks Node
 
@@ -457,7 +487,7 @@ The following files are kept only for installing the source distribution of the 
     docker build -t alexzhangs/shadowsocks-manager -f docker/debian/Dockerfile .
 
     # or use:
-    bash docker/docker-build-and-run.sh
+    bash docker-build-and-run.sh
     ```
 
 ### 8.2. CI/CD
@@ -556,3 +586,31 @@ The CI/CD workflows are defined in the `.github/workflows` directory.
     # find the process by port
     lsof -i :80 -P
     ```
+
+
+## 10. Security Considerations
+
+1. Never run the shadowsocks-manager service with the Django 'DEBUG' mode enabled in production or even for evaluation.
+Especially when the default password is used, the debug mode will expose your env in the error page.
+This option should be enabled only for the development on the local machine.
+
+    * The 'DEBUG' mode is disabled by default in the docker image.
+    * The 'DEBUG' mode is enabled by default in the pypi package, it should be disabled if not for development.
+
+1. Never run the shadowsocks-manager service with the default password on the network other than the localhost.
+
+1. Never run the shadowsocks-manager service without HTTPS enabled on the network other than the localhost.
+Otherwise, the password will be sent in plain text over public or private networks.
+
+1. Never run the shadowsocks-manager service and the ss-manager service across the untrusted network without the firewall enabled, such as Internet, untrusted private network, etc.
+
+    The ss-manager service does not support authentication. Anyone who can access the service port can control the Shadowsocks server, including creating, deleting, and listing user ports and passwords.
+
+    To secure the ss-manager service, you can consider the following methods:
+
+    - Use VPC, VPN, or a private network to isolate the ss-manager service from the public network.
+    - Use VPC peering connection or DC gateway to connect the shadowsocks-manager service and the ss-manager service if they are in different VPCs.
+    - Ensure that the network traffic between the shadowsocks-manager service and the ss-manager service cannot be sniffed by untrusted parties.
+    - Use firewall rules to limit access to the ss-manager service port only from the shadowsocks-manager service.
+
+    Please note that the running infrastructure and deploying architecture may vary, so it's important to pay extra attention to this issue.
