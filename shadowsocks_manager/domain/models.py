@@ -87,9 +87,10 @@ class DnsApi(object):
     def call(self, method, *args):
         try:
             with client.Client(self.config) as operations:
+                logger.info('{domain}: {method}({args})'.format(domain=self.config.resolve('domain'), method=method, args=args))
                 return getattr(operations, method)(*args)
         except Exception as e:
-            logger.error(e)
+            logger.error('{}: {}'.format(e.__module__, e))
             return None
     
     def list_records(self, type, name=None, content=None):
@@ -136,7 +137,7 @@ class DnsApi(object):
         try:
             return self.list_records('A', 'whatever') is not None
         except Exception as e:
-            logger.error(e)
+            logger.error('{}: {}'.format(e.__module__, e))
             return False
 
 
@@ -322,11 +323,11 @@ class Record(models.Model):
             answers = compat_method(self.fqdn, self.type)
 
             return {item.to_text().lower() for item in answers}
-        except dns.resolver.NXDOMAIN:
-            # not found the host
+        except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+            # no answer for the host
             return {}
         except Exception as e:
-            logger.error(e)
+            logger.error('{}: {}'.format(e.__module__, e))
 
     @property
     def is_matching_dns_api(self):
@@ -396,20 +397,22 @@ class Record(models.Model):
         """
         Create the recordset to DNS server through DNS API.
         """
-        created = False
+        ret = defaultdict(list)
         if self.dnsapi and not self.is_matching_dns_api:
             for answer in self.answers:
-                created = (created or self.dnsapi.create_record(self.type, self.host, answer))
-        if created:
-            return self.entity
+                created = self.dnsapi.create_record(self.type, self.host, answer)
+                ret[created].append(answer)
+        return ret
 
     def dns_delete(self):
         """
         Delete the recordset from DNS server through DNS API.
         """
+        ret = defaultdict(str)
         if self.dnsapi and self.dnsapi.list_records(self.type, self.host):
-            if self.dnsapi.delete_record(self.type, self.host):
-                return self.entity
+            deleted = self.dnsapi.delete_record(self.type, self.host)
+            ret[deleted] = self.type
+        return ret
 
 
 @receiver(post_save, sender=Site)

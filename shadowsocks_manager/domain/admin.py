@@ -51,10 +51,10 @@ class RecordAdmin(admin.ModelAdmin):
                         'dt_created', 'dt_updated')
 
     def answer_from_dns_api(self, obj):
-        return list(obj.answer_from_dns_api) if obj.answer_from_dns_api is not None else obj.answer_from_dns_api
+        return list(obj.answer_from_dns_api or [])
 
     def answer_from_dns_query(self, obj):
-        return list(obj.answer_from_dns_query) if obj.answer_from_dns_query is not None else obj.answer_from_dns_query
+        return list(obj.answer_from_dns_query or [])
 
     def is_matching_dns_api(self, obj):
         return obj.is_matching_dns_api
