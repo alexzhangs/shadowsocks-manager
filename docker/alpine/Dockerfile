@@ -40,8 +40,6 @@ ARG http_proxy https_proxy all_proxy
 
 # Install supervisor nginx
 RUN apk --no-cache add supervisor nginx \
-        # temporarily used by git+https://github.com/alexforks/django-admin-lazy-load
-        git \
         # used by uwsgi
         gcc linux-headers libc-dev \
         # used by cffi
