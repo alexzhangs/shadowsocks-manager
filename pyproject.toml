@@ -26,7 +26,7 @@ dependencies = [
     # 20240531 - py2.7
     # 20240531 - enhancement and fix
     # "django-admin-lazy-load",
-    "django-admin-lazy-load @ git+https://github.com/alexforks/django-admin-lazy-load",
+    "django-admin-lazy-load-alexforks",
 
     "django-allowedsites-dynamic",
     "django-cache-lock",
