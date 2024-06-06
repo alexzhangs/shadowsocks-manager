@@ -191,7 +191,7 @@
 #?   $ ssm-setup -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False
 #?
 #?   # First time setup in production environment:
-#?   $ ssm-setup -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False -c -m -l -u admin -p yourpassword -M admin@yourdomain.com
+#?   $ ssm-setup -e SSM_SECRET_KEY=yourkey -e SSM_DEBUG=False -c -m -l -u admin -p yourpassword -M admin@example.com
 #?
 
 # exit on any error

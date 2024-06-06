@@ -234,7 +234,7 @@ class Record(models.Model):
     ]
 
     fqdn = models.CharField(unique=True, max_length=128,
-        help_text='Fully Qualified Domain Name. Example: `vpn.yourdomain.com`. '
+        help_text='Fully Qualified Domain Name. Example: `vpn.example.com`. '
         'The `host` and `domain` (zone name) will be automatically resolved. '
         'if both `host` and `domain` are set, this field will be ignored.')
     host = models.CharField(max_length=64,

@@ -15,6 +15,9 @@ on:
 jobs:
   docker-build-and-push:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dist: [debian, slim, alpine]
     outputs:
       VERSION: ${{ steps.get-version.outputs.VERSION }}
     steps:
@@ -34,31 +37,48 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
+          file: docker/${{ matrix.dist }}/Dockerfile
           tags: |
-            ${{ vars.DOCKERHUB_USERNAME }}/shadowsocks-manager:latest
-            ${{ vars.DOCKERHUB_USERNAME }}/shadowsocks-manager:${{ env.VERSION }}
+            ${{ vars.DOCKERHUB_USERNAME }}/shadowsocks-manager:${{ matrix.dist }}-latest
+            ${{ vars.DOCKERHUB_USERNAME }}/shadowsocks-manager:${{ matrix.dist }}-${{ env.VERSION }}
+            ${{ matrix.dist == 'alpine' && format('{0}/shadowsocks-manager:latest', vars.DOCKERHUB_USERNAME) || null }}
+            ${{ matrix.dist == 'alpine' && format('{0}/shadowsocks-manager:{1}', vars.DOCKERHUB_USERNAME, env.VERSION) || null }}
           platforms: linux/amd64,linux/arm64
+
+  tag-commit:
+    runs-on: ubuntu-latest
+    needs: docker-build-and-push
+    env:
+      SSM_VERSION: ${{ needs.docker-build-and-push.outputs.VERSION }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Set up git user
         run: |
           git config --global user.name "ci-docker.github-actions[bot]"
           git config --global user.email "ci-docker.github.actions[bot]@noreply.github.com"
       - name: Tag commit
-        run: git tag -a -m "" "docker-${{ env.VERSION }}"
+        run: git tag -a -m "" "docker-${{ env.SSM_VERSION }}"
       - name: Push tag
-        run: git push origin "refs/tags/docker-${{ env.VERSION }}"
+        run: git push origin "refs/tags/docker-${{ env.SSM_VERSION }}"
   
   docker-run:
     runs-on: ubuntu-latest
     needs: docker-build-and-push
+    env:
+      SSM_VERSION: ${{ needs.docker-build-and-push.outputs.VERSION }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run Docker container
-        env:
-          SSM_VERSION: ${{ needs.docker-build-and-push.outputs.VERSION }}
-        run: |
-          bash install.sh
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 3
+          max_attempts: 3
+          retry_on: error
+          command: |
+            bash install.sh
