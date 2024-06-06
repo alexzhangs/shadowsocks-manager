@@ -19,7 +19,13 @@ from __future__ import unicode_literals
 
 from django.conf.urls import url, include
 from django.contrib import admin
+from django.utils.safestring import mark_safe
+from django.conf import settings
 
+
+admin.site.site_title = "Shadowsocks Manager"
+admin.site.site_header = mark_safe('Shadowsocks Manager Administration <span style="font-size: x-small">{}</span>'.format(settings.VERSION))
+admin.site.index_title = "Administration"
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),

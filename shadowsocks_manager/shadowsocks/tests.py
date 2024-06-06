@@ -430,7 +430,7 @@ class SSManagerTestCase(AppTestCase):
         # Add a libev edition manager to the localhost node
         # Make sure this manager is running and accessible at localhost before the test.
         # Example command:
-        # MGR_PORT=6001 SS_PORTS=8381-8384 ENCRYPT=aes-256-cfb
+        # MGR_PORT=6001 SS_PORTS=8381-8384 ENCRYPT=aes-256-gcm
         # docker run -d -p 127.0.0.1:$MGR_PORT:$MGR_PORT/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS \
         #   --name ssm-ss-libev-localhost shadowsocks/shadowsocks-libev:edge \
         #   ss-manager --manager-address 0.0.0.0:$MGR_PORT --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
@@ -439,7 +439,7 @@ class SSManagerTestCase(AppTestCase):
             node=models.Node.objects.get(name='ss-libev-localhost'),
             interface=models.InterfaceList.LOCALHOST,
             port=6001,
-            encrypt='aes-256-cfb',
+            encrypt='aes-256-gcm',
             server_edition=models.ServerEditionList.LIBEV,
             is_v2ray_enabled=False,
         ).save()
@@ -447,7 +447,7 @@ class SSManagerTestCase(AppTestCase):
         # Add a libev edition manager to the private node
         # Make sure this manager is running and accessible at private ip before the test.
         # Example command:
-        # MGR_PORT=6002 SS_PORTS=8381-8384 ENCRYPT=aes-256-cfb
+        # MGR_PORT=6002 SS_PORTS=8381-8384 ENCRYPT=aes-256-gcm
         # docker run -d -p <private_ip>:$MGR_PORT:$MGR_PORT/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS \
         #   --name ssm-ss-libev-private shadowsocks/shadowsocks-libev:edge \
         #   ss-manager --manager-address 0.0.0.0:$MGR_PORT --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
@@ -455,7 +455,7 @@ class SSManagerTestCase(AppTestCase):
             node=models.Node.objects.get(name='ss-libev-private'),
             interface=models.InterfaceList.PRIVATE,
             port=6002,
-            encrypt='aes-256-cfb',
+            encrypt='aes-256-gcm',
             server_edition=models.ServerEditionList.LIBEV,
             is_v2ray_enabled=False,
         ).save()
@@ -463,7 +463,7 @@ class SSManagerTestCase(AppTestCase):
         # Add a libev edition manager to the public node
         # Make sure this manager is running and accessible at private ip before the test.
         # Example command:
-        # MGR_PORT=6003 SS_PORTS=8385 ENCRYPT=aes-256-cfb
+        # MGR_PORT=6003 SS_PORTS=8385 ENCRYPT=aes-256-gcm
         # docker run -d -p <private_ip>:$MGR_PORT:$MGR_PORT/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS/UDP -p <private_ip>:$SS_PORTS:$SS_PORTS \
         #   --name ssm-ss-libev-public shadowsocks/shadowsocks-libev:edge \
         #   ss-manager --manager-address 0.0.0.0:$MGR_PORT --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
@@ -471,7 +471,7 @@ class SSManagerTestCase(AppTestCase):
             node=models.Node.objects.get(name='ss-libev-public'),
             interface=models.InterfaceList.PUBLIC,
             port=6003,
-            encrypt='aes-256-cfb',
+            encrypt='aes-256-gcm',
             server_edition=models.ServerEditionList.LIBEV,
             is_v2ray_enabled=False,
         ).save()
