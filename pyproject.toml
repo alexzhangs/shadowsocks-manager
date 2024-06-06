@@ -195,6 +195,12 @@ search = '^version = {current_version}$'
 replace = 'version = {new_version}'
 regex = true
 
+[[tool.bumpversion.files]]
+filename = "shadowsocks_manager/__init__.py"
+search = '^__version__ = {current_version}$'
+replace = '__version__ = {new_version}'
+regex = true
+
 [tool.coverage.run]
 source = "."
 branch = true

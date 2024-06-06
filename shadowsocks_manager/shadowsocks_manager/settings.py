@@ -13,10 +13,50 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
 
+import os
 from decouple import Config, RepositoryEnv
 
-import os
+from . import __version__, __build__
 
+
+def get_git_build():
+    """
+    Get the build number from the git repository.
+
+    build number format: {short_hash}[-{timestamp}]
+        - short_hash:   the short hash of the commit
+        - timestamp:    the timestamp of the build, which is appended if the working directory is dirty
+    """
+    try:
+        import subprocess
+
+        # get the build information from git commit
+        build = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], cwd=PROJECT_ROOT).strip().decode('utf-8')
+
+        # if the working directory is dirty, append timestamp to the build information
+        if subprocess.check_output(['git', 'status', '--porcelain'], cwd=PROJECT_ROOT).strip():
+            return '{}-{}'.format(build, subprocess.check_output(['date', '+%Y%m%d-%H%M']).strip().decode('utf-8'))
+    except Exception:
+        return ''
+        
+    
+def get_full_version():
+    """
+    Get the full version of the package.
+
+    full version format: v{version}-{build}
+        - version:  the package version
+            - The package.__version__ is always hornored.
+            - The package building process should be responsible for updating the package.__version__.
+            - For dev environment, merging the master branch back should update the package.__version__.
+        - build:    the package build number
+            - First try to get the build number from the git repository (for dev environment).
+            - If failed fall back to use the package.__build__ (for package distribution).
+            - The package building process should be responsible for updating the package.__build__.
+    """
+    version = __version__
+    build = get_git_build() or __build__
+    return 'v{}-{}'.format(version, build)
 
 def get_env_file(ssm_data_home):
     env_file = os.path.join(ssm_data_home, '.ssm-env')
@@ -26,9 +66,17 @@ def get_env_file(ssm_data_home):
             f.write('')
     return env_file
 
+# get the Django root directory
+DJANGO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# get the project root directory
+PROJECT_ROOT = os.path.dirname(DJANGO_ROOT)
 
 # get SSM_DATA_HOME from environment, or use Django root directory as default
-DATA_HOME = os.getenv('SSM_DATA_HOME') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_HOME = os.getenv('SSM_DATA_HOME') or DJANGO_ROOT
+
+# get the full version
+VERSION = get_full_version()
 
 # create the DATA_HOME directory if it does not exist
 if not os.path.exists(DATA_HOME):
