@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 import json
 from django.contrib import admin, messages
+from admin_lazy_load import LazyLoadAdminMixin
 
 from .models import NameServer, Domain, Record
 
@@ -23,14 +24,16 @@ class NameServerAdmin(admin.ModelAdmin):
 
 
 @admin.register(Domain)
-class DomainAdmin(admin.ModelAdmin):
+class DomainAdmin(LazyLoadAdminMixin, admin.ModelAdmin):
     fields = ('name', 'nameserver',
                   'dt_created', 'dt_updated')
 
     readonly_fields = ('dt_created', 'dt_updated')
 
-    list_display = ('name', 'nameserver', 'is_api_accessible',
+    list_display = ('name', 'nameserver', 'is_api_accessible_lazy',
                         'dt_created', 'dt_updated')
+    
+    lazy_loaded_fields = ('is_api_accessible',)
 
     def is_api_accessible(self, obj):
         return obj.is_api_accessible
@@ -40,15 +43,18 @@ class DomainAdmin(admin.ModelAdmin):
 
 
 @admin.register(Record)
-class RecordAdmin(admin.ModelAdmin):
+class RecordAdmin(LazyLoadAdminMixin, admin.ModelAdmin):
     fields = ('host', 'domain', 'type', 'answer', 'site',
                   'dt_created', 'dt_updated')
 
     readonly_fields = ('dt_created', 'dt_updated')
 
-    list_display = ('fqdn', 'host', 'domain', 'type', 'answer', 'answer_from_dns_api', 'is_matching_dns_api',
-                        'answer_from_dns_query', 'is_matching_dns_query', 'site',
+    list_display = ('host', 'domain', 'type', 'answer', 'answer_from_dns_api_lazy', 'is_matching_dns_api_lazy',
+                        'answer_from_dns_query_lazy', 'is_matching_dns_query_lazy', 'site',
                         'dt_created', 'dt_updated')
+    
+    lazy_loaded_fields = ('answer_from_dns_api', 'answer_from_dns_query',
+                          'is_matching_dns_api', 'is_matching_dns_query')
 
     def answer_from_dns_api(self, obj):
         return list(obj.answer_from_dns_api or [])
