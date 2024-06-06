@@ -56,7 +56,7 @@ def get_full_version():
     """
     version = __version__
     build = get_git_build() or __build__
-    return 'v{}-{}'.format(version, build)
+    return 'v{}-{}'.format(version, build) if build else 'v{}'.format(version)
 
 def get_env_file(ssm_data_home):
     env_file = os.path.join(ssm_data_home, '.ssm-env')
