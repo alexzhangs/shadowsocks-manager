@@ -1,0 +1,4 @@
+fixes:
+  # prefix 'shadowsocks_manager/' for all files in coverage report since the
+  # coverage.run.source is set to 'shadowsocks_manager'
+  - "::shadowsocks_manager/"
