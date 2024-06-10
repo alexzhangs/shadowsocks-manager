@@ -139,6 +139,7 @@ INSTALLED_APPS = [
     'notification',
     'domain',
     'utils',
+    'fixture',
 ]
 
 MIDDLEWARE = [

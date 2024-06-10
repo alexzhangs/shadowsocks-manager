@@ -129,7 +129,7 @@ class BaseTestCase(TestCase):
 
 class AppTestCase(BaseTestCase):
     fixtures = ['config.json']
-    fixtures.extend(['fixtures/auth.group.json'])
+    fixtures.extend(['auth.group.json'])
     fixtures.extend(DomainAppTestCase.fixtures)
     fixtures.extend(NotificationAppTestCase.fixtures)
     testcases = ['ConfigTestCase', 'AccountTestCase', 'NodeTestCase', 'SSManagerTestCase', 'NodeAccountTestCase']

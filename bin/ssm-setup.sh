@@ -291,11 +291,11 @@ function main () {
     fi
 
     if [[ $loaddata_flag -eq 1 ]]; then
-        ssm-manage loaddata fixtures/auth.group.json \
-               fixtures/sites.site.json \
-               fixtures/django_celery_beat.crontabschedule.json \
-               fixtures/django_celery_beat.intervalschedule.json \
-               fixtures/django_celery_beat.periodictask.json \
+        ssm-manage loaddata auth.group.json \
+               sites.site.json \
+               django_celery_beat.crontabschedule.json \
+               django_celery_beat.intervalschedule.json \
+               django_celery_beat.periodictask.json \
                config.json \
                template.json
     fi
