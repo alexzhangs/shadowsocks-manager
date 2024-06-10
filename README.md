@@ -384,12 +384,6 @@ The following files are kept only for installing the source distribution of the 
     pip install -e .
     ```
 
-1. Set the SSM_DATA_HOME environment variable (optional, default is Django root directory)
-
-    ```sh
-    export SSM_DATA_HOME=~/.ssm-dev-data
-    ```
-
 1. Configure the shadowsocks-manager
 
     ```sh

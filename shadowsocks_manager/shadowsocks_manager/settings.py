@@ -72,17 +72,18 @@ DJANGO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # get the project root directory
 PROJECT_ROOT = os.path.dirname(DJANGO_ROOT)
 
-# get SSM_DATA_HOME from environment, or use Django root directory as default
-DATA_HOME = os.getenv('SSM_DATA_HOME') or DJANGO_ROOT
-
-# get the full version
-VERSION = get_full_version()
+# get SSM_DATA_HOME from environment, or use ~/.ssm-data as default
+DATA_HOME = os.getenv('SSM_DATA_HOME') or os.path.expanduser('~/.ssm-data')
+print('shadowsocks-manager DATA_HOME: {}'.format(DATA_HOME))
 
 # create the DATA_HOME directory if it does not exist
 if not os.path.exists(DATA_HOME):
     os.makedirs(DATA_HOME)
 
 config = Config(RepositoryEnv(get_env_file(DATA_HOME)))
+
+# get the full version
+VERSION = get_full_version()
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
