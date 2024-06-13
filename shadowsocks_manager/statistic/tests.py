@@ -14,7 +14,7 @@ from statistic import models, serializers
 
 import logging
 # Get a logger for this django app
-logger = logging.getLogger(__name__.split('.')[0])
+logger = logging.getLogger(__name__.split('.')[-2])
 # Set the logging level to make the output clean
 logger.setLevel(logging.ERROR)
 
