@@ -64,7 +64,7 @@ def main():
         try:
             value = pair[1]
         except IndexError:
-            raise ValueError(f"Invalid format for environment variable '{env}'.")
+            raise ValueError("Invalid format for environment variable '{}'.".format(env))
         
         new_line = key + '=' + value + '\n'
 

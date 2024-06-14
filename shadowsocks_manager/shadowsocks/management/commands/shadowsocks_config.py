@@ -17,7 +17,7 @@ class Command(BaseCommand):
         for key, value in self.get_fields(options).items():
             if value is not None:
                 Config.objects.update(**{key: value})
-                self.stdout.write(self.style.SUCCESS(f'Successfully set shadowsocks.models.Config: {key} to {value}'))
+                self.stdout.write(self.style.SUCCESS('Successfully set shadowsocks.models.Config: {} to {}'.format(key, value)))
 
     @classmethod
     def get_fields(cls, options):
