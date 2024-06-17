@@ -74,7 +74,7 @@ PROJECT_ROOT = os.path.dirname(DJANGO_ROOT)
 
 # get SSM_DATA_HOME from environment, or use ~/.ssm-data as default
 DATA_HOME = os.getenv('SSM_DATA_HOME') or os.path.expanduser('~/.ssm-data')
-print('shadowsocks-manager DATA_HOME: {}'.format(DATA_HOME))
+print('shadowsocks-manager [{}]: DATA_HOME: {}'.format(os.getpid(), DATA_HOME))
 
 # create the DATA_HOME directory if it does not exist
 if not os.path.exists(DATA_HOME):
@@ -93,7 +93,7 @@ SECRET_KEY = config('SSM_SECRET_KEY', default='ef24ff499c58a21711385e8a6b31a7680
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('SSM_DEBUG', default=True, cast=bool)
-print('shadowsocks-manager DEBUG: {}'.format(DEBUG))
+print('shadowsocks-manager [{}]: DEBUG: {}'.format(os.getpid(), DEBUG))
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
@@ -197,8 +197,8 @@ DATABASES = {
         },
     }
 }
-if os.path.exists(DATABASES['default']['NAME']):
-    print('shadowsocks-manager existing database file: {}'.format(DATABASES['default']['NAME']))
+if not os.path.exists(DATABASES['default']['NAME']):
+    print('shadowsocks-manager [{}]: fresh database file: {}'.format(os.getpid(), DATABASES['default']['NAME']))
 
 
 # Password validation
