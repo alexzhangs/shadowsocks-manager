@@ -3,6 +3,14 @@ import os
 import sys
 import subprocess
 from docopt import docopt
+import signal
+
+
+def signal_handler(sig, frame):
+    print('{} [{}]: Interrupt received'.format('ssm', os.getpid()))
+    sys.exit(255)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 
 def main():
@@ -36,7 +44,7 @@ def main():
     # change dir to the django root to allow the dir-sensitive commands(such as loaddata) to be run from any directory
     os.chdir(django_root)
 
- 
+
     # make the proxy call
     return subprocess.call(sys.argv[1:])
 
