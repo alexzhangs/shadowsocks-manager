@@ -277,15 +277,17 @@ LOGGING = {
 
 # Memcached
 
+CACHES_BACKEND = config('SSM_CACHE_BACKEND', default='locmem.LocMemCache')
 MEMCACHED_HOST = config('SSM_MEMCACHED_HOST', default='localhost')
 MEMCACHED_PORT = config('SSM_MEMCACHED_PORT', default='11211')
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '{}:{}'.format(MEMCACHED_HOST, MEMCACHED_PORT),
+        'BACKEND': 'django.core.cache.backends.{}'.format(CACHES_BACKEND),
     }
 }
+if CACHES_BACKEND == 'memcached.MemcachedCache':
+    CACHES['default']['LOCATION'] = '{}:{}'.format(MEMCACHED_HOST, MEMCACHED_PORT)
 
 
 # Celery

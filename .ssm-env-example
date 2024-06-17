@@ -38,7 +38,12 @@ SSM_ALLOWED_SITES_NET_TIMEOUT=5
 SSM_ALLOWED_SITES_CACHE_TIMEOUT=180
 
 # Django settings, used as:
+#   CACHES.default.backend = django.core.cache.backends.SSM_CACHES_BACKEND
+SSM_CACHES_BACKEND=memcached.MemcachedCache
+
+# Django settings, used as:
 #   CACHES.default.location = SSM_MEMCACHED_HOST:SSM_MEMCACHED_PORT
+# These two environment variables are used only if SSM_CACHES_BACKEND is set to 'memcached.MemcachedCache'
 SSM_MEMCACHED_HOST=localhost
 SSM_MEMCACHED_PORT=11211
 

@@ -70,10 +70,17 @@
 #?     Set the cache timeout (in seconds) for the site.domain and server's public IP address.
 #?     The default value depends on the .ssm-env file and Django's settings.
 #?
+#?   - SSM_CACHES_BACKEND
+#?
+#?     Set the Django's cache backend.
+#?     The value can be 'memcached.MemcachedCache'.
+#?     The default value depends on the .ssm-env file and Django's settings.
+#? 
 #?   - SSM_MEMCACHED_HOST, SSM_MEMCACHED_PORT
 #?
 #?     Set the Memcached server's host and port which are used by Django cache.
 #?     The default value depends on the .ssm-env file and Django's settings.
+#?     These two KEYs are used only if SSM_CACHES_BACKEND is set to 'memcached.MemcachedCache'.
 #? 
 #?   - SSM_RABBITMQ_HOST, SSM_RABBITMQ_PORT
 #?
