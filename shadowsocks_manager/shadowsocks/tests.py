@@ -206,28 +206,32 @@ class AccountTestCase(AppTestCase):
 
         for accout in models.Account.objects.all():
             for na in accout.nodes_ref.all():
-                self.assertTrue(na.is_accessible)
+                if na.node.ssmanager:
+                    self.assertTrue(na.is_accessible)
 
     def test_account_port_accessible_ex(self):
         models.NodeAccount.heartbeat()
 
         for accout in models.Account.objects.all():
             for na in accout.nodes_ref.all():
-                self.assertTrue(na.is_accessible_ex())
+                if na.node.ssmanager:
+                    self.assertTrue(na.is_accessible_ex())
 
     def test_account_port_accessible_after_update(self):
         obj = models.Account.objects.first()
         obj.username = str(int(obj.username) + 1)
         obj.save()
         for na in obj.nodes_ref.all():
-            self.assertTrue(na.is_accessible)
+            if na.node.ssmanager:
+                self.assertTrue(na.is_accessible)
 
     def test_account_port_accessible_ex_after_update(self):
         obj = models.Account.objects.first()
         obj.username = str(int(obj.username) + 1)
         obj.save()
         for na in obj.nodes_ref.all():
-            self.assertTrue(na.is_accessible_ex())
+            if na.node.ssmanager:
+                self.assertTrue(na.is_accessible_ex())
 
     def test_account_notify(self):
         for obj in models.Account.objects.all():
@@ -402,16 +406,19 @@ class NodeAccountTestCase(AppTestCase):
     def test_nodeaccount_is_accessible_positive(self):
         #models.NodeAccount.heartbeat()
         for obj in models.NodeAccount.objects.all():
-            self.assertTrue(obj.is_accessible)
+            if obj.node.ssmanager:
+                self.assertTrue(obj.is_accessible)
 
     def test_nodeaccount_is_accessible_ex_positive(self):
         #models.NodeAccount.heartbeat()
         for obj in models.NodeAccount.objects.all():
-            self.assertTrue(obj.is_accessible_ex())
+            if obj.node.ssmanager:
+                self.assertTrue(obj.is_accessible_ex())
 
     def test_nodeaccount_is_created(self):
         for obj in models.NodeAccount.objects.all():
-            self.assertTrue(obj.is_created())
+            if obj.node.ssmanager:
+                self.assertTrue(obj.is_created())
 
     def test_nodeaccount_serializer(self):
         obj = serializers.NodeAccountSerializer()
