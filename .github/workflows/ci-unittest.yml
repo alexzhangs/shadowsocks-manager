@@ -58,8 +58,8 @@ jobs:
     steps:
       - name: Install system packages
         run: |
-          echo -e '#!/usr/bin/env bash\n' | tee /usr/sbin/sendmail
-          chmod 755 /usr/sbin/sendmail
+          echo -e '#!/usr/bin/env bash\n' | sudo tee /usr/sbin/sendmail
+          sudo chmod 755 /usr/sbin/sendmail
       - name: Set up Python for tox
         uses: actions/setup-python@v5
         with:
