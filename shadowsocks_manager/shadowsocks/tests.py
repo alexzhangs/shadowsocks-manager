@@ -23,24 +23,43 @@ logger = logging.getLogger(__name__.split('.')[-2])
 logger.setLevel(logging.ERROR)
 
 
+import socket
+def get_private_ip():
+    """
+    Get the private ip address.
+    https://github.com/mayermakes/Get_IP
+    """
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    finally:
+        s.close()
+    return IP
+
+
 """
-The following environment variables are required to run some of the tests.
+The following environment variables are required to run some of the tests:
 
-* PRIVATE_IP: The private ip address of the shadowsocks-libev edition manager.
-* SSM_TEST_SS_MGR_PORT: The port number of the ss-manager.
-* SSM_TEST_SS_PORT_BEGIN: The beginning port number of the shadowsocks-libev edition manager.
-* SSM_TEST_SS_PORT_END: The ending port number of the shadowsocks-libev edition manager.
+  * SSM_TEST_SS_MGR_LOCALHOST=1     # run the tests for the ss-manager listening on localhost
+  * SSM_TEST_SS_MGR_PRIVATE=1       # run the tests for the ss-manager listening on private ip
 
-If any of above environment variables is not set, the test will be skipped.
+  If any of above environment variables is not set, the related tests will be skipped.
+  For the enabled ss-manager interface, the corresponding ss-manager service should be running outside of the tests.
+
+    * ss-manager --manager-address 127.0.0.1:$SSM_TEST_SS_MGR_PORT --executable /usr/local/bin/ss-server -m aes-256-gcm -s 127.0.0.1 -u
+    * ss-manager --manager-address $SSM_TEST_SS_MGR_PRIVATE_IP:$SSM_TEST_SS_MGR_PORT --executable /usr/local/bin/ss-server -m aes-256-gcm -s $SSM_TEST_SS_MGR_PRIVATE_IP -u
+
+    Note that the ss-server is binding to the same interface as the ss-manager in order to isolate the tests.
+    The service requires the shadowsocks-libev edition rather than the shadowsocks-python edition.
 
 
-The following shadowsocks-libev edition managers are required to run some of the tests.
-Note that the ss-server is binding to the same interface as the ss-manager in order to isolate the tests.
+The following environment variables are optional used to override the default values:
 
-# ss-manager --manager-address 127.0.0.1:$SSM_TEST_SS_MGR_PORT --executable /usr/local/bin/ss-server -m aes-256-gcm -s 127.0.0.1 -u
-# ss-manager --manager-address $PRIVATE_IP:$SSM_TEST_SS_MGR_PORT --executable /usr/local/bin/ss-server -m aes-256-gcm -s $PRIVATE_IP -u
-
-If any of above ss-manager is not running, the test will be skipped.
+  * SSM_TEST_SS_MGR_PRIVATE_IP      # The private ip address of the ss-manager.
+  * SSM_TEST_SS_MGR_PORT            # The port number of the ss-manager.
+  * SSM_TEST_SS_PORT_BEGIN          # The beginning port number of the shadowsocks-libev edition manager.
+  * SSM_TEST_SS_PORT_END            # The ending port number of the shadowsocks-libev edition manager.
 
 
 Feature matrix for methods in unittest.TestCase class:
@@ -75,7 +94,9 @@ Feature matrix for methods in django.test.TestCase class:
 +-------------+------------------+---------------------+----------------+----------------------------------+---------------------------+
 """
 
-PRIVATE_IP = os.getenv('PRIVATE_IP')
+SS_MGR_LOCALHOST = os.getenv('SSM_TEST_SS_MGR_LOCALHOST')
+SS_MGR_PRIVATE = os.getenv('SSM_TEST_SS_MGR_PRIVATE')
+SS_MGR_PRIVATE_IP = os.getenv('SSM_TEST_SS_MGR_PRIVATE_IP') or get_private_ip()
 SS_MGR_PORT = os.getenv('SSM_TEST_SS_MGR_PORT')
 SS_PORT_BEGIN = os.getenv('SSM_TEST_SS_PORT_BEGIN')
 SS_PORT_END = os.getenv('SSM_TEST_SS_PORT_END')
@@ -148,8 +169,6 @@ class ConfigTestCase(AppTestCase):
     @classmethod
     def up(cls):
         obj = models.Config.load()
-        obj.timeout_local=0.3
-        obj.timeout_remote=1  # minimal the waiting time with mock public ip address
         if SS_PORT_BEGIN:
             obj.port_begin = int(SS_PORT_BEGIN)
         if SS_PORT_END:
@@ -298,28 +317,29 @@ class AccountTestCase(AppTestCase):
 class NodeTestCase(AppTestCase):
     @classmethod
     def up(cls):
-        # add a ss-libev node for the ssmanager listening on localhost
-        models.Node(
-            name='ss-libev-localhost',
-            record=None,
-            public_ip='127.0.0.1',
-            private_ip='127.0.0.1',
-            location='Local',
-            sns_endpoint='arn:aws:sns:ap-northeast-1:0:topic', # mock sns endpoint
-            sns_access_key='mock-sns_access_key',
-            sns_secret_key='mock-sns_secret_key',
-            is_active=True,
-        ).save()
+        if SS_MGR_LOCALHOST == '1':
+            # add a ss-libev node for the ssmanager listening on localhost
+            models.Node(
+                name='ss-libev-localhost',
+                record=None,
+                public_ip='127.0.0.1',
+                private_ip='127.0.0.1',
+                location='Local',
+                sns_endpoint='arn:aws:sns:ap-northeast-1:0:topic', # mock sns endpoint
+                sns_access_key='mock-sns_access_key',
+                sns_secret_key='mock-sns_secret_key',
+                is_active=True,
+            ).save()
 
-        if PRIVATE_IP:
+        if SS_MGR_PRIVATE == '1':
             # add a ss-libev node for the ssmanager listening on private ip
             DomainAppTestCase.allup()
             record = Record.objects.first()
             models.Node(
                 name='ss-libev-private',
                 record=record,
-                public_ip=PRIVATE_IP,
-                private_ip=PRIVATE_IP,
+                public_ip=SS_MGR_PRIVATE_IP,
+                private_ip=SS_MGR_PRIVATE_IP,
                 location='Private',
                 sns_endpoint='arn:aws:sns:ap-northeast-1:0:topic', # mock sns endpoint
                 sns_access_key='mock-sns_access_key',
@@ -390,11 +410,12 @@ class NodeAccountTestCase(AppTestCase):
     @classmethod
     def up(cls):
         for account in models.Account.objects.all():
-            node = models.Node.objects.get(name='ss-libev-localhost')
-            na = models.NodeAccount(node=node, account=account, is_active=(account.is_active and node.is_active))
-            na.save()
+            node = models.Node.objects.filter(name='ss-libev-localhost').first()
+            if node:
+                na = models.NodeAccount(node=node, account=account, is_active=(account.is_active and node.is_active))
+                na.save()
 
-            node = models.Node.objects.get(name='ss-libev-private')
+            node = models.Node.objects.filter(name='ss-libev-private').first()
             if node:
                 na = models.NodeAccount(node=node, account=account, is_active=(account.is_active and node.is_active))
                 na.save()
@@ -428,25 +449,29 @@ class NodeAccountTestCase(AppTestCase):
 class SSManagerTestCase(AppTestCase):
     @classmethod
     def up(cls):
-        if SS_MGR_PORT:
-            models.SSManager(
+        if SS_MGR_LOCALHOST == '1':
+            ssmanager = models.SSManager(
                 node=models.Node.objects.get(name='ss-libev-localhost'),
                 interface=models.InterfaceList.LOCALHOST,
-                port=SS_MGR_PORT,
                 encrypt='aes-256-gcm',
                 server_edition=models.ServerEditionList.LIBEV,
                 is_v2ray_enabled=False,
-            ).save()
+            )
+            if SS_MGR_PORT:
+                ssmanager.port = int(SS_MGR_PORT)
+            ssmanager.save()
 
-        if SS_MGR_PORT and PRIVATE_IP:
-            models.SSManager(
+        if SS_MGR_PRIVATE == '1':
+            ssmanager = models.SSManager(
                 node=models.Node.objects.get(name='ss-libev-private'),
                 interface=models.InterfaceList.PRIVATE,
-                port=SS_MGR_PORT,
                 encrypt='aes-256-gcm',
                 server_edition=models.ServerEditionList.LIBEV,
                 is_v2ray_enabled=False,
-            ).save()
+            )
+            if SS_MGR_PORT:
+                ssmanager.port = int(SS_MGR_PORT)
+            ssmanager.save()
 
     @classmethod
     def setUpTestData(cls):

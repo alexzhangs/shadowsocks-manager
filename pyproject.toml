@@ -93,6 +93,18 @@ dependencies = [
     "tldextract",
     "uWSGI",
 ]
+optional-dependencies.test = [
+    "coverage[toml]; python_version >= '2.7' and python_version < '3.11'",
+    "coverage; python_version >= '3.11'",
+]
+optional-dependencies.release = [
+    "codecov",
+    "build",
+    "bump-my-version",
+    "setuptools",
+    "twine",
+    "wheel",
+]
 authors = [{name = "Alex", email = "alexzhangs@gmail.com"}]
 maintainers = []
 readme = "README.md"
@@ -124,17 +136,6 @@ classifiers = [
     "Topic :: System :: Networking :: Firewalls"
 ]
 
-[project.optional-dependencies]
-dev = [
-    "build",
-    "bump-my-version",
-    "codecov-cli",
-    "coverage",
-    "setuptools",
-    "twine",
-    "wheel",
-]
-
 [project.urls]
 homepage = "https://www.0xbeta.com/shadowsocks-manager/"
 repository = "https://github.com/alexzhangs/shadowsocks-manager"
@@ -153,7 +154,6 @@ script-files = [
     "bin/ssm-setup",
     "bin/ssm-dev-start",
     "bin/ssm-dev-stop",
-    "bin/ssm-test",
 ]
 
 [tool.setuptools.packages]
@@ -213,8 +213,17 @@ replace = 'version = "{new_version}"'
 regex = true
 
 [tool.coverage.run]
-source = "."
+source = [
+    "shadowsocks_manager",
+]
 branch = true
+omit = [
+    "**/tasks.py",
+    "**/admin.py",
+    "**/migrations/*",
+    "shadowsocks_manager/manage.py",
+    "shadowsocks_manager/shadowsocks_manager/wsgi.py",
+]
 
 [tool.coverage.report]
 show_missing = true
