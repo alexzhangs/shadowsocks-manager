@@ -419,15 +419,17 @@ The following files are kept only for installing the source distribution of the 
     brew install act gh
     act --list
 
-    # --platform catthehacker/ubuntu:full-latest    : use the image with the full packages
-    # --container-architecture=linux/amd64          : use this for the M serials chip Mac
-    # --matrix python-version:3.12                  : run single matrix to avoid the port conflict
-    # --artifact-server-path /tmp/act               : artifact server is used in the workflows
-    # --secret GITHUB_TOKEN=$GITHUB_PAT_PUB_RO      : used by check-run-history job
-    # --secret CODECOV_TOKEN=$CODECOV_TOKEN         : used to upload coverage report to codecov
-    # --env SSM_TEST_SS_MGR_PRIVATE_IP=$PRIVATE_IP  : pass the host IP address to tox, since the containers created by act container are actually running on the host
+    # workflow_dispatch                                         : override the default push event to bypass the RUN_HISTORY check
+    # --platform ubuntu-latest=catthehacker/ubuntu:gh-latest    : custom the image which is close enough to the GitHub Actions environment
+    # --container-architecture=linux/amd64                      : use this for the M serials chip Mac
+    # --matrix python-version:3.12                              : run single matrix to avoid the port conflict
+    # --artifact-server-path /tmp/act                           : artifact server is used in the workflows
+    # --secret GITHUB_TOKEN=$GITHUB_PAT_PUB_RO                  : used by check-run-history job
+    # --secret CODECOV_TOKEN=$CODECOV_TOKEN                     : used to upload coverage report to codecov
+    # --env SSM_TEST_SS_MGR_PRIVATE_IP=$PRIVATE_IP              : pass the host IP address to tox, since the containers created by act container are actually running on the host
 
-    act --platform catthehacker/ubuntu:full-latest \
+    act workflow_dispatch \
+        --platform ubuntu-latest=catthehacker/ubuntu:gh-latest \
         --container-architecture=linux/amd64 \
         --workflows .github/workflows/ci-unittest.yml \
         --matrix python-version:3.12  \
