@@ -47,57 +47,66 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.7.17', '3.8.18', '3.9.19', '3.10.14', '3.11.9', '3.12.3']
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
     steps:
+      - name: Install system packages
+        run: |
+          echo -e '#!/usr/bin/env bash\n' | sudo tee /usr/sbin/sendmail
+          sudo chmod 755 /usr/sbin/sendmail
+      - name: Set up Python for tox
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install tox
+        run: |
+          pip install --upgrade pip
+          pip install tox
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
+        with:
+          fetch-depth: 0
+      - name: Set up Python for test ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install system packages
+      - name: Run Django testcases
+        run: |
+          undotted_py_version=$(echo "${{ matrix.python-version }}" | tr -d .)
+          echo "UNDOTTED_PY_VERSION=${undotted_py_version}" >> $GITHUB_ENV
+          tox run -e "py${undotted_py_version}"
+      - name: Upload coverage data as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-py${{ env.UNDOTTED_PY_VERSION }}
+          path: .tox/.coverage.py${{ env.UNDOTTED_PY_VERSION }}
+
+  codecov:
+    runs-on: ubuntu-latest
+    needs: unittest
+    steps:
+      - name: Set up Python for tox
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install tox
         run: |
           pip install --upgrade pip
-          pip install coverage codecov-cli
-          echo -e '#!/usr/bin/env bash\n' | sudo tee /usr/sbin/sendmail
-          sudo chmod 755 /usr/sbin/sendmail
-          docker run -d -p 11211:11211 --name ssm-dev-memcached memcached
-          docker run -d -p 5672:5672 --name ssm-dev-rabbitmq rabbitmq
-
-          # run shadowsocks-libev-v2ray, simulate localhost node
-          MGR_PORT=6001 SS_PORTS=8381-8384 ENCRYPT=aes-256-gcm
-          docker run -d -p 127.0.0.1:$MGR_PORT:$MGR_PORT/UDP \
-              -p 127.0.0.1:$SS_PORTS:$SS_PORTS/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS \
-              --name ssm-dev-ss-libev-localhost alexzhangs/shadowsocks-libev-v2ray \
-              ss-manager --manager-address 0.0.0.0:$MGR_PORT \
-              --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
-
-          # get private IP
-          PRIVATE_IP=$(hostname -i | awk '{print $1}')
-          
-          # run shadowsocks-libev-v2ray, simulate private IP node
-          MGR_PORT=6002 SS_PORTS=8381-8384 ENCRYPT=aes-256-gcm
-          docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
-              -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
-              --name ssm-dev-ss-libev-private alexzhangs/shadowsocks-libev-v2ray \
-              ss-manager --manager-address 0.0.0.0:$MGR_PORT \
-              --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
-              
-          # run shadowsocks-libev-v2ray, simulate public IP node
-          MGR_PORT=6003 SS_PORTS=8385 ENCRYPT=aes-256-gcm
-          docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
-              -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
-              --name ssm-dev-ss-libev-public alexzhangs/shadowsocks-libev-v2ray \
-              ss-manager --manager-address 0.0.0.0:$MGR_PORT \
-              --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
-      - name: Install this project
-        run: |
-          pip install -e .
-          ssm-setup -m
-      - name: Run Django testcases
-        run: ssm-test -c
+          pip install tox
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download all coverage data from artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-py*
+          path: .tox
+          merge-multiple: true
+      - run: ls -la .tox/.coverage.py*
+      - name: Combine coverage data and Generate coverage report
+        run: tox run -e cov
       - name: Upload coverage report to Codecov
         continue-on-error: true  # codecov uploader occasionally fails, e.g.: upstream request timeout
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: ssm-test -u
+        run: tox run -e codecov

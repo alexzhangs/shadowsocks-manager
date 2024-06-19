@@ -25,7 +25,7 @@ from docopt import docopt
 
 def create_superuser(username, password, email):
     # prefix package name to allow being called outside of django environment
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "shadowsocks_manager.shadowsocks_manager.settings")
+    os.environ["DJANGO_SETTINGS_MODULE"] = "shadowsocks_manager.shadowsocks_manager.settings"
 
     django_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

@@ -26,17 +26,15 @@ class FormatterTestCase(TestCase):
         self.assertEqual(Formatter({'foo': 1}).to_string(), repr({'foo': 1}))
         # on arg as tuple
         self.assertEqual(Formatter(('foo', 1)).to_string(), repr(('foo', 1)))
-        # two simple kwargs, take care of the order, so works with both py2 and py3
-        self.assertEqual(Formatter(y=2, x='bar').to_string(), 'y=2, x={}'.format(repr('bar')))
         # one kwarg as list
         self.assertEqual(Formatter(x=['bar', 2]).to_string(), 'x={}'.format(repr(['bar', 2])))
         # one kwarg as dict
         self.assertEqual(Formatter(x={'bar': 2}).to_string(), 'x={}'.format(repr({'bar': 2})))
         # one kwarg as tuple
         self.assertEqual(Formatter(x=('bar', 2)).to_string(), 'x={}'.format(repr(('bar', 2))))
-        # two simple args and two simple kwargs, take care of the order, so works with both py2 and py3
+        # two simple args and one simple kwargs
         self.assertEqual(
-            Formatter('foo', 1, y=2, x='bar').to_string(),
-            '{}, 1, y=2, x={}'.format(repr('foo'), repr('bar')))
+            Formatter('foo', 1, x='bar').to_string(),
+            '{}, 1, x={}'.format(repr('foo'), repr('bar')))
         # __str__()
         self.assertEqual(str(Formatter(None)), 'None')

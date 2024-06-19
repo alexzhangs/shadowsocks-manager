@@ -1,14 +1,13 @@
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
-from builtins import range
 from builtins import object
-from functools import reduce
 
 
 class Formatter(object):
     """
     Return the input-syntax string presentation of args and kwargs list, delimited by comma `, `.
     The value of the args and kwargs are formatted as the canonical string presentation.
+    The key order of the kwargs is not guaranteed in Python 3.6 and earlier.
 
     Usage:
         >>> f = Formatter(*args, **kwargs)
@@ -32,28 +31,21 @@ class Formatter(object):
         self.args = args
         self.kwargs = kwargs
 
-    def __str__(self, *args, **kwargs):
-        return self.to_string(*args, **kwargs)
+    def __str__(self):
+        return self.to_string()
 
     def args_to_string(self):
         """
         Return the canonical string presentation of args list, delimited by comma `, `.
         """
-        if self.args:
-            self.args = [repr(arg) for arg in self.args]
-            formatter = ['{}' for count in range(len(self.args))]
-            return ', '.join(formatter).format(*self.args)
-
+        return ', '.join(repr(arg) for arg in self.args)
 
     def kwargs_to_string(self):
         """
         Return the input-syntax string presentation of kwargs list, delimited by comma `, `.
         The value of the kwargs are formatted as the canonical string presentation.
         """
-        if self.kwargs:
-            formatter = ['{}={}' for count in range(len(self.kwargs))]
-            return ', '.join(formatter).format(
-                *reduce((lambda x, y: x + y), [list([k, repr(v)]) for k,v in list(self.kwargs.items())]))
+        return ', '.join('{}={}'.format(k, repr(v)) for k, v in self.kwargs.items())
 
     def to_string(self):
         """
@@ -70,5 +62,4 @@ class Formatter(object):
         """
 
         items = [self.args_to_string(), self.kwargs_to_string()]
-        items = [item for item in items if item is not None]
-        return ', '.join(items)
+        return ', '.join(item for item in items if item)

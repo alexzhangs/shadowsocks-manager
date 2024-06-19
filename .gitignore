@@ -7,9 +7,11 @@ shadowsocks_manager/static
 shadowsocks_manager/db
 shadowsocks_manager/*/migrations/*
 !shadowsocks_manager/*/migrations/__init__.py
-shadowsocks_manager/.coverage
-shadowsocks_manager/coverage*.xml
 shadowsocks_manager/.ssm-env
+.coverage
+coverage*.xml
+htmlcov
 .idea
 build
 dist
+.tox

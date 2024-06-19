@@ -339,93 +339,60 @@ The following files are kept only for installing the source distribution of the 
 
 ### 8.1. Development Environment Setup
 
-1. Install the dependencies
+1. Install Docker Desktop
+
+* https://www.docker.com/products/docker-desktop/
+
+1. Install pyenv (macOS)
 
     ```sh
-    # run memcached, used by django cache
-    docker run -d -p 11211:11211 --name ssm-dev-memcached memcached
-
-    # run rabbitmq, used by celery
-    docker run -d -p 5672:5672 --name ssm-dev-rabbitmq rabbitmq
-
-    # run shadowsocks-libev, simulate localhost node
-    MGR_PORT=6001 SS_PORTS=8381-8384 ENCRYPT=aes-256-gcm
-    docker run -d -p 127.0.0.1:$MGR_PORT:$MGR_PORT/UDP \
-        -p 127.0.0.1:$SS_PORTS:$SS_PORTS/UDP -p 127.0.0.1:$SS_PORTS:$SS_PORTS \
-        --name ssm-dev-ss-libev-localhost shadowsocks/shadowsocks-libev:edge \
-        ss-manager --manager-address 0.0.0.0:$MGR_PORT \
-        --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
-
-    # get the private IP address of the host, double check the result, it might not be correct
-    PRIVATE_IP=$(ipconfig getifaddr en0 2>/dev/null || hostname -i | awk '{print $1}' 2>/dev/null)
-    echo "PRIVATE_IP=$PRIVATE_IP"
-
-    # run shadowsocks-libev, simulate private IP node
-    MGR_PORT=6002 SS_PORTS=8381-8384 ENCRYPT=aes-256-gcm
-    docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
-        -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
-        --name ssm-dev-ss-libev-private shadowsocks/shadowsocks-libev:edge \
-        ss-manager --manager-address 0.0.0.0:$MGR_PORT \
-        --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
-        
-    # run shadowsocks-libev, simulate public IP node
-    MGR_PORT=6003 SS_PORTS=8385 ENCRYPT=aes-256-gcm
-    docker run -d -p $PRIVATE_IP:$MGR_PORT:$MGR_PORT/UDP \
-        -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS/UDP -p $PRIVATE_IP:$SS_PORTS:$SS_PORTS \
-        --name ssm-dev-ss-libev-public shadowsocks/shadowsocks-libev:edge \
-        ss-manager --manager-address 0.0.0.0:$MGR_PORT \
-        --executable /usr/local/bin/ss-server -m $ENCRYPT -s 0.0.0.0 -u
+    brew install pyenv pyenv-virtualenv
     ```
 
-1. Link the project code in your workspace to the Python environment
+1. Bootstrap the tox environment
 
     ```sh
+    pyenv install 3.12
+    pyenv virtualenv 3.12 tox
+    pyenv activate tox
+    pip install tox virtualenv-pyenv
+    export VIRTUALENV_DISCOVERY=pyenv
+    tox list -q
+    ```
+
+    To test the project with Python 2.7, need:
+
+    ```sh
+    pyenv virtualenv 3.12 tox-27
+    pyenv activate tox-27
+    pip install tox 'virtualenv<20.22.0' virtualenv-pyenv
+    export VIRTUALENV_DISCOVERY=pyenv
+    tox list -q
+    ```
+
+1. Install the Python versions that the project should test against
+
+    ```sh
+    pyenv install 2.7 3.7 3.8 3.9 3.10 3.11
+    ```
+
+1. Clone the project code
+
+    ```sh
+    git clone https://github.com/alexzhangs/shadowsocks-manager
     cd shadowsocks-manager
-    pip install -e .
     ```
 
-1. Set the SSM_DATA_HOME environment variable (optional, default is Django root directory)
+1. Start the development environment
 
     ```sh
-    export SSM_DATA_HOME=~/.ssm-dev-data
+    tox run -qe dev
     ```
 
-1. Configure the shadowsocks-manager
+1. Test the Django code and generate coverage report
 
     ```sh
-    ssm-setup -c -m -l -u admin -p yourpassword
-    ```
-
-1. Run the development server
-
-    Make sure the memcached and rabbitmq are running.
-
-    ```sh
-    ssm-dev-start
-    ```
-
-1. Stop the development server
-
-    ```sh
-    ssm-dev-stop
-    ```
-
-1. Test the Django code
-
-    Make sure the memcached and rabbitmq are running, and also the 3 shadowsocks-libev node are running.
-
-    ```sh
-    ssm-test -t
-
-    # or use the django test command directly for more options, use the `-t .` for the Python 2.7 compatibility
-    ssm-manage test --no-input -v 2 -t .
-    ```
-
-1. Test the Django code with coverage
-
-    ```sh
-    pip install coverage
-    ssm-test -c
+    tox run -q
     ```
 
 1. Upload the coverage report to codecov
@@ -433,25 +400,43 @@ The following files are kept only for installing the source distribution of the 
     Make sure the `CODECOV_TOKEN` is exported in the environment before uploading.
 
     ```sh
-    pip install codecov-cli
-    ssm-test -u
-    ```
-
-1. Test the Github workflows locally
-
-    ```sh
-    brew install act
-    act -j test
+    tox run -qe codecov
     ```
 
 1. Build the PyPI package
 
     ```sh
-    pip install build
-
     # build source and binary distribution, equivalent to `python setup.py sdist bdist_wheel`
     # universal wheel is enabled in the pyproject.toml to make the wheel compatible with both Python 2 and 3
-    python -m build
+    tox run -qe pypi
+    ```
+
+1. Test the Github workflows locally
+
+    ```sh
+    PRIVATE_IP=$(ipconfig getifaddr en0 2>/dev/null || hostname -i | cut -d " " -f1 2>/dev/null)
+
+    brew install act gh
+    act --list
+
+    # workflow_dispatch                                         : override the default push event to bypass the RUN_HISTORY check
+    # --platform ubuntu-latest=catthehacker/ubuntu:gh-latest    : custom the image which is close enough to the GitHub Actions environment
+    # --container-architecture=linux/amd64                      : use this for the M serials chip Mac
+    # --matrix python-version:3.12                              : run single matrix to avoid the port conflict
+    # --artifact-server-path /tmp/act                           : artifact server is used in the workflows
+    # --secret GITHUB_TOKEN=$GITHUB_PAT_PUB_RO                  : used by check-run-history job
+    # --secret CODECOV_TOKEN=$CODECOV_TOKEN                     : used to upload coverage report to codecov
+    # --env SSM_TEST_SS_MGR_PRIVATE_IP=$PRIVATE_IP              : pass the host IP address to tox, since the containers created by act container are actually running on the host
+
+    act workflow_dispatch \
+        --platform ubuntu-latest=catthehacker/ubuntu:gh-latest \
+        --container-architecture=linux/amd64 \
+        --workflows .github/workflows/ci-unittest.yml \
+        --matrix python-version:3.12  \
+        --artifact-server-path /tmp/act \
+        --secret GITHUB_TOKEN=$GITHUB_PAT_PUB_RO \
+        --secret CODECOV_TOKEN=$CODECOV_TOKEN \
+        --env SSM_TEST_SS_MGR_PRIVATE_IP=$PRIVATE_IP -v
     ```
 
 1. Upload the PyPI package

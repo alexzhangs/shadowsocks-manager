@@ -1,6 +1,15 @@
 #!/usr/bin/env python
+import os
 import sys
 import subprocess
+import signal
+
+
+def signal_handler(sig, frame):
+    print('{} [{}]: Interrupt received'.format('ssm-celery', os.getpid()))
+    sys.exit(255)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 
 def main():

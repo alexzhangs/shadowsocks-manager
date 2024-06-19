@@ -39,8 +39,8 @@ def get_env_file(ssm_data_home):
 
 
 def main():
-    # get SSM_DATA_HOME from environment, or use Django root directory as default
-    ssm_data_home = os.getenv('SSM_DATA_HOME') or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # get SSM_DATA_HOME from environment, or use ~/.ssm-data as default
+    ssm_data_home = os.getenv('SSM_DATA_HOME') or os.path.expanduser('~/.ssm-data')
 
     # create the ssm_data_home directory if it does not exist
     if not os.path.exists(ssm_data_home):
@@ -64,7 +64,7 @@ def main():
         try:
             value = pair[1]
         except IndexError:
-            raise ValueError(f"Invalid format for environment variable '{env}'.")
+            raise ValueError("Invalid format for environment variable '{}'.".format(env))
         
         new_line = key + '=' + value + '\n'
 

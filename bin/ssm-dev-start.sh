@@ -15,18 +15,27 @@
 #?   The default IP address is `127.0.0.1`.
 #?   The default PORT is `8000`.
 #?
+#? Environment:
+#?   The following environment variables are optional:
+#?
+#?   - SSM_DEV_CELERY_LOG_LEVEL
+#?
+#?     The log level for Celery worker and beat.
+#?     Default is `info`.
+#?
 
 # exit on any error
 set -e -o pipefail
 
+trap 'ssm-dev-stop' EXIT
+
 function main () {
     declare listen=$1
 
+    ssm-celery -A shadowsocks_manager worker -l "${SSM_DEV_CELERY_LOG_LEVEL:info}" -B &
     # don't quote the variable $listen, leave it this way on purpose
     # shellcheck disable=SC2086
-    ssm-manage runserver $listen --insecure &
-    sleep 1
-    ssm-celery -A shadowsocks_manager worker -l info -B &
+    ssm-manage runserver $listen --insecure
 }
 
 main "$@"
