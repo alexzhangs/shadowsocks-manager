@@ -11,9 +11,14 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 
-# Create your models here.
+class CustomManager(models.Manager):
+    def update(self, *args, **kwargs):
+        super(CustomManager, self).update(*args, **kwargs)
+        self.model.clear_cache()
+
 
 class SingletonModel(models.Model):
+    objects = CustomManager()
 
     class Meta:
         abstract = True
@@ -29,6 +34,10 @@ class SingletonModel(models.Model):
         super(SingletonModel, self).save(*args, **kwargs)
 
         self.set_cache()
+
+    @classmethod
+    def clear_cache(cls):
+        cache.delete(cls.get_cache_key())
 
     @classmethod
     def get_cache_key(cls):
