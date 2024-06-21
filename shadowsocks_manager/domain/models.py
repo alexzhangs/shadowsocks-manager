@@ -273,10 +273,6 @@ class Record(models.Model):
     def __str__(self):
         return self.fqdn
     
-    @property
-    def entity(self):
-        return {key: value for key, value in self.__dict__.items() if key in ['fqdn', 'type', 'answer']}
-
     def save(self, *args, **kwargs):
         self.auto_resolve()
         super(Record, self).save(*args, **kwargs)
@@ -375,15 +371,18 @@ class Record(models.Model):
         """
         self.update_site_domain()
 
+        deleted_origin = None
         try:
             if self.domain != self.origin.domain or self.host != self.origin.host or self.type != self.origin.type:
                 # clean up the old record
-                self.origin.dns_delete()
+                deleted_origin = self.origin.dns_delete()
         except models.ObjectDoesNotExist:
             # ignore an empty record without domain
             pass
 
-        return self.dns_sync()
+        ret = self.dns_sync()
+        ret['deleted']['origin'] = deleted_origin
+        return ret
 
     def on_delete(self):
         return self.dns_delete()
@@ -392,7 +391,7 @@ class Record(models.Model):
         """
         Sync the record to DNS server through DNS API.
         """
-        ret = defaultdict(list)
+        ret = defaultdict(dict)
         
         if self.dnsapi:
             if self.is_matching_dns_api:
@@ -409,6 +408,11 @@ class Record(models.Model):
     def dns_create(self):
         """
         Create the recordset to DNS server through DNS API.
+        Return:
+            {}
+            {'true': [<answer>, ...]}
+            {'null': [<answer>, ...]}
+            {'true': [<answer>, ...], 'null': [<answer>, ...]}
         """
         ret = defaultdict(list)
         if self.dnsapi and not self.is_matching_dns_api:
@@ -420,6 +424,10 @@ class Record(models.Model):
     def dns_delete(self):
         """
         Delete the recordset from DNS server through DNS API.
+        Return:
+            {}
+            {'true': <type>}
+            {'null': <type>}
         """
         ret = defaultdict(str)
         if self.dnsapi and self.dnsapi.list_records(self.type, self.host):
