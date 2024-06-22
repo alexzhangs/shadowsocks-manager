@@ -285,3 +285,4 @@ class RecordTestCase(AppTestCase):
     def test_record_serializer(self):
         obj = serializers.RecordSerializer()
         json.loads(json.dumps(obj.to_representation(models.Record.objects.first())))
+
