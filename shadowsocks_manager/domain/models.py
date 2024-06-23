@@ -71,13 +71,21 @@ def get_zone_name(domain):
 
 @contextmanager
 def temporary_environment(variables):
+
+    def clear_env():
+        try:
+            os.environ.clear()
+        except OSError:
+            # python 3.7, 3.8 allow empty key but fail to clear the environment
+            os.environ = {}
+
     original = os.environ.copy()
     try:
-        os.environ.clear()
+        clear_env()
         os.environ.update(variables)
         yield
     finally:
-        os.environ.clear()
+        clear_env()
         os.environ.update(original)
         
         
