@@ -308,7 +308,7 @@ function main () {
     fi
 
     if [[ -n $username && -n $password ]]; then
-        ssm-createsuperuser --username "$username" --password "$password" --email "$email"
+        ssm-manage superuser --username "$username" --password "$password" --email "$email"
     fi
 
     if [[ -n $port_begin ]]; then
