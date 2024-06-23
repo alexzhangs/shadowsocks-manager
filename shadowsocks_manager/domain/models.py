@@ -101,12 +101,12 @@ class DnsApi(object):
             })
 
     def call(self, method, *args):
+        logger.info('{domain}: {method}({args})'.format(domain=self.domain, method=method, args=args))
         try:
             with client.Client(self.config) as operations:
-                logger.info('{domain}: {method}({args})'.format(domain=self.config.resolve('domain'), method=method, args=args))
                 return getattr(operations, method)(*args)
         except Exception as e:
-            logger.error('{}: {}'.format(e.__module__, e))
+            logger.error('{}: {}: {}: {}'.format(self.domain, getattr(e, '__module__', 'call'), type(e).__name__, e))
             return None
     
     def list_records(self, type, name=None, content=None):
@@ -150,11 +150,7 @@ class DnsApi(object):
 
     @property
     def is_accessible(self):
-        try:
-            return self.list_records('A', 'whatever') is not None
-        except Exception as e:
-            logger.error('{}: {}'.format(e.__module__, e))
-            return False
+        return self.list_records('A', 'whatever') is not None
 
 
 class NameServer(models.Model):
@@ -216,7 +212,7 @@ class Domain(models.Model):
             try:
                 return DnsApi(self.nameserver.env, self.name)
             except Exception as e:
-                logger.error('DnsApi: domain ({0}), env ({1}): {2}'.format(self.name, self.nameserver.env, e))
+                logger.error('DnsApi: domain ({0}), env ({1}): {2}: {3}'.format(self.name, self.nameserver.env, type(e).__name__, e))
         else:
             logger.warning('{0}: please configure nameserver properly for the domain to enable DnsApi.'.format(self.name))
 
@@ -343,7 +339,7 @@ class Record(models.Model):
             # no answer for the host
             return {}
         except Exception as e:
-            logger.error('{}: {}'.format(e.__module__, e))
+            logger.error('{} {}: {}: {}: {}'.format(self.fqdn, self.type, getattr(e, '__module__', 'answer_from_dns_query'), type(e).__name__, e))
 
     @property
     def is_matching_dns_api(self):
