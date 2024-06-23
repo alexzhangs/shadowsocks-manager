@@ -8,6 +8,7 @@ import json
 import os
 from abc import abstractmethod
 from django.test import TestCase
+from django.core.management import call_command
 
 from domain import models, serializers
 
@@ -76,7 +77,7 @@ class BaseTestCase(TestCase):
 
 class AppTestCase(BaseTestCase):
     fixtures = []
-    testcases = ['DnsApiTestCase', 'NameServerTestCase', 'DomainTestCase', 'RecordTestCase']
+    testcases = ['DnsApiTestCase', 'NameServerTestCase', 'DomainTestCase', 'RecordTestCase', 'ManagementCommandTestCase']
 
 
 class DnsApiTestCase(AppTestCase):
@@ -95,6 +96,13 @@ class DnsApiTestCase(AppTestCase):
             obj = models.DnsApi(env=envs[i], domain=domains[i])
             self.assertEqual(obj.config.resolve('lexicon:provider_name'), 'mockprovider-%d' % (i + 1))
             self.assertEqual(obj.config.resolve('domain'), domains[i])
+
+    def test_dns_api_init_env_clear(self):
+        env = 'KEY1=VALUE1,KEY2=VALUE2'
+        domain = 'example.com'
+        obj = models.DnsApi(env=env, domain=domain)
+        self.assertFalse(os.environ.get('KEY1'))
+        self.assertFalse(os.environ.get('KEY2'))
 
     def test_dnsapi_init_positive_mockprovider(self):
         env = 'PROVIDER=mockprovider,LEXICON_PROVIDER_NAME=mockprovider,LEXICON_MOCKPROVIDER_MOCKUSER=mockuser,LEXICON_MOCKPROVIDER_MOCKTOKEN=mocktoken'
@@ -175,11 +183,13 @@ class DomainTestCase(AppTestCase):
         obj = models.Domain(name='example.com', nameserver=ns)
         self.assertFalse(obj.api)
 
-    def test_domain_api_negative_with_wrong_ns_env(self):
+    def test_domain_api_negative_with_empty_ns_env_key(self):
         ns = models.NameServer(name='mocknameserver-2', env='=')
         ns.save()
+        origin = os.environ.copy()
         obj = models.Domain(name='example.com', nameserver=ns)
-        self.assertFalse(obj.api)
+        # make sure os env is not massed up
+        self.assertEqual(os.environ.copy(), origin)
 
     def test_domain_auto_resolve(self):
         obj = models.Domain(name='example.com')
@@ -286,3 +296,96 @@ class RecordTestCase(AppTestCase):
         obj = serializers.RecordSerializer()
         json.loads(json.dumps(obj.to_representation(models.Record.objects.first())))
 
+
+class ManagementCommandTestCase(AppTestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.allup()
+
+    def test_cmd_domain_domain_positive_root(self):
+        call_command('domain_domain', '--name', 'example.org')
+        self.assertTrue(models.Domain.objects.filter(name='example.org').exists())
+
+    def test_cmd_domain_domain_positive_sub(self):
+        call_command('domain_domain', '--name', 'www.example.org')
+        self.assertTrue(models.Domain.objects.filter(name='example.org').exists())
+
+    def test_cmd_domain_domain_with_nameserver_positive(self):
+        call_command('domain_domain', '--name', 'example.org', '--nameserver', 'mocknameserver')
+        self.assertTrue(models.Domain.objects.filter(name='example.org', nameserver__name='mocknameserver').exists())
+
+        call_command('domain_domain', '--name', 'example.org', '--nameserver', '')
+        self.assertTrue(models.Domain.objects.filter(name='example.org', nameserver=None).exists())
+
+        call_command('domain_domain', '--name', 'example.org', '--nameserver', 'mocknameserver')
+        self.assertTrue(models.Domain.objects.filter(name='example.org', nameserver__name='mocknameserver').exists())
+
+        call_command('domain_domain', '--name', 'example.org')
+        self.assertTrue(models.Domain.objects.filter(name='example.org', nameserver=None).exists())
+
+    def test_cmd_domain_domain_with_nameserver_negative(self):
+        self.assertRaises(models.NameServer.DoesNotExist, call_command, 'domain_domain', '--name', 'example.org', '--nameserver', 'mocknameserver-notexist')
+
+    def test_cmd_domain_nameserver_positive(self):
+        call_command('domain_nameserver', '--name', 'mocknameserver-2')
+        self.assertTrue(models.NameServer.objects.filter(name='mocknameserver-2').exists())
+
+        call_command('domain_nameserver', '--name', 'mocknameserver-2', '--env', 'KEY=VALUE')
+        self.assertTrue(models.NameServer.objects.filter(name='mocknameserver-2', env='KEY=VALUE').exists())
+
+        call_command('domain_nameserver', '--name', 'mocknameserver-2')
+        self.assertTrue(models.NameServer.objects.filter(name='mocknameserver-2', env=None).exists())
+
+        call_command('domain_nameserver', '--name', 'mocknameserver-2', '--env')
+        self.assertTrue(models.NameServer.objects.filter(name='mocknameserver-2', env=None).exists())
+
+        call_command('domain_nameserver', '--name', 'mocknameserver-2', '--env', '')
+        self.assertTrue(models.NameServer.objects.filter(name='mocknameserver-2', env='').exists())
+
+    def test_cmd_domain_record_positive_with_fqdn(self):
+        call_command('domain_record', '--fqdn', 'www.example.com', '--type', 'A', '--answer', '1.1.1.1')
+        self.assertTrue(models.Record.objects.filter(fqdn='www.example.com', type='A', answer='1.1.1.1').exists())
+
+    def test_cmd_domain_record_positive_with_host_domain(self):
+        call_command('domain_record', '--host', 'www', '--domain', 'example.com', '--type', 'A', '--answer', '1.1.1.1')
+        self.assertTrue(models.Record.objects.filter(fqdn='www.example.com', type='A', answer='1.1.1.1').exists())
+
+    def test_cmd_domain_record_positive_with_fqdn_host_domain(self):
+        call_command('domain_record', '--fqdn', 'foo.example.com', '--host', 'bar', '--domain', 'example.com', '--type', 'A', '--answer', '1.1.1.1')
+        self.assertTrue(models.Record.objects.filter(fqdn='bar.example.com', type='A', answer='1.1.1.1').exists())
+
+        call_command('domain_record', '--fqdn', 'foo.example.com', '--host', 'bar', '--type', 'A', '--answer', '1.1.1.1')
+        self.assertTrue(models.Record.objects.filter(fqdn='foo.example.com', type='A', answer='1.1.1.1').exists())
+
+        call_command('domain_record', '--fqdn', 'foo.example.com', '--domain', 'example.org', '--type', 'A', '--answer', '1.1.1.1')
+        self.assertTrue(models.Record.objects.filter(fqdn='foo.example.com', type='A', answer='1.1.1.1').exists())
+
+    def test_cmd_domain_record_positive_with_site(self):
+        call_command('domain_record', '--fqdn', 'www.example.com', '--type', 'A', '--answer', '1.1.1.1', '--site')
+        self.assertTrue(models.Record.objects.filter(fqdn='www.example.com', type='A', answer='1.1.1.1', site__pk=models.settings.SITE_ID).exists())
+
+    def test_cmd_domain_record_negative(self):
+        self.assertRaises(models.Domain.DoesNotExist, call_command, 'domain_record', '--fqdn', 'www.example.org', '--type', 'A', '--answer', '1.1.1.1')
+
+    def test_cmd_domain_site_positive(self):
+        call_command('domain_site', '--name', 'example-org', '--domain', 'example.org')
+        self.assertTrue(models.Site.objects.filter(name='example-org', domain='example.org').exists())
+
+        call_command('domain_site', '--name', 'example-org')
+        self.assertTrue(models.Site.objects.filter(name='example-org', domain='example.org').exists())
+
+        call_command('domain_site', '--name', 'example-org', '--domain')
+        self.assertTrue(models.Site.objects.filter(name='example-org', domain='example.org').exists())
+
+        call_command('domain_site', '--name', 'example-org', '--domain', '')
+        self.assertTrue(models.Site.objects.filter(name='example-org', domain='').exists())
+
+        call_command('domain_site', '--domain', 'example.org')
+        self.assertTrue(models.Site.objects.filter(name='example-org', domain='example.org').exists())
+
+        call_command('domain_site', '--domain', 'example.org', '--name')
+        self.assertTrue(models.Site.objects.filter(name='example-org', domain='example.org').exists())
+
+        call_command('domain_site', '--domain', 'example.org', '--name', '')
+        self.assertTrue(models.Site.objects.filter(name='', domain='example.org').exists())
