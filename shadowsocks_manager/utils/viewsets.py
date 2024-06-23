@@ -21,7 +21,7 @@ class CompatModelViewSet(ModelViewSet):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(CompatModelViewSet, self).__init__(*args, **kwargs)
         if DJANGO_VERSION < (2, 0):
             if not hasattr(self, 'filter_fields') and hasattr(self, 'filterset_fields'):
                 self.filter_fields = getattr(self, 'filterset_fields', [])

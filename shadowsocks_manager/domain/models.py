@@ -8,6 +8,7 @@ import os
 import re
 import copy
 import logging
+from contextlib import contextmanager
 import dns.resolver, tldextract
 from lexicon import config, client
 from collections import defaultdict
@@ -16,6 +17,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.contrib.sites.models import Site
 from django.conf import settings
+from allowedsites import CachedAllowedSites
 
 
 logger = logging.getLogger(__name__)
@@ -67,30 +69,53 @@ def get_zone_name(domain):
         return zone
 
 
+@contextmanager
+def temporary_environment(variables):
+
+    def clear_env():
+        try:
+            os.environ.clear()
+        except OSError:
+            # python 3.7, 3.8 allow empty key but fail to clear the environment
+            os.environ = {}
+
+    original = os.environ.copy()
+    try:
+        clear_env()
+        os.environ.update(variables)
+        yield
+    finally:
+        clear_env()
+        os.environ.update(original)
+        
+        
 class DnsApi(object):
     """
     https://dns-lexicon.readthedocs.io/en/latest/provider_conventions.html
     """
     def __init__(self, env, domain):
+        self.env = env
+        self.domain = domain
+        self.envs = {}
         self.config = config.ConfigResolver()
 
-        # export the environment variables
         for item in env.split(','):
             # split with only the first '=', ignore the rest
             key, value = item.split('=', 1)
-            os.environ[key] = value
+            self.envs[key] = value
 
-        self.config.with_env().with_dict({
-            'domain': domain,
-        })
+        with temporary_environment(self.envs):
+            self.config.with_env().with_dict({
+                'domain': domain,
+            })
 
     def call(self, method, *args):
+        logger.info('{domain}: {method}({args})'.format(domain=self.domain, method=method, args=args))
         try:
             with client.Client(self.config) as operations:
-                logger.info('{domain}: {method}({args})'.format(domain=self.config.resolve('domain'), method=method, args=args))
                 return getattr(operations, method)(*args)
         except Exception as e:
-            logger.error('{}: {}'.format(e.__module__, e))
+            logger.error('{}: {}: {}: {}'.format(self.domain, getattr(e, '__module__', 'call'), type(e).__name__, e))
             return None
     
     def list_records(self, type, name=None, content=None):
@@ -134,11 +159,7 @@ class DnsApi(object):
 
     @property
     def is_accessible(self):
-        try:
-            return self.list_records('A', 'whatever') is not None
-        except Exception as e:
-            logger.error('{}: {}'.format(e.__module__, e))
-            return False
+        return self.list_records('A', 'whatever') is not None
 
 
 class NameServer(models.Model):
@@ -200,7 +221,7 @@ class Domain(models.Model):
             try:
                 return DnsApi(self.nameserver.env, self.name)
             except Exception as e:
-                logger.error('DnsApi: domain ({0}), env ({1}): {2}'.format(self.name, self.nameserver.env, e))
+                logger.error('DnsApi: domain ({0}), env ({1}): {2}: {3}'.format(self.name, self.nameserver.env, type(e).__name__, e))
         else:
             logger.warning('{0}: please configure nameserver properly for the domain to enable DnsApi.'.format(self.name))
 
@@ -260,10 +281,6 @@ class Record(models.Model):
     def __str__(self):
         return self.fqdn
     
-    @property
-    def entity(self):
-        return {key: value for key, value in self.__dict__.items() if key in ['fqdn', 'type', 'answer']}
-
     def save(self, *args, **kwargs):
         self.auto_resolve()
         super(Record, self).save(*args, **kwargs)
@@ -327,7 +344,7 @@ class Record(models.Model):
             # no answer for the host
             return {}
         except Exception as e:
-            logger.error('{}: {}'.format(e.__module__, e))
+            logger.error('{} {}: {}: {}: {}'.format(self.fqdn, self.type, getattr(e, '__module__', 'answer_from_dns_query'), type(e).__name__, e))
 
     @property
     def is_matching_dns_api(self):
@@ -362,15 +379,18 @@ class Record(models.Model):
         """
         self.update_site_domain()
 
+        deleted_origin = None
         try:
             if self.domain != self.origin.domain or self.host != self.origin.host or self.type != self.origin.type:
                 # clean up the old record
-                self.origin.dns_delete()
+                deleted_origin = self.origin.dns_delete()
         except models.ObjectDoesNotExist:
             # ignore an empty record without domain
             pass
 
-        return self.dns_sync()
+        ret = self.dns_sync()
+        ret['deleted']['origin'] = deleted_origin
+        return ret
 
     def on_delete(self):
         return self.dns_delete()
@@ -379,7 +399,7 @@ class Record(models.Model):
         """
         Sync the record to DNS server through DNS API.
         """
-        ret = defaultdict(list)
+        ret = defaultdict(dict)
         
         if self.dnsapi:
             if self.is_matching_dns_api:
@@ -396,6 +416,11 @@ class Record(models.Model):
     def dns_create(self):
         """
         Create the recordset to DNS server through DNS API.
+        Return:
+            {}
+            {'true': [<answer>, ...]}
+            {'null': [<answer>, ...]}
+            {'true': [<answer>, ...], 'null': [<answer>, ...]}
         """
         ret = defaultdict(list)
         if self.dnsapi and not self.is_matching_dns_api:
@@ -407,6 +432,10 @@ class Record(models.Model):
     def dns_delete(self):
         """
         Delete the recordset from DNS server through DNS API.
+        Return:
+            {}
+            {'true': <type>}
+            {'null': <type>}
         """
         ret = defaultdict(str)
         if self.dnsapi and self.dnsapi.list_records(self.type, self.host):
@@ -417,7 +446,9 @@ class Record(models.Model):
 
 @receiver(post_save, sender=Site)
 def allowedsites_update_cache(sender, instance, **kwargs):
-    settings.ALLOWED_HOSTS.update_cache()
+    # Django test framework overrides the settings.ALLOWED_HOSTS to an list
+    if isinstance(settings.ALLOWED_HOSTS, CachedAllowedSites):
+        settings.ALLOWED_HOSTS.update_cache()
 
 @receiver(post_save, sender=Record)
 def record_on_update(sender, instance, **kwargs):

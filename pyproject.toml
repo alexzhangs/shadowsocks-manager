@@ -145,8 +145,7 @@ issues = "https://github.com/alexzhangs/shadowsocks-manager/issues"
 ssm = "shadowsocks_manager.__main__:main"
 ssm-manage = "shadowsocks_manager.utils.manage:main"
 ssm-uwsgi = "shadowsocks_manager.utils.uwsgi:main"
-ssm-celery = "shadowsocks_manager.utils.celery:main"
-ssm-createsuperuser = "shadowsocks_manager.utils.createsuperuser:main"
+ssm-celery = "shadowsocks_manager.utils.celery_app:main"
 ssm-dotenv = "shadowsocks_manager.utils.dotenv:main"
 
 [tool.setuptools]
@@ -208,8 +207,8 @@ regex = true
 
 [[tool.bumpversion.files]]
 filename = "shadowsocks_manager/shadowsocks_manager/__init__.py"
-search = '^version = "{current_version}"$'
-replace = 'version = "{new_version}"'
+search = '^__version__ = "{current_version}"$'
+replace = '__version__ = "{new_version}"'
 regex = true
 
 [tool.coverage.run]
@@ -224,6 +223,7 @@ omit = [
     "shadowsocks_manager/manage.py",
     "shadowsocks_manager/shadowsocks_manager/wsgi.py",
 ]
+parallel = true
 
 [tool.coverage.report]
 show_missing = true

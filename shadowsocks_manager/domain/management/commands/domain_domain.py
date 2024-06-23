@@ -8,8 +8,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--name', required=True,
-                            help='Root domain name or the delegated subdomain name. '
-                            'Used as is, no resolution for the zone name. '
+                            help='Domain name. '
+                            'If the domain name is not root domain name, '
+                            'the zone name will be resolved automatically. '
                             'If a domain with the same name exists, '
                             'the command will update the domain.')
         parser.add_argument('--nameserver', type=str, nargs='?',

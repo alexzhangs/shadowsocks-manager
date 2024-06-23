@@ -10,7 +10,7 @@
 [![PyPI Package Version](https://badge.fury.io/py/shadowsocks-manager.svg)](https://pypi.org/project/shadowsocks-manager/)
 [![codecov](https://codecov.io/gh/alexzhangs/shadowsocks-manager/graph/badge.svg?token=KTI3TNRKAV)](https://codecov.io/gh/alexzhangs/shadowsocks-manager)
 
-[![GitHub Actions - CI Docker Build and Push](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-docker.yml/badge.svg)](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-docker.yml)
+[![GitHub Actions - CI Docker Build and Push](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-docker.yml/badge.svg?event=release)](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-docker.yml)
 [![Docker Image Version](https://img.shields.io/docker/v/alexzhangs/shadowsocks-manager?label=docker%20image)](https://hub.docker.com/r/alexzhangs/shadowsocks-manager)
 
 # shadowsocks-manager
@@ -151,7 +151,7 @@ enabled.
     ```sh
     # run shadowsocks-libev
     MGR_PORT=6001
-    SS_PORTS=8381-8480
+    SS_PORTS=8381-8385
     ENCRYPT=aes-256-gcm
     docker run -d -p $SS_PORTS:$SS_PORTS/UDP -p $SS_PORTS:$SS_PORTS \
         --network ssm-network --name ssm-ss-libev shadowsocks/shadowsocks-libev:edge \
@@ -355,7 +355,7 @@ The following files are kept only for installing the source distribution of the 
     pyenv install 3.12
     pyenv virtualenv 3.12 tox
     pyenv activate tox
-    pip install tox virtualenv-pyenv
+    pip install -r tox.txt
     export VIRTUALENV_DISCOVERY=pyenv
     tox list -q
     ```
@@ -365,7 +365,7 @@ The following files are kept only for installing the source distribution of the 
     ```sh
     pyenv virtualenv 3.12 tox-27
     pyenv activate tox-27
-    pip install tox 'virtualenv<20.22.0' virtualenv-pyenv
+    pip install -r tox-27.txt
     export VIRTUALENV_DISCOVERY=pyenv
     tox list -q
     ```

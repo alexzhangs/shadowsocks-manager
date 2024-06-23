@@ -4,9 +4,9 @@
 from __future__ import unicode_literals
 import six
 
-import types, importlib
+import types
+import textwrap
 import logging
-from django.db import models
 
 
 logger = logging.getLogger(__name__)
@@ -20,35 +20,54 @@ class DynamicMethodModel(object):
     Usage:
       Inherit this class and set `dynamic_methods` in the subclass.
       Methods will be created with `dynamic_methods.template` and be available
-      under the name of `dynamic_methods.method`.keys().
+      under the name of `dynamic_methods.method`.keys() at class level.
       Each '%s' within `dynamic_methods.template` will be replaced with the value
       of `variables`.
       Set `property` True if want a @property decorator on the dynamic method.
 
     Example:
 
-    class Person(models.Model, DynamicMethodModel):
-        dynamic_methods = [{
-            "template": '''
-                def pet(self):
-                    return '%s %s %s.'
+    class PetStore(DynamicMethodModel):
+        dynamic_methods = [
+            {
+                "template": '''
+                    def pets(self):
+                        return '%s %s %s'
                 ''',
-            "method": {
-                "dog": {
-                    "variables": ["one", "black", "dog"],
-                    'property': False
-                },
-                "cat": {
-                    "variables": ["two", "white", "cats"],
-                    'property': False
-                },
-                ...
+                "method": {
+                    "dog": {
+                        "variables": ["one", "black", "dog"],
+                        'property': True
+                    },
+                    "cat": {
+                        "variables": ["two", "white", "cats"],
+                        'property': True
+                    },
+                }
+            },
+            {
+                "template": '''
+                    def pet_pets(self):
+                        return '%s'
+                    ''',
+                "method": {
+                    "pet_dog": {
+                        "variables": ["woof"],
+                        'property': False
+                    },
+                    "pet_cat": {
+                        "variables": ["meow"],
+                        'property': False
+                    },
+                }
             }
-        }]
+        ]
 
-    obj = Person()
-    obj.dog()   # 'one black dog.'
-    obj.cat()   # 'two white cats.'
+    obj = PetStore()
+    obj.dog         # 'one black dog'
+    obj.cat         # 'two white cats'
+    obj.pet_dog()   # 'woof'
+    obj.pet_cat()   # 'meow'
     """
 
     dynamic_methods = []
@@ -68,18 +87,25 @@ class DynamicMethodModel(object):
                 variables = m.get('variables', None)
                 prop = m.get('property', None)
 
+                try:
+                    data = template % tuple(variables)
+                except TypeError as e:
+                    logger.error('{}: {}: {}'.format(key, type(e).__name__, e))
+                    continue
+
                 self.create_method(
-                    data=template % tuple(variables),
+                    data=data,
                     name=key,
                     decorator={'property': prop}
                 )
 
     def create_method(self, data, name, decorator=None):
         if isinstance(data, six.text_type):
+            data = textwrap.dedent(data).strip()
             try:
                 code = compile(data, '<stdin>', 'exec')
             except SyntaxError as e:
-                logger.error(e)
+                logger.error('{}: {}: {}'.format(name, type(e).__name__, e))
                 return None
         else:
             code = data
