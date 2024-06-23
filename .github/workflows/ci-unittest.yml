@@ -78,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-py${{ env.UNDOTTED_PY_VERSION }}
-          path: .tox/.coverage.py${{ env.UNDOTTED_PY_VERSION }}
+          path: .tox/.coverage.py${{ env.UNDOTTED_PY_VERSION }}*
 
   codecov:
     runs-on: ubuntu-latest

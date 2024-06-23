@@ -223,6 +223,7 @@ omit = [
     "shadowsocks_manager/manage.py",
     "shadowsocks_manager/shadowsocks_manager/wsgi.py",
 ]
+parallel = true
 
 [tool.coverage.report]
 show_missing = true
