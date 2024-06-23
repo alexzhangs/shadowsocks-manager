@@ -6,6 +6,8 @@ from __future__ import absolute_import
 
 import json
 import os
+import time
+import botocore
 from abc import abstractmethod
 from django.test import TestCase
 from django.core.exceptions import ValidationError
@@ -20,7 +22,7 @@ import logging
 # Get a logger for this django app
 logger = logging.getLogger(__name__.split('.')[-2])
 # Set the logging level to make the output clean
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.CRITICAL)
 
 
 import socket
@@ -252,6 +254,17 @@ class AccountTestCase(AppTestCase):
             if na.node.ssmanager:
                 self.assertTrue(na.is_accessible_ex())
 
+    def test_account_upadte_password(self):
+        obj = models.Account.objects.first()
+        obj.password = 'new-password'
+        obj.save()
+        for na in obj.nodes_ref.all():
+            if na.node.ssmanager:
+                ports = na.node.ssmanager.list()
+                matching_port = next((port for port in ports if port['server_port'] == str(obj.username)), None)
+                self.assertTrue(matching_port)
+                self.assertEqual(matching_port['password'], 'new-password')
+
     def test_account_notify(self):
         for obj in models.Account.objects.all():
             self.assertTrue(obj.notify(sender=obj))
@@ -351,6 +364,34 @@ class NodeTestCase(AppTestCase):
     def setUpTestData(cls):
         cls.allup()
 
+    def test_node_str(self):
+        for obj in models.Node.objects.all():
+            self.assertEqual(str(obj), obj.__str__())
+
+    def test_node_clean_positive(self):
+        obj = models.Node()
+        obj.record = Record()
+        obj.public_ip = '0.0.0.0'
+        obj.clean()
+
+    def test_node_clean_negative(self):
+        obj = models.Node()
+        self.assertRaises(ValidationError, obj.clean)
+
+    def test_node_sns_endpoint_region_positive(self):
+        obj = models.Node()
+        obj.sns_endpoint='arn:aws:sns:ap-northeast-1:0:topic'
+        self.assertEqual(obj.sns_endpoint_region, 'ap-northeast-1')
+
+    def test_node_sns_endpoint_region_negative_none(self):
+        obj = models.Node()
+        self.assertRaises(ValidationError, lambda: obj.sns_endpoint_region)
+
+    def test_node_sns_endpoint_region_negative_syntax(self):
+        obj = models.Node()
+        obj.sns_endpoint='arn:aws:sns'
+        self.assertRaises(ValidationError, lambda: obj.sns_endpoint_region)
+
     def test_node_is_matching_record_positive(self):
         for obj in models.Node.objects.filter(record__isnull=False):
             self.assertTrue(obj.is_matching_record)
@@ -362,6 +403,35 @@ class NodeTestCase(AppTestCase):
     def test_node_is_matching_dns_query_negitive(self):
         for obj in models.Node.objects.all():
             self.assertFalse(obj.is_matching_dns_query)
+
+    def test_node_is_port_open_timeout_local(self):
+        config = models.Config.load()
+        config.timeout_local = 0.5
+        config.save()
+        start_time = time.time()
+        models.Node.is_port_open('10.0.0.255', 65000)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        # Assert that the elapsed time is approximately equal to the timeout
+        self.assertAlmostEqual(elapsed_time, config.timeout_local, delta=0.1)
+
+    def test_node_is_port_open_timeout_remote(self):
+        config = models.Config.load()
+        config.timeout_remote = 0.5
+        config.save()
+        start_time = time.time()
+        models.Node.is_port_open('8.8.8.8', 65000)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        # Assert that the elapsed time is approximately equal to the timeout
+        self.assertAlmostEqual(elapsed_time, config.timeout_remote, delta=0.1)
+
+    def test_node_change_ip_negative(self):
+        obj = models.Node.objects.first()
+        self.assertRaises(botocore.exceptions.ClientError, obj.change_ip)
+
+    def test_node_change_ips_negative(self):
+        self.assertRaises(botocore.exceptions.ClientError, models.Node.change_ips)
 
     def test_node_toggle_active(self):
         # make all nodes inactive
@@ -410,36 +480,78 @@ class NodeAccountTestCase(AppTestCase):
     @classmethod
     def up(cls):
         for account in models.Account.objects.all():
-            node = models.Node.objects.filter(name='ss-libev-localhost').first()
-            if node:
-                na = models.NodeAccount(node=node, account=account, is_active=(account.is_active and node.is_active))
-                na.save()
+            account.add_all_nodes()
 
-            node = models.Node.objects.filter(name='ss-libev-private').first()
-            if node:
-                na = models.NodeAccount(node=node, account=account, is_active=(account.is_active and node.is_active))
-                na.save()
-        
     @classmethod
     def setUpTestData(cls):
         cls.allup()
 
+    def test_nodeaccount_str(self):
+        for obj in models.NodeAccount.objects.all():
+            self.assertEqual(str(obj), obj.__str__())
+
+    def test_nodeaccount_on_update_without_ssmanager(self):
+        obj = models.NodeAccount(node=models.Node(), account=models.Account())
+        obj.on_update()
+
+    def test_nodeaccount_on_update_with_ssmanager_inaccessible(self):
+        for obj in models.NodeAccount.objects.all():
+            if obj.node.ssmanager:
+                ssmanager = obj.node.ssmanager
+                ssmanager.port = 65000
+                ssmanager.save()
+                obj.on_update()
+
+    def test_nodeaccount_on_delete_without_ssmanager(self):
+        obj = models.NodeAccount(node=models.Node(), account=models.Account())
+        obj.on_delete()
+
+    def test_nodeaccount_on_delete_with_ssmanager_inaccessible(self):
+        for obj in models.NodeAccount.objects.all():
+            if obj.node.ssmanager:
+                ssmanager = obj.node.ssmanager
+                ssmanager.port = 65000
+                ssmanager.save()
+                obj.on_delete()
+
     def test_nodeaccount_is_accessible_positive(self):
-        #models.NodeAccount.heartbeat()
+        models.NodeAccount.heartbeat()
         for obj in models.NodeAccount.objects.all():
             if obj.node.ssmanager:
                 self.assertTrue(obj.is_accessible)
 
     def test_nodeaccount_is_accessible_ex_positive(self):
-        #models.NodeAccount.heartbeat()
+        models.NodeAccount.heartbeat()
         for obj in models.NodeAccount.objects.all():
             if obj.node.ssmanager:
                 self.assertTrue(obj.is_accessible_ex())
+                # should hit cache
+                self.assertTrue(obj.is_accessible_ex())
 
-    def test_nodeaccount_is_created(self):
+    def test_nodeaccount_cache(self):
+        obj = models.NodeAccount.objects.first()
+        if obj.node.ssmanager:
+            obj.is_accessible_ex()
+            self.assertTrue(models.cache.get('{}:{}'.format(obj.node.public_ip, obj.account.username)))
+            obj.delete()
+            self.assertFalse(models.cache.get('{}:{}'.format(obj.node.public_ip, obj.account.username)))
+
+    def test_nodeaccount_is_created_positive(self):
+        models.NodeAccount.heartbeat()
         for obj in models.NodeAccount.objects.all():
             if obj.node.ssmanager:
                 self.assertTrue(obj.is_created())
+
+    def test_nodeaccount_is_created_positive_original(self):
+        models.NodeAccount.heartbeat()
+        for obj in models.NodeAccount.objects.all():
+            if obj.node.ssmanager:
+                obj.account.username = str(int(obj.account.username) + 1)
+                self.assertTrue(obj.is_created(original=True))
+    
+    def test_nodeaccount_is_created_negative(self):
+        obj = models.NodeAccount(node=models.Node(), account=models.Account())
+        self.assertEqual(obj.is_created(), None)
 
     def test_nodeaccount_serializer(self):
         obj = serializers.NodeAccountSerializer()
@@ -494,6 +606,49 @@ class SSManagerTestCase(AppTestCase):
         for obj in models.SSManager.objects.filter(interface=models.InterfaceList.PRIVATE):
             obj.node.private_ip = None
             self.assertRaises(ValidationError, obj.clean)
+
+    def test_ssmanager_connect_timeout_local(self):
+        config = models.Config.load()
+        config.timeout_local = 0.5
+        config.save()
+        obj = models.SSManager(node=models.Node(private_ip='10.0.0.255', public_ip='8.8.8.8'), port=65000)
+        start_time = time.time()
+        obj._ping()
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        self.assertAlmostEqual(elapsed_time, config.timeout_local, delta=0.1)
+
+    def test_ssmanager_connect_timeout_remote(self):
+        config = models.Config.load()
+        config.timeout_remote = 0.5
+        config.save()
+        obj = models.SSManager(node=models.Node(private_ip='10.0.0.255', public_ip='8.8.8.8'), port=65000, interface=models.InterfaceList.PUBLIC)
+        start_time = time.time()
+        obj._ping()
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        self.assertAlmostEqual(elapsed_time, config.timeout_local, delta=0.1)
+
+    def test_ssmanager_is_port_created_unknown(self):
+        obj = models.SSManager(node=models.Node(private_ip='10.0.0.255', public_ip='8.8.8.8'), port=65000)
+        self.assertEqual(obj.is_port_created(8388), None)
+
+    def test_ssmanager_get_nodeaccount_negative_account(self):
+        obj = models.SSManager(node=models.Node())
+        self.assertRaises(models.Account.DoesNotExist, obj.get_nodeaccount, 8388)
+
+    def test_ssmanager_get_nodeaccount_negative_nodeaccount(self):
+        account = models.Account.objects.first()
+        obj = models.SSManager(node=models.Node())
+        self.assertRaises(models.NodeAccount.DoesNotExist, obj.get_nodeaccount, account.username)
+
+    def test_ssmanager_cache(self):
+        obj = models.SSManager.objects.first()
+        if obj:
+            obj.list_ex()
+            self.assertTrue(models.cache.get('{}-{}'.format(obj, 'list')))
+            obj.delete()
+            self.assertFalse(models.cache.get('{}-{}'.format(obj, 'list')))
 
     def test_ssmanager_serializer(self):
         serializer = serializers.SSManagerSerializer()
