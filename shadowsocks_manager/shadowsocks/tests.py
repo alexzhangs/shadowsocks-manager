@@ -11,6 +11,7 @@ import botocore
 from abc import abstractmethod
 from django.test import TestCase
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 
 from domain.models import Record
 from domain.tests import AppTestCase as DomainAppTestCase
@@ -164,7 +165,7 @@ class AppTestCase(BaseTestCase):
     fixtures.extend(['auth.group.json'])
     fixtures.extend(DomainAppTestCase.fixtures)
     fixtures.extend(NotificationAppTestCase.fixtures)
-    testcases = ['ConfigTestCase', 'AccountTestCase', 'NodeTestCase', 'SSManagerTestCase', 'NodeAccountTestCase']
+    testcases = ['ConfigTestCase', 'AccountTestCase', 'NodeTestCase', 'SSManagerTestCase', 'NodeAccountTestCase', 'ManagementCommandTestCase']
 
 
 class ConfigTestCase(AppTestCase):
@@ -654,3 +655,26 @@ class SSManagerTestCase(AppTestCase):
         serializer = serializers.SSManagerSerializer()
         for obj in models.SSManager.objects.all():
             json.loads(json.dumps(serializer.to_representation(obj)))
+
+
+class ManagementCommandTestCase(AppTestCase):
+
+    def test_cmd_shadowsocks_config_port_begin(self):
+        call_command('shadowsocks_config', '--port-begin', '65001')
+        self.assertEqual(models.Config.load().port_begin, 65001)
+
+    def test_cmd_shadowsocks_config_port_enc(self):
+        call_command('shadowsocks_config', '--port-end', '65002')
+        self.assertEqual(models.Config.load().port_end, 65002)
+
+    def test_cmd_shadowsocks_config_timeout_remote(self):
+        call_command('shadowsocks_config', '--timeout-remote', '0.9')
+        self.assertEqual(models.Config.load().timeout_remote, 0.9)
+
+    def test_cmd_shadowsocks_config_timeout_local(self):
+        call_command('shadowsocks_config', '--timeout-local', '0.9')
+        self.assertEqual(models.Config.load().timeout_local, 0.9)
+
+    def test_cmd_shadowsocks_config_cache_timeout(self):
+        call_command('shadowsocks_config', '--cache-timeout', '99')
+        self.assertEqual(models.Config.load().cache_timeout, 99)
