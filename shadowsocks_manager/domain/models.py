@@ -8,6 +8,7 @@ import os
 import re
 import copy
 import logging
+from contextlib import contextmanager
 import dns.resolver, tldextract
 from lexicon import config, client
 from collections import defaultdict
@@ -67,22 +68,37 @@ def get_zone_name(domain):
         return zone
 
 
+@contextmanager
+def temporary_environment(variables):
+    original = os.environ.copy()
+    try:
+        os.environ.clear()
+        os.environ.update(variables)
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(original)
+        
+        
 class DnsApi(object):
     """
     https://dns-lexicon.readthedocs.io/en/latest/provider_conventions.html
     """
     def __init__(self, env, domain):
+        self.env = env
+        self.domain = domain
+        self.envs = {}
         self.config = config.ConfigResolver()
 
-        # export the environment variables
         for item in env.split(','):
             # split with only the first '=', ignore the rest
             key, value = item.split('=', 1)
-            os.environ[key] = value
+            self.envs[key] = value
 
-        self.config.with_env().with_dict({
-            'domain': domain,
-        })
+        with temporary_environment(self.envs):
+            self.config.with_env().with_dict({
+                'domain': domain,
+            })
 
     def call(self, method, *args):
         try:
