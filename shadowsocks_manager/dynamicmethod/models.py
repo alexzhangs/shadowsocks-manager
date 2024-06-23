@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import six
 
 import types, importlib
+import textwrap
 import logging
 from django.db import models
 
@@ -76,6 +77,7 @@ class DynamicMethodModel(object):
 
     def create_method(self, data, name, decorator=None):
         if isinstance(data, six.text_type):
+            data = textwrap.dedent(data).strip()
             try:
                 code = compile(data, '<stdin>', 'exec')
             except SyntaxError as e:
