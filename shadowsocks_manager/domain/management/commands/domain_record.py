@@ -41,6 +41,8 @@ class Command(BaseCommand):
             fields['domain'] = Domain.objects.get(name=domain)
             record, created = Record.objects.update_or_create(host=host, domain=fields["domain"], defaults=fields)
         elif fqdn:
+            fields.pop('host', None)
+            fields.pop('domain', None)
             record, created = Record.objects.update_or_create(fqdn=fqdn, defaults=fields)
         else:
             self.print_help('manage.py', 'domain_record')
