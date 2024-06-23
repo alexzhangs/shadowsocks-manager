@@ -17,6 +17,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.contrib.sites.models import Site
 from django.conf import settings
+from allowedsites import CachedAllowedSites
 
 
 logger = logging.getLogger(__name__)
@@ -429,7 +430,9 @@ class Record(models.Model):
 
 @receiver(post_save, sender=Site)
 def allowedsites_update_cache(sender, instance, **kwargs):
-    settings.ALLOWED_HOSTS.update_cache()
+    # Django test framework overrides the settings.ALLOWED_HOSTS to an list
+    if isinstance(settings.ALLOWED_HOSTS, CachedAllowedSites):
+        settings.ALLOWED_HOSTS.update_cache()
 
 @receiver(post_save, sender=Record)
 def record_on_update(sender, instance, **kwargs):
