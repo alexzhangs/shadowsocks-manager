@@ -277,7 +277,7 @@ LOGGING = {
 
 # Memcached
 
-CACHES_BACKEND = config('SSM_CACHE_BACKEND', default='locmem.LocMemCache')
+CACHES_BACKEND = config('SSM_CACHES_BACKEND', default='locmem.LocMemCache')
 MEMCACHED_HOST = config('SSM_MEMCACHED_HOST', default='localhost')
 MEMCACHED_PORT = config('SSM_MEMCACHED_PORT', default='11211')
 
