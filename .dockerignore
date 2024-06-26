@@ -17,5 +17,4 @@ dist
 .tox
 *.sh
 _config.yml
-.git
 .github

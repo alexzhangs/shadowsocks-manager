@@ -87,8 +87,14 @@ RUN chmod +x docker/*.sh
 RUN mkdir -p "${SSM_DATA_HOME}"
 VOLUME [ "${SSM_DATA_HOME}" ]
 
+# overcome the git check: fatal: detected dubious ownership in repository at '/shadowsocks-manager'
+RUN git config --global --add safe.directory "$(pwd)"
+
 # Install shadowsocks-manager
 RUN pip install --no-cache-dir -e . && chown -R ${SSM_USER}:${SSM_USER} .
+
+# Set the build number
+RUN ssm-version --set-build
 
 # Expose the nginx port
 EXPOSE 80 443

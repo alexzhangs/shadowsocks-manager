@@ -41,6 +41,8 @@ ARG http_proxy https_proxy all_proxy
 # Install supervisor nginx
 RUN apt-get update && \
     apt-get install -y supervisor nginx \
+        # used by shadowsocks-manager
+        git \
         # ps, netstat
         procps net-tools \
         # gcc is used by uwsgi
@@ -91,6 +93,12 @@ VOLUME [ "${SSM_DATA_HOME}" ]
 
 # Install shadowsocks-manager
 RUN pip install --no-cache-dir -e . && chown -R ${SSM_USER}:${SSM_USER} .
+
+# overcome the git check: fatal: detected dubious ownership in repository at '/shadowsocks-manager'
+RUN git config --global --add safe.directory "$(pwd)"
+
+# Set the build number
+RUN ssm-version --set-build
 
 # Expose the nginx port
 EXPOSE 80 443
