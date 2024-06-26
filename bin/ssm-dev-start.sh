@@ -35,7 +35,7 @@ function main () {
     ssm-celery -A shadowsocks_manager worker -l "${SSM_DEV_CELERY_LOG_LEVEL:info}" -B &
     # don't quote the variable $listen, leave it this way on purpose
     # shellcheck disable=SC2086
-    ssm-manage runserver $listen --insecure
+    ssm-manage runserver --insecure $listen
 }
 
 main "$@"
