@@ -94,6 +94,7 @@ dependencies = [
     "uWSGI",
 ]
 optional-dependencies.test = [
+    "mock; python_version <= '2.7'",
     "coverage[toml]; python_version >= '2.7' and python_version < '3.11'",
     "coverage; python_version >= '3.11'",
 ]
@@ -147,6 +148,7 @@ ssm-manage = "shadowsocks_manager.utils.manage:main"
 ssm-uwsgi = "shadowsocks_manager.utils.uwsgi:main"
 ssm-celery = "shadowsocks_manager.utils.celery_app:main"
 ssm-dotenv = "shadowsocks_manager.utils.dotenv:main"
+ssm-version = "shadowsocks_manager.utils.version:main"
 
 [tool.setuptools]
 script-files = [

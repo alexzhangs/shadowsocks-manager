@@ -130,14 +130,15 @@ function main () {
         shift
     done
 
-    # shift off the '--' delimiter
-    if [[ $# -gt 0 && $1 == "--" ]]; then
-        shift
+    if [[ $# -gt 0 ]]; then
+        # shift off the '--' delimiter
+        if [[ $1 == "--" ]]; then
+            shift
+        fi
+        # The rest are docker run cmd options
+        run_cmd_opts=("$@")
         run_flag=1
     fi
-
-    # The rest are docker run cmd options
-    run_cmd_opts=("$@")
 
     # default distributions
     # shellcheck disable=SC2206
@@ -197,7 +198,7 @@ function main () {
 
     declare dist image_tag image container
     for dist in "${distributions[@]}"; do
-        image_tag=$dist-dev-$(date +%Y%m%d-%H%M)
+        image_tag=$dist-dev-$(date -u +%Y%m%d-%H%M)
         image="$image_name:$image_tag"
         container="ssm-$image_tag"
         BUILD_OPTS=( "${build_opts[@]}" -t "$image" -f "$script_dir/docker/$dist/Dockerfile" . )

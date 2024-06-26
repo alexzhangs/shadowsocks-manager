@@ -19,11 +19,11 @@ def main():
         Make the proxy call after adding the django root to the python path and changing the current directory to the django root.
 
     Usage:
-        ssm COMMAND [OPTIONS]
+        ssm <COMMAND> [<ARGS> ...]
 
     Options:
         COMMAND     The command to be run.
-        OPTIONS     All options are transparently passing to the called command.
+        ARGS        All arguments are transparently passing to the called command.
 
     Returns:
         None
@@ -33,7 +33,7 @@ def main():
         $ ssm uwsgi --ini uwsgi.ini
         $ ssm celery -A shadowsocks_manager worker -l info
     """
-    #docopt(main.__doc__)
+    docopt(main.__doc__, options_first=True)
 
     django_root = os.path.dirname(os.path.abspath(__file__))
 
@@ -43,7 +43,6 @@ def main():
 
     # change dir to the django root to allow the dir-sensitive commands(such as loaddata) to be run from any directory
     os.chdir(django_root)
-
 
     # make the proxy call
     return subprocess.call(sys.argv[1:])

@@ -17,6 +17,8 @@ on:
       - 'bin/**'
       - 'shadowsocks_manager/**'
       - '!shadowsocks_manager/uwsgi.ini'
+    tags-ignore:
+      - "**"
   pull_request:
     branches:
       - master
