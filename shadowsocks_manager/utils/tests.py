@@ -130,13 +130,13 @@ class ManagementCommandsTestCase(TestCase):
         self.assertIn('Successfully created superuser', output.strip('\n'))
 
 class ScriptTestCase(TestCase):
+    # Get the coverage file name from the environment variable, set by tox
+    coverage_file = os.environ.get('COVERAGE_FILE')
+    os.environ['COVERAGE_FILE'] = '{}.utils.script'.format(coverage_file)
+
     def setUp(self):
         # Set default runner
         self.script_runner = ['python']
-
-        # Get the coverage file name from the environment variable, set by tox
-        self.coverage_file = os.environ.get('COVERAGE_FILE')
-        os.environ['COVERAGE_FILE'] = '{}.utils.script'.format(self.coverage_file)
 
         if self.coverage_file:
             self.script_runner = ['coverage', 'run']
