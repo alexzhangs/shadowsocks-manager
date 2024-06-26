@@ -198,7 +198,7 @@ function main () {
 
     declare dist image_tag image container
     for dist in "${distributions[@]}"; do
-        image_tag=$dist-dev-$(date +%Y%m%d-%H%M)
+        image_tag=$dist-dev-$(date -u +%Y%m%d-%H%M)
         image="$image_name:$image_tag"
         container="ssm-$image_tag"
         BUILD_OPTS=( "${build_opts[@]}" -t "$image" -f "$script_dir/docker/$dist/Dockerfile" . )
