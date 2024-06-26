@@ -2,6 +2,7 @@
 import os
 import sys
 import subprocess
+from docopt import docopt
 import signal
 
 
@@ -15,10 +16,10 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
     """
     Description:
-        Call `ssm python manage.py` and proxy the rest options.
+        Call `ssm python manage.py` and proxy all the arguments.
 
     Usage:
-        ssm DJANGO_COMMAND [OPTIONS]
+        ssm-manage <DJANGO_COMMAND> [<OPTIONS> ...]
 
     Options:
         DJANGO_COMMAND     The django management command to be run.
@@ -31,6 +32,7 @@ def main():
         $ ssm-manage runserver
         $ ssm-manage shell
     """
+    docopt(main.__doc__, options_first=True)
     return subprocess.call(["ssm", "python", "manage.py"] + sys.argv[1:])
 
 
