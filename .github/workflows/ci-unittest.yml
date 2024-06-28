@@ -17,6 +17,10 @@ on:
       - 'bin/**'
       - 'shadowsocks_manager/**'
       - '!shadowsocks_manager/uwsgi.ini'
+      - 'pyproject.toml'
+      - 'setup.cfg'
+      - 'setup.py'
+      - 'tox.ini'
     tags-ignore:
       - "**"
   pull_request:
