@@ -12,6 +12,8 @@ name: ci-unittest
 on:
   workflow_dispatch:
   push:
+    branches:
+      - '**'
     paths:
       - '.github/workflows/ci-unittest.yml'
       - 'bin/**'
