@@ -390,10 +390,16 @@ The following files are kept only for installing the source distribution of the 
     tox run -qe dev
     ```
 
-1. Test the Django code and generate coverage report
+1. Run the unit tests against all the supported Python versions
 
     ```sh
-    tox run -q
+    tox run -qe py37,py38,py39,py310,py311,py312
+    ```
+
+1. Combine the coverage data and generate the report
+
+    ```sh
+    tox run -qe cov
     ```
 
 1. Upload the coverage report to codecov
@@ -401,6 +407,7 @@ The following files are kept only for installing the source distribution of the 
     Make sure the `CODECOV_TOKEN` is exported in the environment before uploading.
 
     ```sh
+    export CODECOV_TOKEN=codecov_token
     tox run -qe codecov
     ```
 
@@ -412,32 +419,39 @@ The following files are kept only for installing the source distribution of the 
     tox run -qe pypi
     ```
 
-1. Test the Github workflows locally
+1. Run the Github workflows ci-unittest locally
 
     ```sh
-    PRIVATE_IP=$(ipconfig getifaddr en0 2>/dev/null || hostname -i | cut -d " " -f1 2>/dev/null)
-
     brew install act gh
     act --list
 
-    # workflow_dispatch                                         : override the default push event to bypass the RUN_HISTORY check
-    # --platform ubuntu-latest=catthehacker/ubuntu:gh-latest    : custom the image which is close enough to the GitHub Actions environment
-    # --container-architecture=linux/amd64                      : use this for the M serials chip Mac
-    # --matrix python-version:3.12                              : run single matrix to avoid the port conflict
-    # --artifact-server-path /tmp/act                           : artifact server is used in the workflows
-    # --secret GITHUB_TOKEN=$GITHUB_PAT_PUB_RO                  : used by check-run-history job
-    # --secret CODECOV_TOKEN=$CODECOV_TOKEN                     : used to upload coverage report to codecov
-    # --env SSM_TEST_SS_MGR_PRIVATE_IP=$PRIVATE_IP              : pass the host IP address to tox, since the containers created by act container are actually running on the host
+    export GITHUB_PAT_PUB_RO=github_pat
+    export CODECOV_TOKEN=codecov_token
+    export PRIVATE_IP=$(ipconfig getifaddr en0 2>/dev/null || hostname -i | cut -d " " -f1 2>/dev/null)
 
-    act workflow_dispatch \
-        --platform ubuntu-latest=catthehacker/ubuntu:gh-latest \
-        --container-architecture=linux/amd64 \
-        --workflows .github/workflows/ci-unittest.yml \
-        --matrix python-version:3.12  \
-        --artifact-server-path /tmp/act \
-        --secret GITHUB_TOKEN=$GITHUB_PAT_PUB_RO \
-        --secret CODECOV_TOKEN=$CODECOV_TOKEN \
-        --env SSM_TEST_SS_MGR_PRIVATE_IP=$PRIVATE_IP -v
+    tox run -qe act-ci-unittest
+
+    # multiple Python versions
+    tox run -qe act-ci-unittest -- --matrix python-version:3.7 --matrix python-version:3.8
+    ```
+
+1. Build the Docker images and run the containers
+
+    ```sh
+    # optional environment variables:
+    export DOCKER_BUILD_ARGS_PROXY='--build-arg https_proxy=http://host.docker.internal:1086'
+    export SSM_DEV_BAR_OPTIONS='-p -P'
+    export SSM_DEV_DOCKER_RUN_CMD_OPTIONS='-d admin.ss.example.com -t A -a 127.0.0.1 -S -E PROVIDER=namecom,LEXICON_PROVIDER_NAME=namecom,LEXICON_NAMECOM_AUTH_USERNAME=your_username,LEXICON_NAMECOM_AUTH_TOKEN=your_token'
+
+    tox run -qe bar
+    ```
+
+1. Run a full test locally, including all the above steps:
+
+    Make sure all the environment variables are set before running the full test.
+
+    ```sh
+    tox run -q
     ```
 
 1. Upload the PyPI package
@@ -465,15 +479,6 @@ The following files are kept only for installing the source distribution of the 
     # --no-binary is used to force building the package from the source
     # --use-pep517 is used together to make sure the PEP 517 is tested
     pip install --no-binary shadowsocks-manager --use-pep517 shadowsocks-manager
-    ```
-
-1. Build the docker image
-
-    ```sh
-    docker build -t alexzhangs/shadowsocks-manager -f docker/debian/Dockerfile .
-
-    # or use:
-    bash docker-build-and-run.sh
     ```
 
 ### 8.2. CI/CD

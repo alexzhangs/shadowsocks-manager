@@ -9,10 +9,10 @@
 
 function main () {
     # Kill the Celery processes
-    pkill -f "celery -A shadowsocks_manager"
+    pkill -fa "celery -A shadowsocks_manager"
 
     # Kill the Django runserver process
-    pkill -f "python manage.py runserver"
+    pkill -fa "manage.py runserver"
 }
 
 main "$@"

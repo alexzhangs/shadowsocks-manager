@@ -12,11 +12,17 @@ name: ci-unittest
 on:
   workflow_dispatch:
   push:
+    branches:
+      - '**'
     paths:
       - '.github/workflows/ci-unittest.yml'
       - 'bin/**'
       - 'shadowsocks_manager/**'
       - '!shadowsocks_manager/uwsgi.ini'
+      - 'pyproject.toml'
+      - 'setup.cfg'
+      - 'setup.py'
+      - 'tox.ini'
     tags-ignore:
       - "**"
   pull_request:

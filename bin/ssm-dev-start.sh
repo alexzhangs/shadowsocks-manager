@@ -6,14 +6,13 @@
 #?   sure to activate it before to run the server.
 #?
 #? Usage:
-#?   ssm-dev-start.sh [[IP:]PORT]
+#?   ssm-dev-start.sh [OPTIONS]
 #?
 #? Options:
-#?   [[IP:]PORT]
+#?   [OPTIONS]
 #?
-#?   The IP address and the port that the Django server is listening on.
-#?   The default IP address is `127.0.0.1`.
-#?   The default PORT is `8000`.
+#?   The options are transparenctly passing to django runserver.
+#?   The default options are `--insecure`.
 #?
 #? Environment:
 #?   The following environment variables are optional:
@@ -30,12 +29,8 @@ set -e -o pipefail
 trap 'ssm-dev-stop' EXIT
 
 function main () {
-    declare listen=$1
-
-    ssm-celery -A shadowsocks_manager worker -l "${SSM_DEV_CELERY_LOG_LEVEL:info}" -B &
-    # don't quote the variable $listen, leave it this way on purpose
-    # shellcheck disable=SC2086
-    ssm-manage runserver --insecure $listen
+    ssm-celery -A shadowsocks_manager worker -D -l "${SSM_DEV_CELERY_LOG_LEVEL:info}" -B
+    ssm-manage runserver "${@:---insecure}"
 }
 
 main "$@"

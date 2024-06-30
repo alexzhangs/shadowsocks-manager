@@ -35,7 +35,7 @@ except ImportError:
 
 
 def signal_handler(sig, frame):
-    print('{} [{}]: Interrupt received'.format('ssm-vesion', os.getpid()))
+    print('{} [{}]: Interrupt received'.format('ssm-version', os.getpid()))
     sys.exit(255)
 
 signal.signal(signal.SIGINT, signal_handler)

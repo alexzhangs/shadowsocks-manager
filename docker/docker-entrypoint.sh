@@ -157,7 +157,8 @@ function nginx-setup () {
     fi
 
     # Link the SSL certificate and key to the Nginx directory
-    (cd /etc/nginx/ssl \
+    (mkdir -p /etc/nginx/ssl \
+        && cd /etc/nginx/ssl \
         && ln -sf "/root/.acme.sh/${domain}/fullchain.cer" ssm.cer \
         && ln -sf "/root/.acme.sh/${domain}/${domain}.key" ssm.key
     )
