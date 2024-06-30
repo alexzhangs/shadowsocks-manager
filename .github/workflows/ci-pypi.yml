@@ -6,7 +6,7 @@ name: ci-pypi
 #
 # This workflow is triggered by:
 #   - a manual trigger
-#   - a push to the master branch to the repository with tags matching the pattern `ci-pypi` or `ci-pypi-*`
+#   - a push to the repository with tags matching the pattern `ci-pypi` or `ci-pypi-*`
 #     the version part to bump can be specified in the tag name, e.g., `ci-pypi-major`
 #     the default version part to bump is `patch`
 #
@@ -20,8 +20,6 @@ on:
         required: false
         default: 'patch'
   push:
-    branches:
-      - master
     tags:
       - 'ci-pypi'
       - 'ci-pypi-(major|minor|patch|suffix)'
