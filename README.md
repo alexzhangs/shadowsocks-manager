@@ -374,7 +374,7 @@ The following files are kept only for installing the source distribution of the 
 1. Install the Python versions that the project should test against
 
     ```sh
-    pyenv install 2.7 3.7 3.8 3.9 3.10 3.11
+    pyenv install 2.7 3.8 3.9 3.10 3.11
     ```
 
 1. Clone the project code
@@ -432,7 +432,7 @@ The following files are kept only for installing the source distribution of the 
     tox run -qe act-ci-unittest
 
     # multiple Python versions
-    tox run -qe act-ci-unittest -- --matrix python-version:3.7 --matrix python-version:3.8
+    tox run -qe act-ci-unittest -- --matrix python-version:3.11 --matrix python-version:3.12
     ```
 
 1. Build the Docker images and run the containers
