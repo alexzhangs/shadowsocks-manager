@@ -326,6 +326,9 @@ function main () {
     nginx -g "daemon off;"
 }
 
+python --version
+pip --version
+
 main "$@"
 
 exit

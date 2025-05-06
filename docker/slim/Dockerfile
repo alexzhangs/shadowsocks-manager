@@ -38,6 +38,9 @@ ENV DIST slim
 # docker build --build-arg https_proxy=http://host.docker.internal:$PROXY_HTTP_PORT_ON_HOST ...
 ARG http_proxy https_proxy all_proxy
 
+RUN python --version
+RUN pip --version
+
 # Install supervisor nginx
 RUN apt-get update && \
     apt-get install -y supervisor nginx \
