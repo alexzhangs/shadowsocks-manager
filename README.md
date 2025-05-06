@@ -393,7 +393,7 @@ The following files are kept only for installing the source distribution of the 
 1. Run the unit tests against all the supported Python versions
 
     ```sh
-    tox run -qe py37,py38,py39,py310,py311,py312
+    tox run -qe py38,py39,py310,py311,py312
     ```
 
 1. Combine the coverage data and generate the report
