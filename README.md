@@ -306,7 +306,7 @@ The development of this project requires Python 3.x.
 1. Run the unit tests against all the supported Python versions
 
     ```sh
-    tox run -qe py38,py39,py310,py311,py312
+    tox run -qe py38,py39,py310,py311,py312,py313
     ```
 
 1. Combine the coverage data and generate the report

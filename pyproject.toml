@@ -35,6 +35,9 @@ dependencies = [
     "dnspython",
     "docopt",
 
+    # required by django
+    # 20250506 - py3.13 - cgi module is no longer part of the Python standard library. It was removed in Python 3.13.
+    "legacy-cgi; python_version >= '3.13'",
 
     "psutil",
     "python-crontab",
@@ -81,6 +84,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Internet :: Proxy Servers",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
