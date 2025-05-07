@@ -12,6 +12,7 @@ dependencies = [
     "boto3",
     "celery",
     "Django<4",
+    "django-admin-easy",
 
     # 20240531 - enhancement and fix
     # "django-admin-lazy-load",
