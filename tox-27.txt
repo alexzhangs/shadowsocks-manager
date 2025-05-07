@@ -1,3 +1,0 @@
-tox
-virtualenv<20.22.0
-virtualenv-pyenv

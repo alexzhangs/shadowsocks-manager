@@ -55,7 +55,7 @@ Add Shadowsocks Account:
 
 ## 1. Requirements
 
-* Python 2.7, Python 3.x
+* Python 3.8+
 * Django 1.11.x, Django 3.x
 * Docker
 * [Shadowsocks-libev 3.2.0 for Linux (multi-user API is required)](https://github.com/shadowsocks/shadowsocks-libev)
@@ -247,76 +247,6 @@ So either you get some change on your own or stick with the libev edition.
     sudo ln -s /opt/homebrew/opt/openssl/lib/libssl.dylib /usr/local/lib/
     ```
 
-1. Install the project by source with pip under Python 2.7 get error:
-    ```
-    python --version
-    Python 2.7.18
-
-    pip install .
-    ```
-
-    Error message:
-    ```
-    ...
-    Collecting pyyaml
-    Downloading PyYAML-5.4.1.tar.gz (175 kB)
-        |████████████████████████████████| 175 kB 392 kB/s 
-    Installing build dependencies ... done
-    Getting requirements to build wheel ... error
-    ERROR: Command errored out with exit status 1:
-    ...
-        raise AttributeError, attr
-    AttributeError: cython_sources
-    ...
-    ```
-
-    Solution:
-    ```sh
-    pip install setuptools wheel
-    pip install --no-build-isolation .
-    ```
-
-1. Install the project with pip under python 2.7 get error:
-    ```
-    python --version
-    Python 2.7.18
-
-    pip install .
-    ```
-
-    Error message:
-    ```
-    ...
-    Building wheels for collected packages: cryptography
-        Building wheel for cryptography (PEP 517) ... error
-        ERROR: Command errored out with exit status 1:
-
-        build/temp.macosx-14.2-arm64-2.7/_openssl.c:18674:10: error: call to undeclared function 'ERR_GET_FUNC'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
-            return ERR_GET_FUNC(x0);
-            ^
-        build/temp.macosx-14.2-arm64-2.7/_openssl.c:18690:14: error: call to undeclared function 'ERR_GET_FUNC'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
-            { result = ERR_GET_FUNC(x0); }
-                    ^
-        build/temp.macosx-14.2-arm64-2.7/_openssl.c:23389:10: error: call to undeclared function 'FIPS_mode'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
-            return FIPS_mode();
-                ^
-        build/temp.macosx-14.2-arm64-2.7/_openssl.c:23400:14: error: call to undeclared function 'FIPS_mode'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
-            { result = FIPS_mode(); }
-                    ^
-        build/temp.macosx-14.2-arm64-2.7/_openssl.c:23415:10: error: call to undeclared function 'FIPS_mode_set'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
-            return FIPS_mode_set(x0);
-            ^
-        build/temp.macosx-14.2-arm64-2.7/_openssl.c:23431:14: error: call to undeclared function 'FIPS_mode_set'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
-            { result = FIPS_mode_set(x0); }
-    ...
-    ERROR: Failed building wheel for cryptography
-    ```
-
-    Solution:
-    ```sh
-    brew install openssl@1.1
-    ```
-
 1. Domain record is not synced into DNS provider as expected.
 
     There might be a conflict record in the DNS provider. For example, a record with the same name but different type, such as CNAME.
@@ -330,13 +260,6 @@ So either you get some change on your own or stick with the libev edition.
 ## 8. Development
 
 The development of this project requires Python 3.x.
-
-However, the installation of the project is compatible with both Python 2.7 and 3.x.
-To keep the compatibility is difficult, but it's kept due to the historical reason.
-The following files are kept only for installing the source distribution of the PyPI package under Python 2.7:
-
-* setup.py
-* setup.cfg
 
 ### 8.1. Development Environment Setup
 
@@ -361,20 +284,10 @@ The following files are kept only for installing the source distribution of the 
     tox list -q
     ```
 
-    To test the project with Python 2.7, need:
-
-    ```sh
-    pyenv virtualenv 3.12 tox-27
-    pyenv activate tox-27
-    pip install -r tox-27.txt
-    export VIRTUALENV_DISCOVERY=pyenv
-    tox list -q
-    ```
-
 1. Install the Python versions that the project should test against
 
     ```sh
-    pyenv install 2.7 3.7 3.8 3.9 3.10 3.11
+    pyenv install 3.8 3.9 3.10 3.11
     ```
 
 1. Clone the project code
@@ -393,7 +306,7 @@ The following files are kept only for installing the source distribution of the 
 1. Run the unit tests against all the supported Python versions
 
     ```sh
-    tox run -qe py37,py38,py39,py310,py311,py312
+    tox run -qe py38,py39,py310,py311,py312,py313
     ```
 
 1. Combine the coverage data and generate the report
@@ -432,7 +345,7 @@ The following files are kept only for installing the source distribution of the 
     tox run -qe act-ci-unittest
 
     # multiple Python versions
-    tox run -qe act-ci-unittest -- --matrix python-version:3.7 --matrix python-version:3.8
+    tox run -qe act-ci-unittest -- --matrix python-version:3.11 --matrix python-version:3.12
     ```
 
 1. Build the Docker images and run the containers

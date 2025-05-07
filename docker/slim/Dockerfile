@@ -30,13 +30,16 @@
 # For more information, please refer to the project repository:
 #   https://github.com/alexzhangs/shadowsocks-manager
 #
-FROM python:slim
+FROM python:3.12-slim
 
 ENV DIST slim
 
 # To enable proxy at build time, use:
 # docker build --build-arg https_proxy=http://host.docker.internal:$PROXY_HTTP_PORT_ON_HOST ...
 ARG http_proxy https_proxy all_proxy
+
+RUN python --version
+RUN pip --version
 
 # Install supervisor nginx
 RUN apt-get update && \

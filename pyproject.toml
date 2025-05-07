@@ -5,50 +5,25 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "shadowsocks-manager"
 version = "0.1.17"
-requires-python = ">=2.7"
+requires-python = ">=3.8"
 dependencies = [
     "future",
     "six",
     "boto3",
     "celery",
-
-    # required by dns-lexicon
-    # 20240526 - py2.7 - cryptography==3.3.2 (latest version for py2.7) requires openssl 1.1 on os.
-    # "cryptography",
-
     "Django<4",
+    "django-admin-easy",
 
-    # required by django-admin-lazy-load
-    # 20240531 - py2.7
-    "django-admin-easy==0.4.1; python_version <= '2.7'",
-    "django-admin-easy; python_version > '2.7'",
-
-    # 20240531 - py2.7
     # 20240531 - enhancement and fix
     # "django-admin-lazy-load",
     "django-admin-lazy-load-alexforks",
 
     "django-allowedsites-dynamic",
     "django-cache-lock",
-
-    # 20210314 - py2.7 - workaround for: ERROR: Could not find a version that satisfies the requirement django-timezone-field<5.0,>=4.1.0 (from django-celery-beat->-r requirements.txt (line 10)) (from versions: 0.3.1, 0.3.2, 0.4, 1.0, 1.1, 1.2, 1.3, 2.0rc1, 2.0, 2.1, 3.0rc1, 3.0, 3.1)
-    "django-celery-beat==1.6.0; python_version <= '2.7'",
-    # 20240319 - py3.8 - workaround for: Exception: django-celery-beat 2.6.0 requires CPython 3.8 or later!
-    "django-celery-beat<2.6.0; python_version > '2.7' and python_version < '3.8'",
-    "django-celery-beat; python_version >= '3.8'",
-
-    # 20210917 - py2.7 - workaround for: ERROR: django-celery-results 2.2.0 requires celery<6.0,>=5.0, but you'll have celery 4.4.7 which is incompatible.
-    "django-celery-results==2.0.1; python_version <= '2.7'",
-    "django-celery-results; python_version > '2.7'",
-
-    # 20220622 - py2.7 - workaround for: ImportError: No module named enum
-    "django-enumfield<3.0; python_version <= '2.7'",
-    "django-enumfield; python_version > '2.7'",
-
-    # 20210314 - py2.7 - workaround for: SyntaxError: invalid syntax: File python2.7/site-packages/django_filters/filterset.py, line 184
-    # https://github.com/carltongibson/django-filter/issues/954
-    "django-filter~=1.1; python_version <= '2.7'",
-    "django-filter; python_version > '2.7'",
+    "django-celery-beat",
+    "django-celery-results",
+    "django-enumfield",
+    "django-filter",
 
     # 20240602 - py3.12 - v4.0.7 - import ERROR: module 'django.utils.formats' has no attribute 'sanitize_strftime_format'
     # 20240602 - py3.12 - v4.0.0 - export ERROR: AttributeError: 'AccountAdmin' object has no attribute 'search_help_text': File import_export/admin.py, line 670: changelist_kwargs["search_help_text"] = self.search_help_text
@@ -60,42 +35,24 @@ dependencies = [
     "dnspython",
     "docopt",
 
-    # ipaddress is available since Python 3.3
-    "ipaddress; python_version < '3.3'",
+    # required by django
+    # 20250506 - py3.13 - cgi module is no longer part of the Python standard library. It was removed in Python 3.13.
+    "legacy-cgi; python_version >= '3.13'",
 
     "psutil",
-
-    # 20230202 - py2.7
-    "python-crontab==2.6.0; python_version <= '2.7'",
-    "python-crontab; python_version > '2.7'",
-
+    "python-crontab",
     "python-decouple",
 
     # 20240319 - py3.x - workaround for: AttributeError: 'Client' object has no attribute '_deletetouch': File python3.12/site-packages/django/core/cache/backends/memcached.py, line 202
-    # "python-memcached==1.59; python_version <= '2.7'",
-    # "python-memcached; python_version > '2.7'",
     "python-memcached==1.59",
 
     "pytz",
     "requests",
-
-    # 20240430 - removed. the installation of Shadowsocks service should be handled outside of this project.
-    # 20240417 - workaround for: AttributeError: dlsym(0x8c358790, EVP_CIPHER_CTX_cleanup): symbol not found: File python3.12/site-packages/shadowsocks/crypto/openssl.py, line 52
-    # 20240417 - py3.10+ - workaround for: AttributeError: module 'collections' has no attribute 'MutableMapping': File python3.12/site-packages/shadowsocks/lru_cache.py, line 34
-    # "shadowsocks",
-    # "shadowsocks-alexforks",
-
-    # required by dns-lexicon[full]
-    # 20240526 - py2.7 - workaround for: ERROR: Could not find a version that satisfies the requirement prettytable>=2.0.0
-    "Softlayer==5.8.0; python_version <= '2.7'",
-    "Softlayer; python_version > '2.7'",
-
     "tldextract",
     "uWSGI",
 ]
 optional-dependencies.test = [
-    "mock; python_version <= '2.7'",
-    "coverage[toml]; python_version >= '2.7' and python_version < '3.11'",
+    "coverage[toml]; python_version < '3.11'",
     "coverage; python_version >= '3.11'",
 ]
 optional-dependencies.release = [
@@ -121,15 +78,13 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python",
-    "Programming Language :: Python :: 2",
-    "Programming Language :: Python :: 2.7",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Internet :: Proxy Servers",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
