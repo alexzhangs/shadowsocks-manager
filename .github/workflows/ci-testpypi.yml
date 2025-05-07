@@ -126,39 +126,3 @@ jobs:
           retry_on: error
           command: |
             pip install --no-build-isolation --no-deps --no-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
-
-  testpypi-py2-install:
-    runs-on: ubuntu-latest
-    needs: testpypi-py3-build-and-upload
-    container:
-      image: python:2.7
-    env:
-      NEW_VERSION: ${{ needs.testpypi-py3-build-and-upload.outputs.NEW_VERSION }}
-    steps:
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install setuptools wheel
-      - name: Install from binary distribution
-        env:
-          PIP_INDEX_URL: https://test.pypi.org/simple/
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 6
-          max_attempts: 3
-          retry_on: error
-          command: |
-            pip install --no-deps --only-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
-      - name: Clean up for install source distribution
-        run: |
-          pip uninstall -y ${{ env.PROJECT_NAME_FOR_TESTPYPI }}
-      - name: Install from source distribution with setuptools and wheel required
-        env:
-          PIP_INDEX_URL: https://test.pypi.org/simple/
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 3
-          retry_on: error
-          command: |
-            pip install --no-build-isolation --no-deps --no-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}

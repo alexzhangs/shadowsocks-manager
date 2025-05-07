@@ -112,35 +112,3 @@ jobs:
           retry_on: error
           command: |
             pip install --use-pep517 --no-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
-
-  pypi-py2-install:
-    runs-on: ubuntu-latest
-    needs: pypi-py3-build-and-upload
-    container:
-      image: python:2.7
-    env:
-      NEW_VERSION: ${{ needs.pypi-py3-build-and-upload.outputs.NEW_VERSION }}
-    steps:
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install setuptools wheel
-      - name: Install from binary distribution
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 6
-          max_attempts: 3
-          retry_on: error
-          command: |
-            pip install --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
-      - name: Clean up for installing source distribution
-        run: |
-          pip list --exclude pip --exclude setuptools --exclude wheel | awk 'NR>2 {print $1}' | xargs pip uninstall -y
-      - name: Install from source distribution with setuptools and wheel required
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 3
-          retry_on: error
-          command: |
-            pip install --no-build-isolation --no-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
