@@ -30,7 +30,7 @@
 # For more information, please refer to the project repository:
 #   https://github.com/alexzhangs/shadowsocks-manager
 #
-FROM python:slim
+FROM python:3.12-slim
 
 ENV DIST slim
 
