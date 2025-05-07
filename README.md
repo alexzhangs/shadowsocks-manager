@@ -317,10 +317,10 @@ The development of this project requires Python 3.x.
 
 1. Upload the coverage report to codecov
 
-    Make sure the `CODECOV_TOKEN` is exported in the environment before uploading.
+    Make sure the `CODECOV_TOKEN_SSM` is exported in the environment before uploading.
 
     ```sh
-    export CODECOV_TOKEN=codecov_token
+    export CODECOV_TOKEN_SSM=codecov_token
     tox run -qe codecov
     ```
 
@@ -339,7 +339,7 @@ The development of this project requires Python 3.x.
     act --list
 
     export GITHUB_PAT_PUB_RO=github_pat
-    export CODECOV_TOKEN=codecov_token
+    export CODECOV_TOKEN_SSM=codecov_token
     export PRIVATE_IP=$(ipconfig getifaddr en0 2>/dev/null || hostname -i | cut -d " " -f1 2>/dev/null)
 
     tox run -qe act-ci-unittest

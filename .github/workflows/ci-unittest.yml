@@ -114,5 +114,5 @@ jobs:
       - name: Upload coverage report to Codecov
         continue-on-error: true  # codecov uploader occasionally fails, e.g.: upstream request timeout
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_TOKEN_SSM: ${{ secrets.CODECOV_TOKEN }}
         run: tox run -e codecov
