@@ -157,12 +157,6 @@ replace = 'version = "{new_version}"'
 regex = true
 
 [[tool.bumpversion.files]]
-filename = "setup.cfg"
-search = '^version = {current_version}$'
-replace = 'version = {new_version}'
-regex = true
-
-[[tool.bumpversion.files]]
 filename = "shadowsocks_manager/shadowsocks_manager/__init__.py"
 search = '^__version__ = "{current_version}"$'
 replace = '__version__ = "{new_version}"'
