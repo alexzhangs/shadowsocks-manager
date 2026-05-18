@@ -80,6 +80,18 @@ jobs:
           undotted_py_version=$(echo "${{ matrix.python-version }}" | tr -d .)
           echo "UNDOTTED_PY_VERSION=${undotted_py_version}" >> $GITHUB_ENV
           tox run -e "py${undotted_py_version}"
+      - name: Debug coverage files
+        if: always()
+        run: |
+          echo "::group::env"
+          env | grep -i -E 'cov|tox' || true
+          echo "::endgroup::"
+          echo "::group::ls .tox"
+          ls -la .tox/ || true
+          echo "::endgroup::"
+          echo "::group::find .coverage"
+          find . -name '.coverage*' -not -path '*/.tox/py*/lib/*' 2>/dev/null || true
+          echo "::endgroup::"
       - name: Upload coverage data as artifact
         uses: actions/upload-artifact@v4
         with:
