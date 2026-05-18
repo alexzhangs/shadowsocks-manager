@@ -1,7 +1,7 @@
 name: ci-pypi
 
 # This workflow bumps the version of the package (do commit and tag),
-# builds and uploads the package to PyPI, tests the installation under py3 and py2 from PyPI,
+# builds and uploads the package to PyPI, tests the installation under py3 from PyPI,
 # and pushes the commit and tag to the branch `master`.
 #
 # This workflow is triggered by:

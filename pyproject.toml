@@ -128,12 +128,12 @@ parse = """
     (?P<minor>\\d+)\\.
     (?P<patch>\\d+)
     (
-        \\-                         # separator
+        \\.post                     # PEP 440 post-release marker
         (?P<suffix>[0-9]\\d*)       # suffix Number
     )?                              # suffix is optional
 """
 serialize = [
-    "{major}.{minor}.{patch}-{suffix}",
+    "{major}.{minor}.{patch}.post{suffix}",
     "{major}.{minor}.{patch}",
 ]
 search = "{current_version}"

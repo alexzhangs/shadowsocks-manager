@@ -64,16 +64,16 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install build twine
+          pip install build twine bump-my-version
       - name: Update project name to avoid naming conflict in TestPyPI
         run: |
           sed -i 's/^name = .*/name = "${{ env.PROJECT_NAME_FOR_TESTPYPI }}"/' pyproject.toml
-      - name: Set a unique PEP 440 version for TestPyPI upload
+      - name: Bump version without commit and tag
         id: bump-version
         run: |
-          current_version=$(sed -nE 's/^version = "([^"]+)"$/\1/p' pyproject.toml | head -n1)
+          current_version=$(bump-my-version show current_version)
           new_version="${current_version}.dev$(date +%Y%m%d%H%M%S)"
-          sed -i -E "s/^version = \"${current_version}\"$/version = \"${new_version}\"/" pyproject.toml
+          bump-my-version replace --current-version "${current_version}" --new-version "${new_version}"
           echo "NEW_VERSION=${new_version}" >> $GITHUB_OUTPUT
       - name: Build source and binary distributions
         run: python -m build
