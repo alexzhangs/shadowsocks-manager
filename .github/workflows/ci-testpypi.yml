@@ -68,12 +68,16 @@ jobs:
       - name: Update project name to avoid naming conflict in TestPyPI
         run: |
           sed -i 's/^name = .*/name = "${{ env.PROJECT_NAME_FOR_TESTPYPI }}"/' pyproject.toml
-      - name: Bump version without commit and tag
+      - name: Bump to a unique PEP 440 dev version without commit and tag
         id: bump-version
         run: |
+          # bump-my-version's parse regex only models stable + post-releases,
+          # so it silently no-ops on a PEP 440 .devN new-version. Use sed
+          # directly for this disposable per-run snapshot version.
           current_version=$(bump-my-version show current_version)
           new_version="${current_version}.dev$(date +%Y%m%d%H%M%S)"
-          bump-my-version replace --current-version "${current_version}" --new-version "${new_version}"
+          sed -i -E "s/^version = \"${current_version}\"$/version = \"${new_version}\"/" pyproject.toml
+          sed -i -E "s/^__version__ = \"${current_version}\"$/__version__ = \"${new_version}\"/" shadowsocks_manager/shadowsocks_manager/__init__.py
           echo "NEW_VERSION=${new_version}" >> $GITHUB_OUTPUT
       - name: Build source and binary distributions
         run: python -m build
