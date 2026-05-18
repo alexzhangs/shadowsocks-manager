@@ -2,7 +2,7 @@ name: ci-testpypi
 
 # This workflow bumps the version of the package (without commit and tag), 
 # builds and uploads the package to TestPyPI,
-# and tests the installation under py3 and py2 from TestPyPI.
+# and tests the installation under py3 from TestPyPI.
 #
 # This workflow is triggered by:
 #   - a manual trigger
@@ -64,17 +64,17 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install build twine bump-my-version
+          pip install build twine
       - name: Update project name to avoid naming conflict in TestPyPI
         run: |
           sed -i 's/^name = .*/name = "${{ env.PROJECT_NAME_FOR_TESTPYPI }}"/' pyproject.toml
-      - name: Bump version without commit and tag
+      - name: Set a unique PEP 440 version for TestPyPI upload
         id: bump-version
         run: |
-          current_version=$(bump-my-version show-bump | awk 'NR==1 {print $1}')
-          new_versoin="${current_version}-$(date +%Y%m%d%H%M%S)"
-          bump-my-version bump --verbose --no-commit --no-tag --new-version "${new_versoin}" suffix
-          echo "NEW_VERSION=${new_versoin}" >> $GITHUB_OUTPUT
+          current_version=$(sed -nE 's/^version = "([^"]+)"$/\1/p' pyproject.toml | head -n1)
+          new_version="${current_version}.dev$(date +%Y%m%d%H%M%S)"
+          sed -i -E "s/^version = \"${current_version}\"$/version = \"${new_version}\"/" pyproject.toml
+          echo "NEW_VERSION=${new_version}" >> $GITHUB_OUTPUT
       - name: Build source and binary distributions
         run: python -m build
       - name: Upload to TestPyPI
