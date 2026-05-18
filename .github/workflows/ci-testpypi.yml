@@ -2,7 +2,7 @@ name: ci-testpypi
 
 # This workflow bumps the version of the package (without commit and tag), 
 # builds and uploads the package to TestPyPI,
-# and tests the installation under py3 and py2 from TestPyPI.
+# and tests the installation under py3 from TestPyPI.
 #
 # This workflow is triggered by:
 #   - a manual trigger
@@ -68,13 +68,17 @@ jobs:
       - name: Update project name to avoid naming conflict in TestPyPI
         run: |
           sed -i 's/^name = .*/name = "${{ env.PROJECT_NAME_FOR_TESTPYPI }}"/' pyproject.toml
-      - name: Bump version without commit and tag
+      - name: Bump to a unique PEP 440 dev version without commit and tag
         id: bump-version
         run: |
-          current_version=$(bump-my-version show-bump | awk 'NR==1 {print $1}')
-          new_versoin="${current_version}-$(date +%Y%m%d%H%M%S)"
-          bump-my-version bump --verbose --no-commit --no-tag --new-version "${new_versoin}" suffix
-          echo "NEW_VERSION=${new_versoin}" >> $GITHUB_OUTPUT
+          # bump-my-version's parse regex only models stable + post-releases,
+          # so it silently no-ops on a PEP 440 .devN new-version. Use sed
+          # directly for this disposable per-run snapshot version.
+          current_version=$(bump-my-version show current_version)
+          new_version="${current_version}.dev$(date +%Y%m%d%H%M%S)"
+          sed -i -E "s/^version = \"${current_version}\"$/version = \"${new_version}\"/" pyproject.toml
+          sed -i -E "s/^__version__ = \"${current_version}\"$/__version__ = \"${new_version}\"/" shadowsocks_manager/shadowsocks_manager/__init__.py
+          echo "NEW_VERSION=${new_version}" >> $GITHUB_OUTPUT
       - name: Build source and binary distributions
         run: python -m build
       - name: Upload to TestPyPI

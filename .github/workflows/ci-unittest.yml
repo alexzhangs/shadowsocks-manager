@@ -85,6 +85,7 @@ jobs:
         with:
           name: coverage-py${{ env.UNDOTTED_PY_VERSION }}
           path: .tox/.coverage.py${{ env.UNDOTTED_PY_VERSION }}*
+          include-hidden-files: true
 
   codecov:
     runs-on: ubuntu-latest
