@@ -45,8 +45,8 @@ jobs:
           tags: |
             ${{ vars.DOCKERHUB_USERNAME }}/shadowsocks-manager:${{ matrix.dist }}-latest
             ${{ vars.DOCKERHUB_USERNAME }}/shadowsocks-manager:${{ matrix.dist }}-${{ env.VERSION }}
-            ${{ matrix.dist == 'alpine' && format('{0}/shadowsocks-manager:latest', vars.DOCKERHUB_USERNAME) || null }}
-            ${{ matrix.dist == 'alpine' && format('{0}/shadowsocks-manager:{1}', vars.DOCKERHUB_USERNAME, env.VERSION) || null }}
+            ${{ matrix.dist == 'slim' && format('{0}/shadowsocks-manager:latest', vars.DOCKERHUB_USERNAME) || null }}
+            ${{ matrix.dist == 'slim' && format('{0}/shadowsocks-manager:{1}', vars.DOCKERHUB_USERNAME, env.VERSION) || null }}
           platforms: linux/amd64,linux/arm64
 
   tag-commit:
