@@ -118,7 +118,7 @@ function main () {
 
     echo "Running $rabbitmq_container_name ..."
     # run rabbitmq, used by celery
-    docker run --restart=always -d --network "$ssm_network_name" --name "$rabbitmq_container_name" rabbitmq
+    docker run --restart=always -d --network "$ssm_network_name" --name "$rabbitmq_container_name" rabbitmq:3.13
 
     # run shadowsocks-manager
     echo "Running $ssm_container_name ..."
