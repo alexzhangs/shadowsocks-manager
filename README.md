@@ -79,7 +79,9 @@ docker network create ssm-network
 docker run -d --network ssm-network --name ssm-memcached memcached
 
 # run rabbitmq, used by celery
-docker run -d --network ssm-network --name ssm-rabbitmq rabbitmq
+# pin to 3.13 — rabbitmq 4.x rejects the deprecated `transient_nonexcl_queues`
+# AMQP feature that Celery 5.x still uses
+docker run -d --network ssm-network --name ssm-rabbitmq rabbitmq:3.13
 
 # create a directory to store the data, it will be mounted to the shadowsocks-manager container
 mkdir -p ~/ssm-volume
