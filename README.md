@@ -422,20 +422,43 @@ The CI/CD workflows are defined in the `.github/workflows` directory.
     docker logs <container_id>
     ```
 
-1. Check the logs (inside container)
+1. Check the logs
+
+    Per-program output from uwsgi, celery worker, and celery beat is routed
+    to the container's stdout (`stdout_logfile=/dev/fd/1` in the supervisord
+    confs). Read them from the host via `docker logs`:
 
     ```
-    # supervisor (debian)
-    cat /var/log/supervisor/supervisord.log 
+    # all programs interleaved, last 200 lines
+    docker logs --tail 200 ssm-${SSM_VERSION}
+
+    # follow live
+    docker logs --follow ssm-${SSM_VERSION}
+
+    # only last 5 minutes
+    docker logs --since 5m ssm-${SSM_VERSION}
+
+    # filter by program prefix (supervisord emits lines like
+    # "ssm-celery-worker: ..." for each program)
+    docker logs ssm-${SSM_VERSION} 2>&1 | grep '^ssm-celery-worker'
+    ```
+
+    Supervisord's own log still lives inside the container:
+
+    ```
+    # supervisor (debian / slim)
+    docker exec ssm-${SSM_VERSION} cat /var/log/supervisor/supervisord.log
 
     # supervisor (alpine)
-    cat /var/log/supervisord.log
+    docker exec ssm-${SSM_VERSION} cat /var/log/supervisord.log
+    ```
 
-    # uWSGI
-    cat /var/log/ssm-uwsgi.log
+    Note: docker's log driver controls retention. By default it's
+    unbounded — set the daemon-level rotation policy in
+    `/etc/docker/daemon.json` to cap it, e.g.:
 
-    # Celery
-    cat /var/log/ssm-cerlery*
+    ```json
+    {"log-driver":"json-file","log-opts":{"max-size":"50m","max-file":"3"}}
     ```
 
 1. Check the services (inside container)
