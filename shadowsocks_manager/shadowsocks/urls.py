@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-from django.conf.urls import url, include
+from django.urls import re_path, include
 from rest_framework import routers
 
 from . import views
@@ -16,5 +16,5 @@ router.register(r'shadowsocks/nodeaccount', views.NodeAccountViewSet)
 router.register(r'shadowsocks/ssmanager', views.SSManagerViewSet)
 
 urlpatterns = [
-    url(r'^', include(router.urls)),
+    re_path(r'^', include(router.urls)),
 ]
