@@ -276,8 +276,8 @@ The development of this project requires Python 3.x.
 1. Bootstrap the tox environment
 
     ```sh
-    pyenv install 3.12
-    pyenv virtualenv 3.12 tox
+    pyenv install 3.14
+    pyenv virtualenv 3.14 tox
     pyenv activate tox
     pip install -r tox.txt
     export VIRTUALENV_DISCOVERY=pyenv
@@ -287,7 +287,7 @@ The development of this project requires Python 3.x.
 1. Install the Python versions that the project should test against
 
     ```sh
-    pyenv install 3.8 3.9 3.10 3.11
+    pyenv install 3.8 3.9 3.10 3.11 3.12 3.13 3.14
     ```
 
 1. Clone the project code
@@ -306,7 +306,7 @@ The development of this project requires Python 3.x.
 1. Run the unit tests against all the supported Python versions
 
     ```sh
-    tox run -qe py38,py39,py310,py311,py312,py313
+    tox run -qe py38,py39,py310,py311,py312,py313,py314
     ```
 
 1. Combine the coverage data and generate the report
@@ -345,7 +345,7 @@ The development of this project requires Python 3.x.
     tox run -qe act-ci-unittest
 
     # multiple Python versions
-    tox run -qe act-ci-unittest -- --matrix python-version:3.11 --matrix python-version:3.12
+    tox run -qe act-ci-unittest -- --matrix python-version:3.13 --matrix python-version:3.14
     ```
 
 1. Build the Docker images and run the containers
