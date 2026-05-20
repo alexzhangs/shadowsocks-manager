@@ -680,7 +680,7 @@ class ManagementCommandTestCase(AppTestCase):
         self.assertEqual(models.Config.load().cache_timeout, 99)
 
 
-class NodeOriginalSnapshotTestCase(BaseTestCase):
+class NodeOriginalSnapshotTestCase(AppTestCase):
     """
     Regression tests for the `_original_*` field-snapshot tracking on the
     Node model.
