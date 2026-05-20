@@ -223,8 +223,29 @@ class Node(StatisticMethod):
 
     def __init__(self, *args, **kwargs):
         super(Node, self).__init__(*args, **kwargs)
+        self._snapshot_original()
+
+    def _snapshot_original(self):
+        """
+        Capture the current field values as the "original" reference state
+        so subsequent save()s can detect what changed.
+
+        Called at __init__ time (so freshly-loaded instances reflect DB state)
+        AND after every save() (so a second save() on the SAME in-memory
+        instance correctly compares against the just-written values, not
+        the original-construction values).
+
+        Without the post-save snapshot, the toggle-twice pattern in
+        Node.change_ips_softly() silently fails to cascade the second toggle
+        to NodeAccount.is_active — see the AIVIEW deployment's
+        NOTES/vpn-rotation-night-1-postmortem.md for the full trace.
+        """
         self._original_is_active = self.is_active
         self._original_public_ip = self.public_ip
+
+    def save(self, *args, **kwargs):
+        super(Node, self).save(*args, **kwargs)
+        self._snapshot_original()
 
     def __str__(self):
         return self.name
