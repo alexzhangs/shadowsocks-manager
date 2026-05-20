@@ -678,3 +678,125 @@ class ManagementCommandTestCase(AppTestCase):
     def test_cmd_shadowsocks_config_cache_timeout(self):
         call_command('shadowsocks_config', '--cache-timeout', '99')
         self.assertEqual(models.Config.load().cache_timeout, 99)
+
+
+class NodeOriginalSnapshotTestCase(BaseTestCase):
+    """
+    Regression tests for the `_original_*` field-snapshot tracking on the
+    Node model.
+
+    Background: Node.__init__ captures `_original_is_active` and
+    `_original_public_ip` so that `Node.on_update()` can detect "activity
+    changed" and cascade is_active to all NodeAccount rows. Prior to the
+    `save()` override + `_snapshot_original()` helper, the snapshot was
+    only refreshed at __init__ — so a second `save()` on the SAME
+    in-memory instance compared the new value against the *construction-
+    time* original, not the *just-written* DB value. That broke the
+    cascade in `Node.change_ips_softly()` step-5 reactivation when the
+    AWS Config event arrived after the 60s sleep instead of during it,
+    leaving NodeAccount rows permanently inactive after a rotation.
+    """
+
+    def _make_account(self, username='9001'):
+        return models.Account.objects.create(
+            username=username,
+            password='unit-test-pw',
+            is_active=True,
+        )
+
+    def _make_node(self, name='unit-test-node'):
+        # Use a public_ip that won't accidentally hit a real service.
+        return models.Node.objects.create(
+            name=name,
+            public_ip='192.0.2.1',  # TEST-NET-1, RFC 5737
+            private_ip='10.255.255.255',
+            location='Unit Test',
+            sns_endpoint='arn:aws:sns:ap-northeast-1:0:topic',
+            sns_access_key='mock',
+            sns_secret_key='mock',
+            is_active=True,
+        )
+
+    def test_node_init_snapshots_original(self):
+        """After loading a Node from DB, _original_* mirrors stored values."""
+        n = self._make_node()
+        loaded = models.Node.objects.get(pk=n.pk)
+        self.assertEqual(loaded._original_is_active, loaded.is_active)
+        self.assertEqual(loaded._original_public_ip, loaded.public_ip)
+
+    def test_node_save_refreshes_snapshot(self):
+        """After save(), _original_* must reflect the just-written values, not
+        the construction-time values. This is the core invariant the fix adds."""
+        n = self._make_node()
+        # Modify both tracked fields and save.
+        n.is_active = False
+        n.public_ip = '192.0.2.2'
+        n.save()
+        self.assertEqual(n._original_is_active, False,
+            '_original_is_active should be refreshed to the just-saved value')
+        self.assertEqual(n._original_public_ip, '192.0.2.2',
+            '_original_public_ip should be refreshed to the just-saved value')
+
+    def test_node_toggle_twice_on_same_instance_cascades_to_nodeaccount(self):
+        """The regression test for the change_ips_softly bug.
+
+        Toggling Node.is_active twice on the SAME in-memory instance must
+        cascade NodeAccount.is_active twice — once OFF, once back ON. The
+        bug pre-fix was that the second toggle's on_update() compared
+        against a stale construction-time _original and skipped the cascade.
+        """
+        node = self._make_node()
+        account = self._make_account('9001')
+        na = models.NodeAccount.objects.create(node=node, account=account, is_active=True)
+
+        # Step 1: simulate `node.toggle_active()` → deactivate.
+        node.is_active = False
+        node.save()
+        na.refresh_from_db()
+        self.assertFalse(na.is_active,
+            'first toggle should cascade NodeAccount.is_active to False')
+
+        # Step 2: simulate `node.toggle_active()` → reactivate, on the SAME instance.
+        node.is_active = True
+        node.save()
+        na.refresh_from_db()
+        self.assertTrue(na.is_active,
+            'second toggle on the same instance must also cascade — '
+            'this is the change_ips_softly regression we are guarding against')
+
+    def test_node_toggle_twice_respects_account_is_active(self):
+        """Cascade computes `new = node.is_active AND account.is_active`.
+        When the account is inactive, NodeAccount stays False even after
+        toggling the node back to active.
+        """
+        node = self._make_node()
+        account = self._make_account('9002')
+        account.is_active = False
+        account.save()
+        na = models.NodeAccount.objects.create(node=node, account=account, is_active=False)
+
+        node.is_active = False
+        node.save()
+        na.refresh_from_db()
+        self.assertFalse(na.is_active)
+
+        node.is_active = True
+        node.save()
+        na.refresh_from_db()
+        self.assertFalse(na.is_active,
+            'reactivating the node should NOT reactivate NodeAccount '
+            'when the underlying Account is inactive')
+
+    def test_node_no_change_no_cascade(self):
+        """Saving without changing is_active should not flip the
+        NodeAccount cascade (no spurious post_save side effects)."""
+        node = self._make_node()
+        account = self._make_account('9003')
+        na = models.NodeAccount.objects.create(node=node, account=account, is_active=True)
+
+        # Save with no change to is_active.
+        node.public_ip = '192.0.2.3'
+        node.save()
+        na.refresh_from_db()
+        self.assertTrue(na.is_active,
+            'a save that does not flip is_active should leave NodeAccount untouched')
