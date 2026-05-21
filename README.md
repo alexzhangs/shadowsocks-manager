@@ -7,7 +7,7 @@
 [![GitHub Actions - CI Unit test](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-unittest.yml/badge.svg)](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-unittest.yml)
 [![GitHub Actions - CI TestPyPI](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-testpypi.yml/badge.svg)](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-testpypi.yml)
 [![GitHub Actions - CI PyPI](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-pypi.yml/badge.svg)](https://github.com/alexzhangs/shadowsocks-manager/actions/workflows/ci-pypi.yml)
-[![PyPI Package Version](https://badge.fury.io/py/shadowsocks-manager.svg)](https://pypi.org/project/shadowsocks-manager/)
+[![PyPI Package Version](https://img.shields.io/pypi/v/shadowsocks-manager.svg)](https://pypi.org/project/shadowsocks-manager/)
 [![codecov](https://codecov.io/gh/alexzhangs/shadowsocks-manager/graph/badge.svg?token=KTI3TNRKAV)](https://codecov.io/gh/alexzhangs/shadowsocks-manager)
 [![CodeFactor](https://www.codefactor.io/repository/github/alexzhangs/shadowsocks-manager/badge)](https://www.codefactor.io/repository/github/alexzhangs/shadowsocks-manager)
 
