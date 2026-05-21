@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "shadowsocks-manager"
-version = "0.1.17"
+version = "0.1.20"
 requires-python = ">=3.8"
 dependencies = [
     "future",
@@ -123,7 +123,7 @@ shadowsocks_manager = ["**/fixtures/*"]
 universal = true
 
 [tool.bumpversion]
-current_version = "0.1.17"
+current_version = "0.1.20"
 parse = """
     (?P<major>\\d+)\\.
     (?P<minor>\\d+)\\.

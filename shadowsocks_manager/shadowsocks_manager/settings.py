@@ -13,8 +13,21 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
 
+import sys
 import os
 from decouple import Config, RepositoryEnv
+
+# Django 3.2's BaseContext.__copy__ uses copy(super()), which breaks on Python 3.14+
+# because super() objects no longer have __dict__. Patch it before any template rendering.
+# Remove once Django is upgraded to 4.2+ (tracked in PR #42).
+if sys.version_info >= (3, 14):
+    from django.template.context import BaseContext
+    def _patched_base_context_copy(self):
+        duplicate = self.__class__.__new__(self.__class__)
+        duplicate.__dict__ = self.__dict__.copy()
+        duplicate.dicts = self.dicts[:]
+        return duplicate
+    BaseContext.__copy__ = _patched_base_context_copy
 
 from utils.version import get_version
 
