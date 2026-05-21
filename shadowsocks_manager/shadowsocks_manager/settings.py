@@ -84,12 +84,35 @@ ALLOWED_SITES_NET_TIMEOUT = config('SSM_ALLOWED_SITES_NET_TIMEOUT', default=5, c
 ALLOWED_SITES_CACHE_TIMEOUT = config('SSM_ALLOWED_SITES_CACHE_TIMEOUT', default=180, cast=int)
 
 from allowedsites import CachedAllowedSites
-ALLOWED_HOSTS = CachedAllowedSites(
+
+
+# Django 5 enforces isinstance(ALLOWED_HOSTS, (list, tuple)) at settings-load
+# time. CachedAllowedSites provides __contains__/__iter__ (which is all the
+# host-matching logic in HttpRequest.validate_host() actually uses) but is not
+# a list/tuple subclass, so Django 5 rejects it outright.
+#
+# Wrap it in a list subclass so the isinstance check passes while preserving
+# dynamic host resolution via the wrapped object's __contains__.
+class _DynamicAllowedHosts(list):
+    def __init__(self, inner):
+        super().__init__()
+        self._inner = inner
+    def __contains__(self, item):
+        return item in self._inner
+    def __iter__(self):
+        return iter(self._inner)
+    def __bool__(self):
+        return True
+    def __repr__(self):
+        return f"_DynamicAllowedHosts({self._inner!r})"
+
+
+ALLOWED_HOSTS = _DynamicAllowedHosts(CachedAllowedSites(
     defaults=ALLOWED_SITES_DEFAULTS.union(ALLOWED_SITES_DEFAULTS_PLUS),
     dynamic_public_ip=ALLOWED_SITES_DYNAMIC_PUBLIC_IP,
     net_timeout=ALLOWED_SITES_NET_TIMEOUT,
     cache_timeout=ALLOWED_SITES_CACHE_TIMEOUT,
-)
+))
 
 # set the SITE_ID, make sure there's a fixture for the site
 SITE_ID = 1
