@@ -111,6 +111,25 @@ class VersionTestCase(TestCase):
         mock_get_buildno.return_value = ''
         self.assertEqual(get_version(full=True), 'v{}'.format(__version__))
 
+    def test_version_set_buildno_none(self):
+        with tempfile.NamedTemporaryFile(mode='w+', suffix='.py', delete=True) as f:
+            f.write('__build__ = "old"\n')
+            f.flush()
+            set_buildno(None, f.name)
+            f.seek(0)
+            self.assertIn('__build__ = ""', f.read())
+
+    def test_version_set_buildno_key_not_found(self):
+        with tempfile.NamedTemporaryFile(mode='w+', suffix='.py', delete=True) as f:
+            f.write('__version__ = "1.0.0"\n')
+            f.flush()
+            result = set_buildno('abc', f.name)
+            self.assertFalse(result)
+
+    @patch('subprocess.check_output', side_effect=Exception('git not found'))
+    def test_version_get_buildno_exception(self, mock_check_output):
+        self.assertEqual(get_buildno(), '')
+
 
 class ManagementCommandsTestCase(TestCase):
     password = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(12))
@@ -218,6 +237,27 @@ class ScriptTestCase(TestCase):
         output, error = result.communicate()
         self.assertFalse(error)
         self.assertEqual(result.returncode, 0)
+
+    def test_script_dotenv_new_key(self):
+        result = subprocess.Popen(self.script_runner + ['shadowsocks_manager/utils/dotenv.py', '-w', 'SSM_PROBE_KEY=probevalue'],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        output, error = result.communicate()
+        self.assertFalse(error)
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('Added', output)
+
+        result = subprocess.Popen(self.script_runner + ['shadowsocks_manager/utils/dotenv.py'],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        output, error = result.communicate()
+        self.assertFalse(error)
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('SSM_PROBE_KEY=probevalue', output)
+
+    def test_script_dotenv_invalid_format(self):
+        result = subprocess.Popen(self.script_runner + ['shadowsocks_manager/utils/dotenv.py', '-w', 'NOKEYVALUE'],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        output, error = result.communicate()
+        self.assertNotEqual(result.returncode, 0)
 
     def test_script_celery(self):
         result = subprocess.Popen(self.script_runner + ['shadowsocks_manager/utils/celery_app.py', '--version'],

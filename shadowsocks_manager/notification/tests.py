@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import json
 from abc import abstractmethod
 from django.test import TestCase
+from unittest.mock import patch, MagicMock, PropertyMock
 
 from notification import models, serializers
 
@@ -93,3 +94,27 @@ class NotificationTestCase(AppTestCase):
     def test_notify_sendmail(self):
         message='Subject: shadowsocks test email\r\nTo: nobody@localhost\r\ndelete me.'
         self.assertTrue(models.Notify.sendmail(message, 'No Reply', 'noreply@localost'))
+
+    def test_template_str(self):
+        obj = models.Template.objects.first()
+        self.assertEqual(str(obj), obj.type)
+
+    def test_template_render(self):
+        obj = models.Template.objects.first()
+        result = obj.render({})
+        self.assertIsInstance(result, str)
+
+    def test_template_render_falsy_template(self):
+        obj = models.Template.objects.first()
+        with patch.object(models.Template, 'template', new_callable=PropertyMock) as mock_tmpl:
+            mock_tmpl.return_value = None
+            with self.assertRaises(RuntimeError):
+                obj.render({})
+
+    def test_notify_sendmail_failure(self):
+        mock_proc = MagicMock()
+        mock_proc.communicate.return_value = (b'', b'error')
+        mock_proc.wait.return_value = 1
+        with patch('notification.models.subprocess.Popen', return_value=mock_proc):
+            result = models.Notify.sendmail('Subject: test\r\n', 'No Reply', 'noreply@localhost')
+        self.assertFalse(result)

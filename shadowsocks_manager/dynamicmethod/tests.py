@@ -70,3 +70,21 @@ class DynamicMethodModelTestCase(TestCase):
         self.assertFalse(hasattr(obj, 'pet_duck'))
         self.assertEqual(obj.pet_dog(), 'woof')
         self.assertEqual(obj.pet_cat(), 'meow')
+
+    def test_create_method_syntax_error(self):
+        obj = PetStore()
+        result = obj.create_method(data='def bad(self: return', name='bad_method')
+        self.assertIsNone(result)
+
+    def test_create_method_non_string_non_code(self):
+        obj = PetStore()
+        result = obj.create_method(data=42, name='bad_method')
+        self.assertIsNone(result)
+
+    def test_create_method_precompiled_code(self):
+        import textwrap
+        import types
+        code = compile(textwrap.dedent('def pet_fish(self): return "blub"').strip(), '<stdin>', 'exec')
+        obj = PetStore()
+        obj.create_method(data=code, name='pet_fish')
+        self.assertEqual(obj.pet_fish(), 'blub')
