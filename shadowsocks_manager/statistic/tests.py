@@ -84,6 +84,27 @@ class PeriodTestCase(AppTestCase):
         obj = serializers.PeriodSerializer()
         json.loads(json.dumps(obj.to_representation(models.Period.objects.first())))
 
+    def test_period_str_total(self):
+        p = models.Period(year=None, month=None)
+        self.assertEqual(str(p), 'Total')
+
+    def test_period_str_yearly(self):
+        p = models.Period(year=2023, month=None)
+        self.assertEqual(str(p), '2023')
+
+    def test_period_term_yearly(self):
+        p = models.Period(year=2023, month=None)
+        self.assertEqual(p.term, 'Yearly')
+
+    def test_period_term_total(self):
+        p = models.Period(year=None, month=None)
+        self.assertEqual(p.term, 'Total')
+
+    def test_period_term_invalid(self):
+        p = models.Period(year=None, month=6)
+        with self.assertRaises(Exception):
+            _ = p.term
+
 
 class StatisticTestCase(AppTestCase):
     @classmethod
@@ -99,3 +120,18 @@ class StatisticTestCase(AppTestCase):
 
     def test_statistic_reset(self):
         models.Statistic.reset()
+
+    def test_statistic_object_type_none(self):
+        period = models.Period(year=None, month=None)
+        stat = models.Statistic(period=period, content_type=None)
+        self.assertEqual(stat.object_type, 'None')
+
+    def test_statistic_object_cls_none(self):
+        period = models.Period(year=None, month=None)
+        stat = models.Statistic(period=period, content_type=None)
+        self.assertIsNone(stat.object_cls)
+
+    def test_statistic_transferred(self):
+        period = models.Period(year=None, month=None)
+        stat = models.Statistic(period=period, transferred_past=100, transferred_live=50)
+        self.assertEqual(stat.transferred, 150)

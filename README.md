@@ -55,8 +55,8 @@ Add Shadowsocks Account:
 
 ## 1. Requirements
 
-* Python 3.8+
-* Django 1.11.x, Django 3.x
+* Python 3.10+
+* Django 5.2 LTS
 * Docker
 * [Shadowsocks-libev 3.2.0 for Linux (multi-user API is required)](https://github.com/shadowsocks/shadowsocks-libev)
 
