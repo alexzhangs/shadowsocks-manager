@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# py2.7 and py3 compatibility imports
-from __future__ import unicode_literals
-import six
-
 import types
 import textwrap
 import logging
@@ -100,7 +96,7 @@ class DynamicMethodModel(object):
                 )
 
     def create_method(self, data, name, decorator=None):
-        if isinstance(data, six.text_type):
+        if isinstance(data, str):
             data = textwrap.dedent(data).strip()
             try:
                 code = compile(data, '<stdin>', 'exec')

@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# py2.7 and py3 compatibility imports
-from __future__ import unicode_literals
 from builtins import bytes
-import six
 
 import logging
 import subprocess
@@ -51,7 +48,7 @@ class Notify(models.Model):
                        "-f", email,
                        "-t"]
 
-        if isinstance(message, six.text_type):
+        if isinstance(message, str):
             message = bytes(message, 'utf-8')
 
         proc = subprocess.Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)

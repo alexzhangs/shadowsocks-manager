@@ -39,11 +39,11 @@ SSM_ALLOWED_SITES_CACHE_TIMEOUT=180
 
 # Django settings, used as:
 #   CACHES.default.backend = django.core.cache.backends.SSM_CACHES_BACKEND
-SSM_CACHES_BACKEND=memcached.MemcachedCache
+SSM_CACHES_BACKEND=memcached.PyMemcacheCache
 
 # Django settings, used as:
 #   CACHES.default.location = SSM_MEMCACHED_HOST:SSM_MEMCACHED_PORT
-# These two environment variables are used only if SSM_CACHES_BACKEND is set to 'memcached.MemcachedCache'
+# These two environment variables are used only if SSM_CACHES_BACKEND is set to 'memcached.PyMemcacheCache'
 SSM_MEMCACHED_HOST=localhost
 SSM_MEMCACHED_PORT=11211
 
@@ -51,3 +51,10 @@ SSM_MEMCACHED_PORT=11211
 #   CELERY_BROKER_URL = amqp://guest:guest@SSM_RABBITMQ_HOST:SSM_RABBITMQ_PORT//
 SSM_RABBITMQ_HOST=localhost
 SSM_RABBITMQ_PORT=5672
+
+# Django 4+ enforces a separate CSRF origin check; set to a comma-separated list of
+# scheme+host(s) for your domain (e.g. https://admin.ss.example.com).
+# SSM_CSRF_TRUSTED_ORIGINS=
+
+# Set to 'disable' if NOT behind a trusted reverse proxy that sets X-Forwarded-Proto.
+# SSM_SECURE_PROXY_SSL_HEADER=HTTP_X_FORWARDED_PROTO,https
