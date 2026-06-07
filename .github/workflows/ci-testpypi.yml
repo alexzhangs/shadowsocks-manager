@@ -108,7 +108,7 @@ jobs:
       - name: Install from binary distribution
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@v4
         with:
           timeout_minutes: 6
           max_attempts: 3
@@ -121,7 +121,7 @@ jobs:
       - name: Install from source distribution with setuptools and wheel required
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
-        uses: nick-invision/retry@v2
+        uses: nick-invision/retry@v4
         with:
           timeout_minutes: 3
           max_attempts: 3
