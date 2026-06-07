@@ -10,14 +10,14 @@ Class-based views
     1. Add an import:  from other_app.views import Home
     2. Add a URL to urlpatterns:  url(r'^$', Home.as_view(), name='home')
 Including another URLconf
-    1. Import the include() function: from django.conf.urls import url, include
+    1. Import the include() function: from django.urls import re_path, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
 
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
 
-from django.conf.urls import url, include
+from django.urls import re_path, include
 from django.contrib import admin
 from django.utils.html import format_html
 from django.conf import settings
@@ -28,10 +28,10 @@ admin.site.site_header = format_html('Shadowsocks Manager Administration <span s
 admin.site.index_title = "Administration"
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    url(r'^', include('notification.urls')),
-    url(r'^', include('shadowsocks.urls')),
-    url(r'^', include('statistic.urls')),
-    url(r'^', include('domain.urls')),
+    re_path(r'^admin/', admin.site.urls),
+    re_path(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    re_path(r'^', include('notification.urls')),
+    re_path(r'^', include('shadowsocks.urls')),
+    re_path(r'^', include('statistic.urls')),
+    re_path(r'^', include('domain.urls')),
 ]

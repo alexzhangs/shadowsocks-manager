@@ -5,13 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "shadowsocks-manager"
 version = "0.1.20"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "future",
     "six",
     "boto3",
     "celery",
-    "Django<4",
+    "Django~=5.2.0",
     "django-admin-easy",
 
     # 20240531 - enhancement and fix
@@ -25,26 +25,27 @@ dependencies = [
     "django-enumfield",
     "django-filter",
 
-    # 20240602 - py3.12 - v4.0.7 - import ERROR: module 'django.utils.formats' has no attribute 'sanitize_strftime_format'
-    # 20240602 - py3.12 - v4.0.0 - export ERROR: AttributeError: 'AccountAdmin' object has no attribute 'search_help_text': File import_export/admin.py, line 670: changelist_kwargs["search_help_text"] = self.search_help_text
-    # "django-import-export",
-    "django-import-export<=3.3.9",
+    # The Django-3.2/py3.12 workaround pin (<=3.3.9) is dropped — Django 5
+    # + django-import-export 4.x fixes both the sanitize_strftime_format
+    # regression and the AccountAdmin.search_help_text ImportExport break.
+    "django-import-export",
 
     "djangorestframework",
     "dns-lexicon[full]",
     "dnspython",
     "docopt",
 
-    # required by django
-    # 20250506 - py3.13 - cgi module is no longer part of the Python standard library. It was removed in Python 3.13.
-    "legacy-cgi; python_version >= '3.13'",
+    # legacy-cgi pin dropped — Django 5 no longer imports the cgi module
+    # from stdlib, so the py3.13 removal of cgi is no longer a concern.
 
     "psutil",
     "python-crontab",
     "python-decouple",
 
-    # 20240319 - py3.x - workaround for: AttributeError: 'Client' object has no attribute '_deletetouch': File python3.12/site-packages/django/core/cache/backends/memcached.py, line 202
-    "python-memcached==1.59",
+    # python-memcached 1.59 pin dropped — Django 5's PyMemcacheCache backend
+    # (django.core.cache.backends.memcached.PyMemcacheCache) is the
+    # recommended driver; settings.py will be switched to it.
+    "pymemcache",
 
     "pytz",
     "requests",
@@ -79,8 +80,6 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
