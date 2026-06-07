@@ -1,6 +1,6 @@
 name: ci-testpypi
 
-# This workflow bumps the version of the package (without commit and tag), 
+# This workflow bumps the version of the package (without commit and tag),
 # builds and uploads the package to TestPyPI,
 # and tests the installation under py3 from TestPyPI.
 #
@@ -34,7 +34,7 @@ jobs:
       RUN_HISTORY: ${{ steps.check-run.outputs.RUN_HISTORY }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Check run history
         id: check-run
         env:
@@ -56,9 +56,9 @@ jobs:
       NEW_VERSION: ${{ steps.bump-version.outputs.NEW_VERSION }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -84,9 +84,9 @@ jobs:
       - name: Upload to TestPyPI
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}        
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_TOKEN }}
         run: twine upload --repository testpypi dist/*
-    
+
   testpypi-py3-install:
     runs-on: ubuntu-latest
     needs: testpypi-py3-build-and-upload
@@ -98,7 +98,7 @@ jobs:
       NEW_VERSION: ${{ needs.testpypi-py3-build-and-upload.outputs.NEW_VERSION }}
     steps:
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -108,23 +108,21 @@ jobs:
       - name: Install from binary distribution
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 6
-          max_attempts: 3
-          retry_on: error
-          command: |
-            pip install --no-deps --only-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
+        run: |
+          for attempt in 1 2 3; do
+            timeout 360 pip install --no-deps --only-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }} && break
+            echo "Attempt $attempt failed"
+            [ $attempt -lt 3 ] && sleep 5 || exit 1
+          done
       - name: Clean up for installing source distribution
         run: |
           pip uninstall -y ${{ env.PROJECT_NAME_FOR_TESTPYPI }}
       - name: Install from source distribution with setuptools and wheel required
         env:
           PIP_INDEX_URL: https://test.pypi.org/simple/
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 3
-          retry_on: error
-          command: |
-            pip install --no-build-isolation --no-deps --no-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }}
+        run: |
+          for attempt in 1 2 3; do
+            timeout 180 pip install --no-build-isolation --no-deps --no-binary ${{ env.PROJECT_NAME_FOR_TESTPYPI }} ${{ env.PROJECT_NAME_FOR_TESTPYPI }}==${{ env.NEW_VERSION }} && break
+            echo "Attempt $attempt failed"
+            [ $attempt -lt 3 ] && sleep 5 || exit 1
+          done
