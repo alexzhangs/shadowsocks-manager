@@ -492,7 +492,11 @@ class NodeAccountTestCase(AppTestCase):
             self.assertEqual(str(obj), obj.__str__())
 
     def test_nodeaccount_on_update_without_ssmanager(self):
-        obj = models.NodeAccount(node=models.Node(), account=models.Account())
+        # Django 5 forbids using unsaved instances as foreign keys. Save a bare
+        # Node (no related SSManager) to preserve the "without ssmanager" intent.
+        node = models.Node.objects.create(name='no-ssmgr-on-update')
+        account = models.Account.objects.first()
+        obj = models.NodeAccount(node=node, account=account)
         obj.on_update()
 
     def test_nodeaccount_on_update_with_ssmanager_inaccessible(self):
@@ -504,7 +508,11 @@ class NodeAccountTestCase(AppTestCase):
                 obj.on_update()
 
     def test_nodeaccount_on_delete_without_ssmanager(self):
-        obj = models.NodeAccount(node=models.Node(), account=models.Account())
+        # Django 5 forbids using unsaved instances as foreign keys. Save a bare
+        # Node (no related SSManager) to preserve the "without ssmanager" intent.
+        node = models.Node.objects.create(name='no-ssmgr-on-delete')
+        account = models.Account.objects.first()
+        obj = models.NodeAccount(node=node, account=account)
         obj.on_delete()
 
     def test_nodeaccount_on_delete_with_ssmanager_inaccessible(self):
@@ -551,7 +559,11 @@ class NodeAccountTestCase(AppTestCase):
                 self.assertTrue(obj.is_created(original=True))
     
     def test_nodeaccount_is_created_negative(self):
-        obj = models.NodeAccount(node=models.Node(), account=models.Account())
+        # Django 5 forbids using unsaved instances as foreign keys. Save a bare
+        # Node (no related SSManager) to preserve the "without ssmanager" intent.
+        node = models.Node.objects.create(name='no-ssmgr-is-created-neg')
+        account = models.Account.objects.first()
+        obj = models.NodeAccount(node=node, account=account)
         self.assertEqual(obj.is_created(), None)
 
     def test_nodeaccount_serializer(self):
@@ -639,8 +651,12 @@ class SSManagerTestCase(AppTestCase):
         self.assertRaises(models.Account.DoesNotExist, obj.get_nodeaccount, 8388)
 
     def test_ssmanager_get_nodeaccount_negative_nodeaccount(self):
+        # Django 5 forbids passing unsaved instances to related filters
+        # (NodeAccount.objects.filter(node=node) inside get_nodeaccount).
+        # Save the Node (no SSManager attached so it has no NodeAccount).
         account = models.Account.objects.first()
-        obj = models.SSManager(node=models.Node())
+        node = models.Node.objects.create(name='no-ssmgr-get-na-neg')
+        obj = models.SSManager(node=node)
         self.assertRaises(models.NodeAccount.DoesNotExist, obj.get_nodeaccount, account.username)
 
     def test_ssmanager_cache(self):

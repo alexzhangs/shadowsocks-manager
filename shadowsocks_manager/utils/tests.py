@@ -19,6 +19,7 @@ except ImportError:
 
 from utils.viewsets import CompatModelViewSet
 from utils.version import __version__, __build__, set_buildno, get_buildno, get_version
+from shadowsocks_manager.settings import _DynamicAllowedHosts
 
 import logging
 # Get a logger for this django app
@@ -297,3 +298,25 @@ class ScriptTestCase(TestCase):
         self.assertFalse(error)
         self.assertEqual(result.returncode, 0)
         self.assertEqual(output.strip('\n'), get_buildno())
+
+
+class DynamicAllowedHostsTestCase(TestCase):
+    def setUp(self):
+        self.inner = ['example.com', '127.0.0.1']
+        self.hosts = _DynamicAllowedHosts(self.inner)
+
+    def test_contains_positive(self):
+        self.assertIn('example.com', self.hosts)
+
+    def test_contains_negative(self):
+        self.assertNotIn('notvalid.net', self.hosts)
+
+    def test_iter(self):
+        self.assertEqual(sorted(self.hosts), sorted(self.inner))
+
+    def test_bool_is_always_true(self):
+        self.assertTrue(bool(self.hosts))
+        self.assertTrue(bool(_DynamicAllowedHosts([])))
+
+    def test_repr(self):
+        self.assertIn('_DynamicAllowedHosts', repr(self.hosts))

@@ -13,21 +13,8 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 # py2.7 and py3 compatibility imports
 from __future__ import unicode_literals
 
-import sys
 import os
 from decouple import Config, RepositoryEnv
-
-# Django 3.2's BaseContext.__copy__ uses copy(super()), which breaks on Python 3.14+
-# because super() objects no longer have __dict__. Patch it before any template rendering.
-# Remove once Django is upgraded to 4.2+ (tracked in PR #42).
-if sys.version_info >= (3, 14):
-    from django.template.context import BaseContext
-    def _patched_base_context_copy(self):
-        duplicate = self.__class__.__new__(self.__class__)
-        duplicate.__dict__ = self.__dict__.copy()
-        duplicate.dicts = self.dicts[:]
-        return duplicate
-    BaseContext.__copy__ = _patched_base_context_copy
 
 from utils.version import get_version
 
@@ -84,15 +71,73 @@ ALLOWED_SITES_NET_TIMEOUT = config('SSM_ALLOWED_SITES_NET_TIMEOUT', default=5, c
 ALLOWED_SITES_CACHE_TIMEOUT = config('SSM_ALLOWED_SITES_CACHE_TIMEOUT', default=180, cast=int)
 
 from allowedsites import CachedAllowedSites
-ALLOWED_HOSTS = CachedAllowedSites(
+
+
+# Django 5 enforces isinstance(ALLOWED_HOSTS, (list, tuple)) at settings-load
+# time. CachedAllowedSites provides __contains__/__iter__ (which is all the
+# host-matching logic in HttpRequest.validate_host() actually uses) but is not
+# a list/tuple subclass, so Django 5 rejects it outright.
+#
+# Wrap it in a list subclass so the isinstance check passes while preserving
+# dynamic host resolution via the wrapped object's __contains__.
+class _DynamicAllowedHosts(list):
+    def __init__(self, inner):
+        super().__init__()
+        self._inner = inner
+    def __contains__(self, item):
+        return item in self._inner
+    def __iter__(self):
+        return iter(self._inner)
+    def __bool__(self):
+        return True
+    def __repr__(self):
+        return f"_DynamicAllowedHosts({self._inner!r})"
+
+
+ALLOWED_HOSTS = _DynamicAllowedHosts(CachedAllowedSites(
     defaults=ALLOWED_SITES_DEFAULTS.union(ALLOWED_SITES_DEFAULTS_PLUS),
     dynamic_public_ip=ALLOWED_SITES_DYNAMIC_PUBLIC_IP,
     net_timeout=ALLOWED_SITES_NET_TIMEOUT,
     cache_timeout=ALLOWED_SITES_CACHE_TIMEOUT,
-)
+))
 
 # set the SITE_ID, make sure there's a fixture for the site
 SITE_ID = 1
+
+
+# Proxy-aware HTTPS detection
+#
+# Behind nginx (which terminates TLS and forwards to uwsgi as plain HTTP),
+# request.is_secure() defaults to False and CSRF middleware on Django 4+
+# refuses POSTs without matching CSRF_TRUSTED_ORIGINS. Tell Django to honor
+# the X-Forwarded-Proto header set by the bundled nginx config so
+# is_secure() correctly returns True for HTTPS-originated requests.
+#
+# Override with SSM_SECURE_PROXY_SSL_HEADER=disable on deployments that
+# don't have a trusted reverse proxy in front (in which case Django should
+# NOT trust the header — it can be forged by a direct client).
+SECURE_PROXY_SSL_HEADER_RAW = config('SSM_SECURE_PROXY_SSL_HEADER',
+                                     default='HTTP_X_FORWARDED_PROTO,https')
+if SECURE_PROXY_SSL_HEADER_RAW.lower() in {'disable', 'none', ''}:
+    SECURE_PROXY_SSL_HEADER = None
+else:
+    _hdr, _val = SECURE_PROXY_SSL_HEADER_RAW.split(',', 1)
+    SECURE_PROXY_SSL_HEADER = (_hdr.strip(), _val.strip())
+
+
+# CSRF trusted origins
+#
+# Django 4+ enforces a separate CSRF check against Origin/Referer for
+# unsafe (POST/PUT/DELETE/PATCH) requests. The host must appear in
+# CSRF_TRUSTED_ORIGINS with explicit scheme. ALLOWED_HOSTS no longer
+# implies CSRF trust (it did in Django 3.x).
+#
+# Populate via SSM_CSRF_TRUSTED_ORIGINS as comma-separated scheme+host:
+#   SSM_CSRF_TRUSTED_ORIGINS=https://admin.ss.example.com
+CSRF_TRUSTED_ORIGINS_RAW = config('SSM_CSRF_TRUSTED_ORIGINS', default='')
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in CSRF_TRUSTED_ORIGINS_RAW.split(',') if o.strip()
+]
 
 
 # Application definition
@@ -204,7 +249,8 @@ TIME_ZONE = config('SSM_TIME_ZONE', default='UTC')
 
 USE_I18N = True
 
-USE_L10N = True
+# USE_L10N was removed in Django 5.0 (deprecated since 4.0; localized
+# formatting is enabled implicitly by USE_I18N).
 
 USE_TZ = True
 
@@ -261,7 +307,12 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.{}'.format(CACHES_BACKEND),
     }
 }
-if CACHES_BACKEND == 'memcached.MemcachedCache':
+# memcached.MemcachedCache was removed in Django 4.1 (alias for the dropped
+# python-memcached driver). On Django 5 the supported drivers are
+# PyMemcacheCache (recommended, pure-python, uses pymemcache pkg) and
+# PyLibMCCache. Match any memcached.* backend so deployments setting
+# SSM_CACHES_BACKEND=memcached.PyMemcacheCache get the LOCATION wired.
+if CACHES_BACKEND.startswith('memcached.'):
     CACHES['default']['LOCATION'] = '{}:{}'.format(MEMCACHED_HOST, MEMCACHED_PORT)
 
 
