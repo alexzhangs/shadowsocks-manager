@@ -297,3 +297,33 @@ class ScriptTestCase(TestCase):
         self.assertFalse(error)
         self.assertEqual(result.returncode, 0)
         self.assertEqual(output.strip('\n'), get_buildno())
+
+
+class BaseContextCopyPatchTest(TestCase):
+    """Tests for the Python 3.14 BaseContext.__copy__ compatibility patch.
+
+    The patch is applied unconditionally at import time in settings.py when
+    sys.version_info >= (3, 14).  On older Pythons the patched function is
+    still installed on the class (it just isn't reached via the version-guard
+    branch), so we can exercise it directly to keep the lines covered.
+    """
+
+    def test_copy_returns_independent_copy(self):
+        """copy() must return a new instance whose dicts list is a distinct object."""
+        from copy import copy
+        from django.template import Context
+        ctx = Context({'key': 'value'})
+        ctx_copy = copy(ctx)
+        self.assertIsNot(ctx_copy, ctx)
+        self.assertEqual(ctx_copy.dicts, ctx.dicts)
+        self.assertIsNot(ctx_copy.dicts, ctx.dicts)
+
+    def test_copy_mutation_is_isolated(self):
+        """Mutating the copy's dicts must not affect the original."""
+        from copy import copy
+        from django.template import Context
+        ctx = Context({'key': 'value'})
+        original_dicts_len = len(ctx.dicts)
+        ctx_copy = copy(ctx)
+        ctx_copy.dicts.append({'extra': 'data'})
+        self.assertEqual(len(ctx.dicts), original_dicts_len)
