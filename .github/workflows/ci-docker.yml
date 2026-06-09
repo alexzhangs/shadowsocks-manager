@@ -22,7 +22,7 @@ jobs:
       VERSION: ${{ steps.get-version.outputs.VERSION }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Get version
         id: get-version
         run: |
@@ -56,7 +56,7 @@ jobs:
       SSM_VERSION: ${{ needs.docker-build-and-push.outputs.VERSION }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up git user
         run: |
           git config --global user.name "ci-docker.github-actions[bot]"
@@ -73,7 +73,7 @@ jobs:
       SSM_VERSION: ${{ needs.docker-build-and-push.outputs.VERSION }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Run Docker container
         run: |
           for attempt in 1 2 3; do
