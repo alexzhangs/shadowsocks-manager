@@ -297,6 +297,23 @@ LOGGING = {
 # Memcached
 
 CACHES_BACKEND = config('SSM_CACHES_BACKEND', default='locmem.LocMemCache')
+
+# Backward-compat: `memcached.MemcachedCache` (the python-memcached driver) was
+# removed in Django 4.1. Deployments upgraded in place from Django 3.x still have
+# `SSM_CACHES_BACKEND=memcached.MemcachedCache` persisted in their .ssm-env, which
+# would raise InvalidCacheBackendError on Django 5 and stop the manager booting.
+# Transparently map the dropped alias to the supported PyMemcacheCache driver so
+# existing deployments survive the upgrade without manual reconfiguration.
+if CACHES_BACKEND == 'memcached.MemcachedCache':
+    import warnings
+    warnings.warn(
+        "SSM_CACHES_BACKEND=memcached.MemcachedCache was removed in Django 4.1; "
+        "falling back to memcached.PyMemcacheCache. Set "
+        "SSM_CACHES_BACKEND=memcached.PyMemcacheCache to silence this warning.",
+        DeprecationWarning,
+    )
+    CACHES_BACKEND = 'memcached.PyMemcacheCache'
+
 MEMCACHED_HOST = config('SSM_MEMCACHED_HOST', default='localhost')
 MEMCACHED_PORT = config('SSM_MEMCACHED_PORT', default='11211')
 

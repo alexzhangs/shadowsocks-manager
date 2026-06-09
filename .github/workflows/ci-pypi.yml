@@ -47,9 +47,9 @@ jobs:
           esac
           echo "VERSION_PART=$version_part" >> $GITHUB_ENV
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
@@ -88,27 +88,25 @@ jobs:
       NEW_VERSION: ${{ needs.pypi-py3-build-and-upload.outputs.NEW_VERSION }}
     steps:
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: pip install --upgrade pip
       - name: Install from binary distribution
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 6
-          max_attempts: 3
-          retry_on: error
-          command: |
-            pip install --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+        run: |
+          for attempt in 1 2 3; do
+            timeout 360 pip install --only-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }} && break
+            echo "Attempt $attempt failed"
+            [ $attempt -lt 3 ] && sleep 5 || exit 1
+          done
       - name: Clean up for installing source distribution
         run: |
           pip list --exclude pip | awk 'NR>2 {print $1}' | xargs pip uninstall -y
       - name: Install from source distribution with PEP 517 required
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 3
-          max_attempts: 3
-          retry_on: error
-          command: |
-            pip install --use-pep517 --no-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }}
+        run: |
+          for attempt in 1 2 3; do
+            timeout 180 pip install --use-pep517 --no-binary shadowsocks-manager shadowsocks-manager==${{ env.NEW_VERSION }} && break
+            echo "Attempt $attempt failed"
+            [ $attempt -lt 3 ] && sleep 5 || exit 1
+          done
