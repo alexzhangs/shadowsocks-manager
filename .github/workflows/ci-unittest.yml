@@ -36,7 +36,7 @@ jobs:
       RUN_HISTORY: ${{ steps.check-run.outputs.RUN_HISTORY }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Check run history
         id: check-run
         env:
@@ -68,7 +68,7 @@ jobs:
           pip install --upgrade pip
           pip install tox
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Set up Python for test ${{ matrix.python-version }}
@@ -100,7 +100,7 @@ jobs:
           pip install --upgrade pip
           pip install tox
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Download all coverage data from artifacts
