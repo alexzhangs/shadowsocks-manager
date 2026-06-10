@@ -405,17 +405,34 @@ class Node(StatisticMethod):
         Updating DNS record on the fly is depends on the NameServer API which you have to set first in the domain app.
         This is a feature of [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn).
         """
-        for node in cls.objects.filter(
+        for pk in cls.objects.filter(
             is_active=True,
             sns_endpoint__isnull=False,
             sns_access_key__isnull=False,
             sns_secret_key__isnull=False,
-        ):
-            node.toggle_active()  # make the node inactive
-            time.sleep(300)  # assuming your DNS record TTL is 300 seconds
-            node.change_ip()
-            time.sleep(60)  # AWS config capture takes time
-            node.toggle_active()  # make the node active again
+        ).values_list('pk', flat=True):
+            # Re-load each iteration so concurrent admin edits (e.g. cleared
+            # credentials, manual is_active toggle) aren't silently overwritten
+            # by stale in-memory state held across the 6-minute sleep.
+            node = cls.objects.get(pk=pk)
+            if not (node.is_active and node.sns_access_key and node.sns_secret_key):
+                continue
+            node.is_active = False
+            node.save()
+            try:
+                time.sleep(300)  # wait for DNS TTL
+                node.refresh_from_db()
+                if not (node.sns_access_key and node.sns_secret_key):
+                    continue
+                node.change_ip()
+                time.sleep(60)  # AWS config capture
+            finally:
+                # Restore is_active regardless of what raised mid-cycle —
+                # otherwise an exception leaves the node stuck inactive and
+                # the next run sees it as ineligible.
+                node.refresh_from_db()
+                node.is_active = True
+                node.save()
 
 
 class NodeAccount(StatisticMethod):
@@ -1016,8 +1033,60 @@ def update_by_account(sender, instance, **kwargs):
     instance.on_update()
 
 
+def _slack_webhook_url():
+    """Return the Slack incoming-webhook URL, or '' if not configured.
+
+    Prefers settings.SSM_SLACK_WEBHOOK_URL (from the SSM_SLACK_WEBHOOK_URL env
+    var); falls back to the file $SSM_DATA_HOME/.slack-webhook so a URL can be
+    dropped onto a running container without a restart.
+    """
+    from django.conf import settings
+    import os
+    url = (getattr(settings, 'SSM_SLACK_WEBHOOK_URL', '') or '').strip()
+    if url:
+        return url
+    try:
+        path = os.path.join(os.getenv('SSM_DATA_HOME', '/var/local/ssm'), '.slack-webhook')
+        with open(path) as f:
+            return f.read().strip()
+    except Exception:
+        return ''
+
+
+def _notify_ip_change(node, old_ip, new_ip):
+    """Best-effort Slack notification when a node's public IP changes (rotation).
+
+    Fires for any public_ip change, scheduled or not, so an unexpected rotation
+    is surfaced immediately. Never raises: a notification failure must not break
+    Node.save().
+    """
+    url = _slack_webhook_url()
+    if not url:
+        return
+    try:
+        import json
+        import urllib.request
+        rec = getattr(node, 'record', None)
+        fqdn = ' (%s)' % rec.fqdn if rec is not None and getattr(rec, 'fqdn', None) else ''
+        text = ':rotating_light: VPN node *%s* IP changed: `%s` -> `%s`%s' % (
+            node.name, old_ip, new_ip, fqdn)
+        req = urllib.request.Request(
+            url, data=json.dumps({'text': text}).encode('utf-8'),
+            headers={'Content-Type': 'application/json'}, method='POST')
+        urllib.request.urlopen(req, timeout=5).read()
+    except Exception as e:
+        logger.warning('slack ip-change notify failed for %s: %s', node.name, e)
+
+
 @receiver(post_save, sender=Node)
-def update_by_node(sender, instance, **kwargs):
+def update_by_node(sender, instance, created=False, **kwargs):
+    # Notify on a real public-IP change (rotation). The post-save snapshot in
+    # Node.save() runs AFTER this receiver, so _original_public_ip still holds
+    # the prior IP here and can be compared against the just-saved value.
+    old_ip = getattr(instance, '_original_public_ip', None)
+    new_ip = instance.public_ip
+    if not created and old_ip and new_ip and old_ip != new_ip:
+        _notify_ip_change(instance, old_ip, new_ip)
     instance.on_update()
 
 

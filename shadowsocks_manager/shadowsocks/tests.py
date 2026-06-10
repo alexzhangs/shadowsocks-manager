@@ -9,7 +9,8 @@ import os
 import time
 import botocore
 from abc import abstractmethod
-from django.test import TestCase
+from unittest import mock
+from django.test import TestCase, override_settings
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 
@@ -816,3 +817,143 @@ class NodeOriginalSnapshotTestCase(AppTestCase):
         na.refresh_from_db()
         self.assertTrue(na.is_active,
             'a save that does not flip is_active should leave NodeAccount untouched')
+
+
+class NodeChangeIpsSoftlyTestCase(AppTestCase):
+    """Resilience tests for Node.change_ips_softly().
+
+    The soft-rotation loop inactivates a node, waits for the DNS TTL,
+    triggers the IP change, then reactivates it. The hardening guards two
+    failure modes seen in the IP-rotation incident:
+
+      1. If change_ip() (or anything in the cycle) raises, a finally block
+         must restore is_active=True so the node isn't left permanently
+         inactive — which also drops it from the next run's eligibility
+         filter, compounding the outage.
+      2. Each node is re-loaded and re-checked inside the loop, so a node
+         whose SNS credentials are blank is skipped instead of having a
+         rotation triggered against stale state.
+    """
+
+    def _make_node(self, name='soft-rotate-node', **kwargs):
+        defaults = dict(
+            public_ip='192.0.2.10',  # TEST-NET-1, RFC 5737
+            private_ip='10.255.255.254',
+            location='Unit Test',
+            sns_endpoint='arn:aws:sns:ap-northeast-1:0:topic',
+            sns_access_key='mock',
+            sns_secret_key='mock',
+            is_active=True,
+        )
+        defaults.update(kwargs)
+        return models.Node.objects.create(name=name, **defaults)
+
+    def test_restores_is_active_when_change_ip_raises(self):
+        """change_ip() failing mid-cycle must leave the node ACTIVE.
+
+        This is the core regression: pre-fix, an exception after the node
+        was inactivated left is_active=False permanently.
+        """
+        node = self._make_node()
+        with mock.patch('shadowsocks.models.time.sleep'), \
+                mock.patch.object(models.Node, 'change_ip',
+                                  side_effect=RuntimeError('boom')) as m_change_ip:
+            # The exception propagates out of the loop, but the finally block
+            # must already have restored is_active before it does.
+            with self.assertRaises(RuntimeError):
+                models.Node.change_ips_softly()
+        m_change_ip.assert_called_once()
+        node.refresh_from_db()
+        self.assertTrue(node.is_active,
+            'a change_ip() failure must not leave the node stuck inactive')
+
+    def test_happy_path_keeps_node_active(self):
+        """On success the node is rotated once and left active."""
+        node = self._make_node()
+        with mock.patch('shadowsocks.models.time.sleep'), \
+                mock.patch.object(models.Node, 'change_ip') as m_change_ip:
+            models.Node.change_ips_softly()
+        m_change_ip.assert_called_once()
+        node.refresh_from_db()
+        self.assertTrue(node.is_active)
+
+    def test_skips_node_with_blank_credentials(self):
+        """A node whose SNS credentials are blank is selected by the
+        not-null filter but skipped by the in-loop guard — change_ip is
+        never called and the node is left untouched (active)."""
+        node = self._make_node(name='blank-creds',
+                               sns_access_key='', sns_secret_key='')
+        with mock.patch('shadowsocks.models.time.sleep'), \
+                mock.patch.object(models.Node, 'change_ip') as m_change_ip:
+            models.Node.change_ips_softly()
+        m_change_ip.assert_not_called()
+        node.refresh_from_db()
+        self.assertTrue(node.is_active)
+
+
+class NodeIpChangeSlackNotifyTestCase(AppTestCase):
+    """A Node.public_ip change emits a best-effort Slack notification."""
+
+    def _node(self, name='slack-node', **kwargs):
+        defaults = dict(public_ip='192.0.2.10', private_ip='10.255.255.254',
+                        location='Unit Test', is_active=True)
+        defaults.update(kwargs)
+        return models.Node.objects.create(name=name, **defaults)
+
+    @override_settings(SSM_SLACK_WEBHOOK_URL='https://hooks.slack.test/abc')
+    def test_notifies_on_public_ip_change(self):
+        node = self._node()
+        with mock.patch('urllib.request.urlopen') as m_open:
+            node.public_ip = '192.0.2.20'
+            node.save()
+        self.assertEqual(m_open.call_count, 1)
+        body = m_open.call_args[0][0].data.decode('utf-8')
+        self.assertIn('192.0.2.10', body)   # old IP present
+        self.assertIn('192.0.2.20', body)   # new IP present
+
+    @override_settings(SSM_SLACK_WEBHOOK_URL='https://hooks.slack.test/abc')
+    def test_no_notify_when_ip_unchanged(self):
+        node = self._node()
+        with mock.patch('urllib.request.urlopen') as m_open:
+            node.location = 'somewhere else'  # save without touching public_ip
+            node.save()
+        m_open.assert_not_called()
+
+    def test_no_notify_when_webhook_unconfigured(self):
+        node = self._node()
+        with mock.patch('shadowsocks.models._slack_webhook_url', return_value=''), \
+                mock.patch('urllib.request.urlopen') as m_open:
+            node.public_ip = '192.0.2.30'
+            node.save()
+        m_open.assert_not_called()
+
+    @override_settings(SSM_SLACK_WEBHOOK_URL='https://hooks.slack.test/abc')
+    def test_notify_failure_does_not_break_save(self):
+        node = self._node()
+        with mock.patch('urllib.request.urlopen', side_effect=OSError('network down')):
+            node.public_ip = '192.0.2.40'
+            node.save()  # must not raise
+        node.refresh_from_db()
+        self.assertEqual(node.public_ip, '192.0.2.40')
+
+
+class CeleryRotationTaskConfigTestCase(TestCase):
+    """Guard the broker/task settings that prevent the redelivery loop.
+
+    change_ips_softly blocks the worker ~6 min; with late acks or a live AMQP
+    heartbeat the broker drops the connection mid-run and redelivers the message,
+    looping forever (the 2026 IP-rotation incident).
+    """
+
+    def test_change_ips_softly_uses_early_ack(self):
+        from shadowsocks.tasks import node_change_ips_softly
+        self.assertFalse(node_change_ips_softly.acks_late,
+            'node_change_ips_softly must early-ack: late-ack on a ~6 min blocking '
+            'task causes infinite broker redelivery')
+
+    def test_broker_heartbeat_disabled_and_single_prefetch(self):
+        from django.conf import settings
+        self.assertEqual(settings.CELERY_BROKER_HEARTBEAT, 0,
+            'a non-zero heartbeat lapses during the long blocking task and triggers '
+            'connection-drop redelivery')
+        self.assertEqual(settings.CELERY_WORKER_PREFETCH_MULTIPLIER, 1)
