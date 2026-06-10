@@ -16,11 +16,16 @@ def port_heartbeat():
 def node_change_ips():
     return Node.change_ips()
 
-# acks_late + reject_on_worker_lost: change_ips_softly runs for ~10 min per
-# node and was the task in flight when a celery worker hung in D-state during
-# the IP-rotation incident. With late acks the broker only drops the message
-# after the task finishes, and reject_on_worker_lost requeues it (instead of
-# silently discarding) if the worker is killed (e.g. `pkill -9 celery`) mid-run.
-@shared_task(acks_late=True, reject_on_worker_lost=True)
+# IMPORTANT: this task must NOT use acks_late / reject_on_worker_lost.
+# change_ips_softly blocks the worker for ~6 min per node (DNS TTL + Config
+# wait). With late acks the message stays unacked for the whole run; the
+# blocking sleep also lapses the AMQP heartbeat (see CELERY_BROKER_HEARTBEAT
+# in settings), so the broker drops the connection and REDELIVERS the still-
+# unacked message — turning one scheduled fire into an endless ~6-min rotation
+# loop (the 2026 IP-rotation incident; observed redelivered=N/N in the queue).
+# Early ack (the default) means the message is acked at delivery: a worker
+# dying mid-run loses only that single run — recovered by the next schedule and
+# the is_active finally-guard in change_ips_softly — instead of looping forever.
+@shared_task(acks_late=False)
 def node_change_ips_softly():
     return Node.change_ips_softly()
