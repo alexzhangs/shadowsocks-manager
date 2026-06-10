@@ -10,7 +10,7 @@ import time
 import botocore
 from abc import abstractmethod
 from unittest import mock
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 
@@ -889,3 +889,71 @@ class NodeChangeIpsSoftlyTestCase(AppTestCase):
         m_change_ip.assert_not_called()
         node.refresh_from_db()
         self.assertTrue(node.is_active)
+
+
+class NodeIpChangeSlackNotifyTestCase(AppTestCase):
+    """A Node.public_ip change emits a best-effort Slack notification."""
+
+    def _node(self, name='slack-node', **kwargs):
+        defaults = dict(public_ip='192.0.2.10', private_ip='10.255.255.254',
+                        location='Unit Test', is_active=True)
+        defaults.update(kwargs)
+        return models.Node.objects.create(name=name, **defaults)
+
+    @override_settings(SSM_SLACK_WEBHOOK_URL='https://hooks.slack.test/abc')
+    def test_notifies_on_public_ip_change(self):
+        node = self._node()
+        with mock.patch('urllib.request.urlopen') as m_open:
+            node.public_ip = '192.0.2.20'
+            node.save()
+        self.assertEqual(m_open.call_count, 1)
+        body = m_open.call_args[0][0].data.decode('utf-8')
+        self.assertIn('192.0.2.10', body)   # old IP present
+        self.assertIn('192.0.2.20', body)   # new IP present
+
+    @override_settings(SSM_SLACK_WEBHOOK_URL='https://hooks.slack.test/abc')
+    def test_no_notify_when_ip_unchanged(self):
+        node = self._node()
+        with mock.patch('urllib.request.urlopen') as m_open:
+            node.location = 'somewhere else'  # save without touching public_ip
+            node.save()
+        m_open.assert_not_called()
+
+    def test_no_notify_when_webhook_unconfigured(self):
+        node = self._node()
+        with mock.patch('shadowsocks.models._slack_webhook_url', return_value=''), \
+                mock.patch('urllib.request.urlopen') as m_open:
+            node.public_ip = '192.0.2.30'
+            node.save()
+        m_open.assert_not_called()
+
+    @override_settings(SSM_SLACK_WEBHOOK_URL='https://hooks.slack.test/abc')
+    def test_notify_failure_does_not_break_save(self):
+        node = self._node()
+        with mock.patch('urllib.request.urlopen', side_effect=OSError('network down')):
+            node.public_ip = '192.0.2.40'
+            node.save()  # must not raise
+        node.refresh_from_db()
+        self.assertEqual(node.public_ip, '192.0.2.40')
+
+
+class CeleryRotationTaskConfigTestCase(TestCase):
+    """Guard the broker/task settings that prevent the redelivery loop.
+
+    change_ips_softly blocks the worker ~6 min; with late acks or a live AMQP
+    heartbeat the broker drops the connection mid-run and redelivers the message,
+    looping forever (the 2026 IP-rotation incident).
+    """
+
+    def test_change_ips_softly_uses_early_ack(self):
+        from shadowsocks.tasks import node_change_ips_softly
+        self.assertFalse(node_change_ips_softly.acks_late,
+            'node_change_ips_softly must early-ack: late-ack on a ~6 min blocking '
+            'task causes infinite broker redelivery')
+
+    def test_broker_heartbeat_disabled_and_single_prefetch(self):
+        from django.conf import settings
+        self.assertEqual(settings.CELERY_BROKER_HEARTBEAT, 0,
+            'a non-zero heartbeat lapses during the long blocking task and triggers '
+            'connection-drop redelivery')
+        self.assertEqual(settings.CELERY_WORKER_PREFETCH_MULTIPLIER, 1)

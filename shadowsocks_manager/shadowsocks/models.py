@@ -1033,8 +1033,60 @@ def update_by_account(sender, instance, **kwargs):
     instance.on_update()
 
 
+def _slack_webhook_url():
+    """Return the Slack incoming-webhook URL, or '' if not configured.
+
+    Prefers settings.SSM_SLACK_WEBHOOK_URL (from the SSM_SLACK_WEBHOOK_URL env
+    var); falls back to the file $SSM_DATA_HOME/.slack-webhook so a URL can be
+    dropped onto a running container without a restart.
+    """
+    from django.conf import settings
+    import os
+    url = (getattr(settings, 'SSM_SLACK_WEBHOOK_URL', '') or '').strip()
+    if url:
+        return url
+    try:
+        path = os.path.join(os.getenv('SSM_DATA_HOME', '/var/local/ssm'), '.slack-webhook')
+        with open(path) as f:
+            return f.read().strip()
+    except Exception:
+        return ''
+
+
+def _notify_ip_change(node, old_ip, new_ip):
+    """Best-effort Slack notification when a node's public IP changes (rotation).
+
+    Fires for any public_ip change, scheduled or not, so an unexpected rotation
+    is surfaced immediately. Never raises: a notification failure must not break
+    Node.save().
+    """
+    url = _slack_webhook_url()
+    if not url:
+        return
+    try:
+        import json
+        import urllib.request
+        rec = getattr(node, 'record', None)
+        fqdn = ' (%s)' % rec.fqdn if rec is not None and getattr(rec, 'fqdn', None) else ''
+        text = ':rotating_light: VPN node *%s* IP changed: `%s` -> `%s`%s' % (
+            node.name, old_ip, new_ip, fqdn)
+        req = urllib.request.Request(
+            url, data=json.dumps({'text': text}).encode('utf-8'),
+            headers={'Content-Type': 'application/json'}, method='POST')
+        urllib.request.urlopen(req, timeout=5).read()
+    except Exception as e:
+        logger.warning('slack ip-change notify failed for %s: %s', node.name, e)
+
+
 @receiver(post_save, sender=Node)
-def update_by_node(sender, instance, **kwargs):
+def update_by_node(sender, instance, created=False, **kwargs):
+    # Notify on a real public-IP change (rotation). The post-save snapshot in
+    # Node.save() runs AFTER this receiver, so _original_public_ip still holds
+    # the prior IP here and can be compared against the just-saved value.
+    old_ip = getattr(instance, '_original_public_ip', None)
+    new_ip = instance.public_ip
+    if not created and old_ip and new_ip and old_ip != new_ip:
+        _notify_ip_change(instance, old_ip, new_ip)
     instance.on_update()
 
 
