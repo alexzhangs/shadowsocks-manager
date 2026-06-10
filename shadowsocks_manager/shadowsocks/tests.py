@@ -9,6 +9,7 @@ import os
 import time
 import botocore
 from abc import abstractmethod
+from unittest import mock
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
@@ -816,3 +817,75 @@ class NodeOriginalSnapshotTestCase(AppTestCase):
         na.refresh_from_db()
         self.assertTrue(na.is_active,
             'a save that does not flip is_active should leave NodeAccount untouched')
+
+
+class NodeChangeIpsSoftlyTestCase(AppTestCase):
+    """Resilience tests for Node.change_ips_softly().
+
+    The soft-rotation loop inactivates a node, waits for the DNS TTL,
+    triggers the IP change, then reactivates it. The hardening guards two
+    failure modes seen in the IP-rotation incident:
+
+      1. If change_ip() (or anything in the cycle) raises, a finally block
+         must restore is_active=True so the node isn't left permanently
+         inactive — which also drops it from the next run's eligibility
+         filter, compounding the outage.
+      2. Each node is re-loaded and re-checked inside the loop, so a node
+         whose SNS credentials are blank is skipped instead of having a
+         rotation triggered against stale state.
+    """
+
+    def _make_node(self, name='soft-rotate-node', **kwargs):
+        defaults = dict(
+            public_ip='192.0.2.10',  # TEST-NET-1, RFC 5737
+            private_ip='10.255.255.254',
+            location='Unit Test',
+            sns_endpoint='arn:aws:sns:ap-northeast-1:0:topic',
+            sns_access_key='mock',
+            sns_secret_key='mock',
+            is_active=True,
+        )
+        defaults.update(kwargs)
+        return models.Node.objects.create(name=name, **defaults)
+
+    def test_restores_is_active_when_change_ip_raises(self):
+        """change_ip() failing mid-cycle must leave the node ACTIVE.
+
+        This is the core regression: pre-fix, an exception after the node
+        was inactivated left is_active=False permanently.
+        """
+        node = self._make_node()
+        with mock.patch('shadowsocks.models.time.sleep'), \
+                mock.patch.object(models.Node, 'change_ip',
+                                  side_effect=RuntimeError('boom')) as m_change_ip:
+            # The exception propagates out of the loop, but the finally block
+            # must already have restored is_active before it does.
+            with self.assertRaises(RuntimeError):
+                models.Node.change_ips_softly()
+        m_change_ip.assert_called_once()
+        node.refresh_from_db()
+        self.assertTrue(node.is_active,
+            'a change_ip() failure must not leave the node stuck inactive')
+
+    def test_happy_path_keeps_node_active(self):
+        """On success the node is rotated once and left active."""
+        node = self._make_node()
+        with mock.patch('shadowsocks.models.time.sleep'), \
+                mock.patch.object(models.Node, 'change_ip') as m_change_ip:
+            models.Node.change_ips_softly()
+        m_change_ip.assert_called_once()
+        node.refresh_from_db()
+        self.assertTrue(node.is_active)
+
+    def test_skips_node_with_blank_credentials(self):
+        """A node whose SNS credentials are blank is selected by the
+        not-null filter but skipped by the in-loop guard — change_ip is
+        never called and the node is left untouched (active)."""
+        node = self._make_node(name='blank-creds',
+                               sns_access_key='', sns_secret_key='')
+        with mock.patch('shadowsocks.models.time.sleep'), \
+                mock.patch.object(models.Node, 'change_ip') as m_change_ip:
+            models.Node.change_ips_softly()
+        m_change_ip.assert_not_called()
+        node.refresh_from_db()
+        self.assertTrue(node.is_active)

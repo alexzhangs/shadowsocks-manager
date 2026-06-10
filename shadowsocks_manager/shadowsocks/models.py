@@ -405,17 +405,34 @@ class Node(StatisticMethod):
         Updating DNS record on the fly is depends on the NameServer API which you have to set first in the domain app.
         This is a feature of [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn).
         """
-        for node in cls.objects.filter(
+        for pk in cls.objects.filter(
             is_active=True,
             sns_endpoint__isnull=False,
             sns_access_key__isnull=False,
             sns_secret_key__isnull=False,
-        ):
-            node.toggle_active()  # make the node inactive
-            time.sleep(300)  # assuming your DNS record TTL is 300 seconds
-            node.change_ip()
-            time.sleep(60)  # AWS config capture takes time
-            node.toggle_active()  # make the node active again
+        ).values_list('pk', flat=True):
+            # Re-load each iteration so concurrent admin edits (e.g. cleared
+            # credentials, manual is_active toggle) aren't silently overwritten
+            # by stale in-memory state held across the 6-minute sleep.
+            node = cls.objects.get(pk=pk)
+            if not (node.is_active and node.sns_access_key and node.sns_secret_key):
+                continue
+            node.is_active = False
+            node.save()
+            try:
+                time.sleep(300)  # wait for DNS TTL
+                node.refresh_from_db()
+                if not (node.sns_access_key and node.sns_secret_key):
+                    continue
+                node.change_ip()
+                time.sleep(60)  # AWS config capture
+            finally:
+                # Restore is_active regardless of what raised mid-cycle —
+                # otherwise an exception leaves the node stuck inactive and
+                # the next run sees it as ineligible.
+                node.refresh_from_db()
+                node.is_active = True
+                node.save()
 
 
 class NodeAccount(StatisticMethod):
