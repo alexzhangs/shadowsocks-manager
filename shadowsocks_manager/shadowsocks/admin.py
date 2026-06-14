@@ -9,6 +9,7 @@ from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from admin_lazy_load import LazyLoadAdminMixin
 
+from . import ciphers
 from .models import Config, Node, Account, NodeAccount, SSManager
 
 
@@ -219,5 +220,21 @@ class AccountAdmin(ImportExportModelAdmin):
 
     add_all_nodes.short_description = 'Add All Nodes to Selected Shadowsocks Accounts'
 
-    actions = (toggle_active, notify, add_all_nodes,)
+    def generate_ss2022_password(self, request, queryset):
+        for obj in queryset:
+            # Use the cipher of an assigned Shadowsocks-2022 node if there is one,
+            # otherwise default to the recommended 32-byte 2022-blake3-aes-256-gcm.
+            method = '2022-blake3-aes-256-gcm'
+            for na in obj.nodes_ref.all():
+                ssmanager = na.node.ssmanager
+                if ssmanager and ciphers.is_2022(ssmanager.encrypt):
+                    method = ssmanager.encrypt
+                    break
+            obj.password = ciphers.generate_password(method)
+            obj.save()
+            messages.info(request, '{}: generated a {} PSK.'.format(obj, method))
+
+    generate_ss2022_password.short_description = 'Generate Shadowsocks-2022 password (PSK) for Selected Shadowsocks Accounts'
+
+    actions = (toggle_active, notify, add_all_nodes, generate_ss2022_password,)
     resource_class = AccountResource
