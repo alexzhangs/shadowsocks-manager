@@ -7,6 +7,8 @@ from __future__ import absolute_import
 import json
 import os
 import time
+import base64
+import unittest
 import botocore
 from abc import abstractmethod
 from django.test import TestCase
@@ -16,7 +18,7 @@ from django.core.management import call_command
 from domain.models import Record
 from domain.tests import AppTestCase as DomainAppTestCase
 from notification.tests import AppTestCase as NotificationAppTestCase
-from shadowsocks import models, serializers
+from shadowsocks import models, serializers, ciphers
 
 
 import logging
@@ -57,12 +59,21 @@ The following environment variables are required to run some of the tests:
     The service requires the shadowsocks-libev edition rather than the shadowsocks-python edition.
 
 
+  * SSM_TEST_SS_MGR_RUST=1          # run the tests against a shadowsocks-rust ssmanager (SS-2022)
+
+    The rust ssmanager should be running outside the tests, e.g.:
+    * ssmanager --manager-address 127.0.0.1:$SSM_TEST_SS_MGR_RUST_PORT -m 2022-blake3-aes-256-gcm -s 127.0.0.1 -U
+    See the alexzhangs/shadowsocks-rust image; tox.ini launches it automatically.
+
+
 The following environment variables are optional used to override the default values:
 
   * SSM_TEST_SS_MGR_PRIVATE_IP      # The private ip address of the ss-manager.
   * SSM_TEST_SS_MGR_PORT            # The port number of the ss-manager.
   * SSM_TEST_SS_PORT_BEGIN          # The beginning port number of the shadowsocks-libev edition manager.
   * SSM_TEST_SS_PORT_END            # The ending port number of the shadowsocks-libev edition manager.
+  * SSM_TEST_SS_MGR_RUST_PORT       # The port number of the rust ssmanager (default 6004).
+  * SSM_TEST_SS_2022_METHOD         # The SS-2022 cipher to test (default 2022-blake3-aes-256-gcm).
 
 
 Feature matrix for methods in unittest.TestCase class:
@@ -103,6 +114,14 @@ SS_MGR_PRIVATE_IP = os.getenv('SSM_TEST_SS_MGR_PRIVATE_IP') or get_private_ip()
 SS_MGR_PORT = os.getenv('SSM_TEST_SS_MGR_PORT')
 SS_PORT_BEGIN = os.getenv('SSM_TEST_SS_PORT_BEGIN')
 SS_PORT_END = os.getenv('SSM_TEST_SS_PORT_END')
+
+# Shadowsocks-2022 (rust edition) end-to-end tests. Enabled when a rust ssmanager
+# is running outside the tests (see tox.ini), e.g.:
+#   ssmanager --manager-address 127.0.0.1:$SSM_TEST_SS_MGR_RUST_PORT \
+#       -m 2022-blake3-aes-256-gcm -s 127.0.0.1 -U
+SS_MGR_RUST = os.getenv('SSM_TEST_SS_MGR_RUST')
+SS_MGR_RUST_PORT = os.getenv('SSM_TEST_SS_MGR_RUST_PORT')
+SS_2022_METHOD = os.getenv('SSM_TEST_SS_2022_METHOD') or '2022-blake3-aes-256-gcm'
 
 
 class BaseTestCase(TestCase):
@@ -816,3 +835,144 @@ class NodeOriginalSnapshotTestCase(AppTestCase):
         na.refresh_from_db()
         self.assertTrue(na.is_active,
             'a save that does not flip is_active should leave NodeAccount untouched')
+
+
+class CiphersTestCase(TestCase):
+    """
+    Unit tests for the shadowsocks.ciphers helpers (no DB or server needed).
+    """
+
+    def test_is_2022(self):
+        self.assertTrue(ciphers.is_2022('2022-blake3-aes-256-gcm'))
+        self.assertTrue(ciphers.is_2022('2022-blake3-aes-128-gcm'))
+        self.assertTrue(ciphers.is_2022('2022-blake3-chacha20-poly1305'))
+        self.assertFalse(ciphers.is_2022('aes-256-gcm'))
+        self.assertFalse(ciphers.is_2022(''))
+        self.assertFalse(ciphers.is_2022(None))
+
+    def test_key_size(self):
+        self.assertEqual(ciphers.key_size('2022-blake3-aes-128-gcm'), 16)
+        self.assertEqual(ciphers.key_size('2022-blake3-aes-256-gcm'), 32)
+        self.assertEqual(ciphers.key_size('2022-blake3-chacha20-poly1305'), 32)
+        self.assertIsNone(ciphers.key_size('aes-256-gcm'))
+
+    def test_generate_password_2022_lengths(self):
+        for method, size in ciphers.AEAD_2022_METHODS.items():
+            pw = ciphers.generate_password(method)
+            raw = base64.b64decode(pw, validate=True)
+            self.assertEqual(len(raw), size, method)
+            # generated PSK must validate for its own method
+            self.assertTrue(ciphers.is_valid_password(method, pw), method)
+
+    def test_generate_password_legacy(self):
+        pw = ciphers.generate_password('aes-256-gcm')
+        self.assertEqual(len(pw), ciphers.DEFAULT_PASSWORD_LENGTH)
+        self.assertTrue(pw.isalnum())
+        pw_none = ciphers.generate_password(None)
+        self.assertEqual(len(pw_none), ciphers.DEFAULT_PASSWORD_LENGTH)
+
+    def test_is_valid_password(self):
+        method = '2022-blake3-aes-256-gcm'
+        # right size
+        self.assertTrue(ciphers.is_valid_password(method, base64.b64encode(b'0' * 32).decode()))
+        # wrong size (16 bytes for a 32-byte method)
+        self.assertFalse(ciphers.is_valid_password(method, base64.b64encode(b'0' * 16).decode()))
+        # not base64
+        self.assertFalse(ciphers.is_valid_password(method, 'not!base64!'))
+        # legacy method accepts any non-empty password
+        self.assertTrue(ciphers.is_valid_password('aes-256-gcm', 'anything'))
+        self.assertFalse(ciphers.is_valid_password('aes-256-gcm', ''))
+
+
+@unittest.skipUnless(SS_MGR_RUST == '1',
+    'set SSM_TEST_SS_MGR_RUST=1 with a running rust ssmanager to enable')
+class SSManagerRust2022TestCase(AppTestCase):
+    """
+    End-to-end tests against a real shadowsocks-rust `ssmanager` running a
+    Shadowsocks-2022 cipher (alexzhangs/shadowsocks-rust image). Validates that the
+    Django Manager-API client (add/list/remove/ping) drives the rust edition the same
+    way it drives libev, and that SS-2022 PSKs round-trip.
+    """
+
+    NODE_NAME = 'ss-rust-localhost'
+
+    @classmethod
+    def up(cls):
+        node = models.Node(
+            name=cls.NODE_NAME,
+            record=None,
+            public_ip='127.0.0.1',
+            private_ip='127.0.0.1',
+            location='Local',
+            is_active=True,
+        )
+        node.save()
+        ssmanager = models.SSManager(
+            node=node,
+            interface=models.InterfaceList.LOCALHOST,
+            encrypt=SS_2022_METHOD,
+            server_edition=models.ServerEditionList.RUST,
+            is_v2ray_enabled=False,
+        )
+        if SS_MGR_RUST_PORT:
+            ssmanager.port = int(SS_MGR_RUST_PORT)
+        ssmanager.save()
+
+    @classmethod
+    def setUpTestData(cls):
+        # Isolated: only this case's node/manager, not the shared allup() set.
+        cls.up()
+
+    def _mgr(self):
+        return models.SSManager.objects.get(node__name=self.NODE_NAME)
+
+    def test_rust_ssmanager_is_accessible(self):
+        self.assertTrue(self._mgr().is_accessible)
+
+    def test_rust_ssmanager_add_list_remove_with_psk(self):
+        obj = self._mgr()
+        port = 8391
+        psk = ciphers.generate_password(SS_2022_METHOD)
+        obj.add(port, psk)
+        # is_port_created() goes through the `list` Manager-API command and exercises
+        # the rust(int)-vs-libev(str) server_port comparison fix.
+        self.assertTrue(obj.is_port_created(port))
+        self.assertTrue(obj.is_port_created_or_accessible(port))
+        # the PSK we sent must come back verbatim in `list`
+        listed = {str(item['server_port']): item['password'] for item in obj.list()}
+        self.assertEqual(listed.get(str(port)), psk)
+
+        obj.remove(port)
+        self.assertFalse(obj.is_port_created(port))
+
+    def test_rust_ssmanager_edition_string(self):
+        self.assertEqual(
+            str(models.ServerEditionList.label(self._mgr().server_edition)), 'rust')
+
+    def test_2022_cipher_requires_rust_edition(self):
+        # A 2022 cipher on a non-rust edition must fail validation.
+        bad = models.SSManager(
+            node=self._mgr().node,
+            interface=models.InterfaceList.LOCALHOST,
+            encrypt=SS_2022_METHOD,
+            server_edition=models.ServerEditionList.LIBEV,
+        )
+        self.assertRaises(ValidationError, bad.clean)
+
+    def test_account_psk_validation_on_2022_node(self):
+        # An account assigned to a 2022 node must carry a valid Base64 PSK.
+        node = self._mgr().node
+        config = models.Config.load()
+        acc = models.Account(username=str(config.port_begin))  # in the configured port range
+        acc.password = 'not-a-valid-psk'
+        acc.save()
+        # is_active=False so creating the link does not try to add to the live server.
+        models.NodeAccount.objects.create(node=node, account=acc, is_active=False)
+        acc.refresh_from_db()
+
+        # invalid (non-PSK) password on a 2022 node must fail clean()
+        self.assertRaises(ValidationError, acc.clean)
+
+        # a conforming PSK passes clean()
+        acc.password = ciphers.generate_password(SS_2022_METHOD)
+        acc.clean()
