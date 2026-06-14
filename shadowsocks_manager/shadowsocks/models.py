@@ -26,6 +26,8 @@ from dynamicmethod.models import DynamicMethodModel
 from notification.models import Template, Notify
 from domain.models import Record
 
+from . import ciphers
+
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +121,20 @@ class Account(User, StatisticMethod):
         if int(self.username) not in list(range(config.port_begin, config.port_end + 1)):
             raise ValidationError(_('Port number must be in the range of Config: '
                 'port_begin(%s) and port_end(%s)' % (config.port_begin, config.port_end)))
+
+        # For accounts assigned to any node using a Shadowsocks-2022 cipher, the
+        # password must be a valid Base64 PSK of that cipher's key size; otherwise
+        # the rust server silently rejects the port. Validate here for a clear error.
+        # (Only enforceable once the account is saved and has node assignments.)
+        if self.pk:
+            for na in self.nodes_ref.all():
+                ssmanager = na.node.ssmanager
+                if ssmanager and ciphers.is_2022(ssmanager.encrypt) \
+                        and not ciphers.is_valid_password(ssmanager.encrypt, self.password):
+                    raise ValidationError({'password': [_('Node "%s" uses the Shadowsocks-2022 '
+                        'cipher "%s"; the password must be a Base64 key of %s bytes. Use the '
+                        '"Generate Shadowsocks-2022 password" account action.'
+                        % (na.node.name, ssmanager.encrypt, ciphers.key_size(ssmanager.encrypt)))]})
 
     def save(self, *args, **kwargs):
         ret = super(Account, self).save(*args, **kwargs)
@@ -542,10 +558,12 @@ class InterfaceList(enum.Enum):
 class ServerEditionList(enum.Enum):
     LIBEV = 1
     PYTHON = 2
+    RUST = 3
 
     __labels__ = {
         LIBEV: "libev",
         PYTHON: "python",
+        RUST: "rust",
     }
 
 
@@ -561,9 +579,12 @@ class SSManager(models.Model):
             'aes-128-cfb, aes-192-cfb, aes-256-cfb, aes-128-ctr, aes-192-ctr, aes-256-ctr, '
             'camellia-128-cfb, camellia-192-cfb, camellia-256-cfb, bf-cfb, chacha20-ietf-poly1305, '
             'xchacha20-ietf-poly1305, salsa20, chacha20 and chacha20-ietf. '
+            'Shadowsocks-2022 ciphers (require the rust server edition): '
+            '2022-blake3-aes-128-gcm, 2022-blake3-aes-256-gcm, 2022-blake3-chacha20-poly1305. '
             'The changes made here will not affect the plugin status on server.')
     server_edition = enum.EnumField(ServerEditionList, default=ServerEditionList.LIBEV,
-        help_text='The Shadowsocks server edition. The libev edition is recommended.')
+        help_text='The Shadowsocks server edition. The libev edition is recommended for the '
+            'classic ciphers; the rust edition is required for the Shadowsocks-2022 ciphers.')
     is_v2ray_enabled = models.BooleanField(default=False,
         help_text='Whether the v2ray-plugin is enabled for Shadowsocks server. The changes made here will not '
             'affect the plugin status on server.')
@@ -586,6 +607,10 @@ class SSManager(models.Model):
             raise ValidationError({
                 self.node.get_ip_field_by_interface(self.interface):
                 [_('There is no IP address set for selected interface on the node.')]})
+        # Shadowsocks-2022 ciphers are only implemented by the rust server edition.
+        if ciphers.is_2022(self.encrypt) and self.server_edition != ServerEditionList.RUST:
+            raise ValidationError({'encrypt': [_('The Shadowsocks-2022 cipher "%s" requires the '
+                'rust server edition.' % self.encrypt)]})
 
     @property
     def _ip(self):
@@ -664,10 +689,10 @@ class SSManager(models.Model):
         """
         Manager API command: `list`.
         List all users with password.
-        Works only for libev edition.
+        Works for the libev and rust editions.
         This is an undocumented Shadowsocks Manager Command, but works.
         """
-        if self.server_edition == ServerEditionList.LIBEV:
+        if self.server_edition in (ServerEditionList.LIBEV, ServerEditionList.RUST):
             command = 'list'
             return self.call(command, read=True)
 
@@ -779,7 +804,9 @@ class SSManager(models.Model):
         """
         items = self.list_ex()
         if isinstance(items, list):
-            return any(item['server_port'] == str(port) for item in items)
+            # libev returns server_port as a string ("8381"); rust returns it as an
+            # integer (8381). Compare as strings so both editions match.
+            return any(str(item['server_port']) == str(port) for item in items)
         else:
             return None
 

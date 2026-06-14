@@ -181,6 +181,39 @@ Shadowsocks Accounts` and assign the existing nodes to them.
     After a few seconds, the created user ports should be available to your
 Shadowsocks client.
 
+### 3.1. Shadowsocks-2022 (SS-2022) with the rust edition
+
+The classic ciphers above run on the `libev` server edition. shadowsocks-libev does
+**not** implement the Shadowsocks-2022 (SIP022 AEAD-2022) ciphers
+(`2022-blake3-aes-256-gcm` and friends), which are highly censorship-resistant.
+
+For SS-2022, use the `rust` server edition, backed by the
+[alexzhangs/shadowsocks-rust](https://github.com/alexzhangs/shadowsocks-rust) image. Its
+`ssmanager` speaks the same multi-user Manager API, so everything else works unchanged.
+
+1. Run the rust manager instead of the libev one:
+
+    ```sh
+    MGR_PORT=6001
+    ENCRYPT=2022-blake3-aes-256-gcm
+    docker run -d -p $MGR_PORT:$MGR_PORT/UDP \
+        --network ssm-network --name ssm-ss-rust alexzhangs/shadowsocks-rust \
+        ssmanager --manager-address 0.0.0.0:$MGR_PORT -m $ENCRYPT -s 0.0.0.0 -U
+    ```
+
+2. Add the Node, then on its Shadowsocks Manager set **Server edition** to `rust` and
+**Encrypt** to a SS-2022 method (e.g. `2022-blake3-aes-256-gcm`).
+
+3. Create accounts as usual. For SS-2022 the account **password must be a Base64 PSK** of
+the cipher's key size (32 bytes for the `aes-256`/`chacha20` methods, 16 bytes for
+`aes-128`). Select the accounts and run the admin action **"Generate Shadowsocks-2022
+password (PSK)"** to fill conforming PSKs automatically; the portal also rejects a
+non-conforming password for a SS-2022 node with a clear error.
+
+When deploying through [aws-cfn-vpn](https://github.com/alexzhangs/aws-cfn-vpn), set the
+stack parameter `SSEdition=rust` together with a SS-2022 `SSEncrypt` value, and the node
+provisions and self-registers as a rust/SS-2022 node automatically.
+
 
 ## 4. Sendmail (Optional)
 
