@@ -340,3 +340,20 @@ CELERY_RESULT_BACKEND = 'django-db'
 CELERY_CACHE_BACKEND = 'django-cache'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BROKER_URL = 'amqp://guest:guest@{}:{}//'.format(RABBITMQ_HOST, RABBITMQ_PORT)
+
+# shadowsocks.tasks.node_change_ips_softly blocks the worker ~6 min per node
+# (5 min DNS TTL + 1 min AWS Config wait). The default 120s AMQP heartbeat would
+# lapse during that blocking sleep, so the broker drops the connection and
+# REDELIVERS the in-flight message — turning one scheduled rotation into an
+# endless ~6-min loop (the 2026 IP-rotation incident). Disable the heartbeat so a
+# long blocking task can't kill the connection, and prefetch one task at a time so
+# there are no prefetched siblings to requeue either.
+# (Proper long-term fix: make change_ips_softly non-blocking via chained tasks
+#  with apply_async(countdown=...). Tracked as a follow-up.)
+CELERY_BROKER_HEARTBEAT = 0
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
+# Optional Slack incoming-webhook URL for IP-rotation alerts (empty => disabled).
+# Falls back to the file $SSM_DATA_HOME/.slack-webhook when this env var is unset,
+# so a URL can be dropped onto a running container without a restart.
+SSM_SLACK_WEBHOOK_URL = config('SSM_SLACK_WEBHOOK_URL', default='')
